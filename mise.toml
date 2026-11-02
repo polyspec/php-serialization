@@ -1,0 +1,10 @@
+# The tools that mise installs into var/tools/mise: `make toolchain-lock` writes their digests into mise.lock and
+# `make install-tools` installs them with `mise install --locked`. node, npm and python are at the pins of kit.
+[tools]
+node = "26.12.0"
+"npm:npm" = "12.2.0"
+python = "3.14.8"
+uv = "0.12.24"
+ruff = "0.17.2"
+"github:asamarts/alint" = "0.18.2"
+"pypi:vulture" = "2.16"

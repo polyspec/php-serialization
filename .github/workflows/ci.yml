@@ -1,0 +1,21 @@
+# CI: one pipeline (PRINCIPLES S12). The job kit calls the workflow that kit gives this repository (ci-pipeline.yml, a copy of
+# make kit-sync), which runs the gates of kit-gates once and, in each of its jobs, the targets that config/ci.json declares for
+# that job. The release workflow releases the commit whose run of this workflow is green.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  kit:
+    uses: ./.github/workflows/ci-pipeline.yml

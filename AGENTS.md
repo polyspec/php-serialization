@@ -1,0 +1,24 @@
+<!-- doc-id: development -->
+# Development procedure
+
+[한국어](AGENTS.ko.md)
+
+The working principles of every polyspec repository are in [PRINCIPLES.md](PRINCIPLES.md). This document states the rules of this repository only.
+
+<a id="reference"></a>
+## Reference
+
+- Own: PHP is the reference of the format. A difference from PHP is a defect of the package; a deliberate refusal is listed in [the specification](docs/spec/php-serialize.md#refused) and in the entries `stricter` of the contract.
+  Enforced by: `make contracts-check`, `make fuzz`
+- Own: Records name PHP as the only source of the format and describe this repository only.
+  Enforced by: none, the wording of records is a judgement.
+- Own: The contract holds data that real PHP writes and no shape of a language, so a new runtime is a new package under `packages/` and one entry of `config/parity.json`.
+  Enforced by: `make parity-declarations-check`
+
+<a id="tools"></a>
+## Tools
+
+- Own: The shared tools come from the npm package `@polyspec/kit`, pinned to its release asset; the copies of its `kit.copies` are written by `make kit-sync` and never edited here.
+  Enforced by: `make kit-check`
+- Own: Development runs the Red and Green unit tests that own a change; CI runs the full suite on every push to `main`.
+  Enforced by: none, a local run is not observed by a tool.

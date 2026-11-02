@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "comment": "The checks that own each tracked path, read by owner-check of @polyspec/kit.",
+  "owners": [
+    {
+      "paths": [
+        "**/*.md",
+        "config/documents.json"
+      ],
+      "targets": [
+        "docs-check"
+      ]
+    },
+    {
+      "paths": [
+        "docs/plans/execution/checklist.md",
+        "docs/plans/execution/checklist.ko.md"
+      ],
+      "targets": [
+        "docs-check"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/*.mts",
+        ".gitignore",
+        "Makefile",
+        "tsconfig.json"
+      ],
+      "targets": [
+        "typecheck"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/contracts.mts",
+        "scripts/php-tree.mts",
+        "contracts/php-serialize.json",
+        ".php-version"
+      ],
+      "targets": [
+        "contracts-check"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/fuzz.mts",
+        "packages/js/index.js",
+        "packages/js/tests/*",
+        "packages/python/src/polyspec/php_serialize/*",
+        "packages/python/tests/*"
+      ],
+      "targets": [
+        "fuzz"
+      ]
+    },
+    {
+      "paths": [
+        "package.json",
+        "packages/js/package.json",
+        "packages/python/pyproject.toml",
+        "config/release.json",
+        "CHANGELOG.md",
+        "CHANGELOG.ko.md"
+      ],
+      "targets": [
+        "release-coverage"
+      ]
+    },
+    {
+      "paths": [
+        ".github/workflows/*.yml",
+        ".github/actions/**"
+      ],
+      "targets": [
+        "kit-check"
+      ]
+    },
+    {
+      "paths": [
+        ".githooks/pre-commit",
+        ".githooks/commit-msg",
+        "config/checklist.json",
+        "config/owner-checks.json"
+      ],
+      "targets": [
+        "hooks-check",
+        "owner-validate"
+      ]
+    },
+    {
+      "paths": [
+        ".claude/settings.json",
+        "PRINCIPLES.md",
+        "PRINCIPLES.ko.md",
+        ".editorconfig",
+        "package-lock.json",
+        "config/*.json",
+        "config/*.yml",
+        "LICENSE",
+        "packages/js/LICENSE",
+        "packages/python/LICENSE",
+        "mise.toml",
+        "mise.lock",
+        ".mise/**"
+      ],
+      "targets": [
+        "kit-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/parity.json",
+        "packages/**",
+        "docs/spec/*.md"
+      ],
+      "targets": [
+        "parity-declarations-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/layout.yml"
+      ],
+      "targets": [
+        "layout-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/rebuild.json"
+      ],
+      "targets": [
+        "rebuild-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/duplication.json"
+      ],
+      "targets": [
+        "duplication-check"
+      ]
+    },
+    {
+      "paths": [
+        "**/*.mts",
+        "**/*.mjs",
+        "**/*.js",
+        "**/*.ts"
+      ],
+      "targets": [
+        "lint-ts",
+        "duplication-check"
+      ]
+    },
+    {
+      "paths": [
+        "**/*.py"
+      ],
+      "targets": [
+        "lint-python",
+        "duplication-check"
+      ]
+    }
+  ]
+}

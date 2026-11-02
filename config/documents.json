@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "comment": "The Markdown documents of the repository. docs/features.md is a status table whose values are closed sets.",
+  "include": [
+    "**/*.md"
+  ],
+  "statusTables": [
+    {
+      "path": "docs/features.md",
+      "idPattern": "F-[A-Z0-9-]+",
+      "cells": 7,
+      "columns": [
+        {
+          "index": 2,
+          "enum": [
+            "implemented",
+            "partial",
+            "planned"
+          ]
+        },
+        {
+          "index": 3,
+          "enum": [
+            "contract",
+            "fuzz",
+            "not-verified"
+          ]
+        },
+        {
+          "index": 5,
+          "pattern": "source-only|not-distributed|published v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*) [A-Za-z0-9_.-]+(, [A-Za-z0-9_.-]+)*"
+        }
+      ]
+    }
+  ],
+  "changelogs": [
+    "CHANGELOG.md"
+  ]
+}

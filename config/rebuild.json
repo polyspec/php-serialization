@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "comment": "The class of each tool of php-serialize that make rebuild-check checks (S1). The copies of kit are not listed: kit classifies them.",
+  "tools": {
+    "packages/js/index.js": {
+      "kind": "policy",
+      "reason": "the product of this repository: the serialize format of PHP, ported from php-src so that every value reads and writes back exactly as PHP does"
+    },
+    "packages/python/src/polyspec/php_serialize/__init__.py": {
+      "kind": "policy",
+      "reason": "the product of this repository: the serialize format of PHP, ported from php-src so that every value reads and writes back exactly as PHP does"
+    },
+    "scripts/contracts.mts": {
+      "kind": "policy",
+      "reason": "writes the contract from real PHP, the reference of the format, a rule of this repository"
+    },
+    "scripts/php-tree.mts": {
+      "kind": "policy",
+      "reason": "the PHP that writes the typed tree which the contract and the fuzz compare, a rule of this repository"
+    },
+    "scripts/fuzz.mts": {
+      "kind": "policy",
+      "reason": "compares the ports with real PHP on corrupted and generated input, the proof of this repository; it needs PHP as the oracle and the typed tree of the contract"
+    }
+  }
+}

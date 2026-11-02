@@ -1,0 +1,19 @@
+# The folder layout of php-serialize (S5, S7, S9), checked by make layout-check: the common rules of config/layout.kit.yml,
+# a copy of @polyspec/kit, and the map of this repository.
+version: 1
+extends:
+  - layout.kit.yml
+
+rules:
+  - extends_template: no-repository-prefix
+    id: layout-no-repository-prefix
+    vars: { repo: php-serialize }
+
+  - extends_template: go-module-path
+    id: layout-go-module-path
+    vars: { repo: php-serialize }
+
+  - id: layout-infrastructure-typescript
+    paths:
+      - "scripts/**/*.{js,mjs,cjs,py,sh,bash,zsh,rb,pl,php,go,rs,ps1,bat,cmd}"
+      - "tests/**/*.{js,mjs,cjs,py,sh,bash,zsh,rb,pl,php,go,rs,ps1,bat,cmd}"

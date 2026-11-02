@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "repositoryUrl": "https://github.com/polyspec/php-serialize",
+  "changelog": "CHANGELOG.md",
+  "changelogTranslations": [
+    "CHANGELOG.ko.md"
+  ],
+  "packages": [
+    {
+      "kind": "npm",
+      "directory": "packages/js",
+      "name": "@polyspec/php-serialize",
+      "product": "php-serialize",
+      "runtime": "ts"
+    },
+    {
+      "kind": "wheel",
+      "directory": "packages/python",
+      "name": "polyspec-php-serialize",
+      "product": "php-serialize",
+      "runtime": "python"
+    }
+  ],
+  "manifests": {
+    "package.json": "version",
+    "packages/js/package.json": "archive",
+    "packages/python/pyproject.toml": "archive"
+  },
+  "notReleased": {},
+  "goModules": {}
+}

@@ -1,0 +1,32 @@
+node_modules/
+target/
+vendor/
+__pycache__/
+.DS_Store
+.cache/
+/var/
+.venv/
+*.egg-info/
+
+# Generated files of the install, build, cache and test runs (AGENTS.md, Generated files)
+dist/
+build/
+dist.next/
+dist.old/
+*.tsbuildinfo
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.phpunit.cache/
+.phpunit.result.cache
+test-results/
+playwright-report/
+coverage/
+
+# The go.work files that link writes into a consumer (kit local-links.md); they are never committed.
+go.work
+go.work.sum
+
+# The link declaration of kit (K869), which the local links read from the main checkout.
+/.links

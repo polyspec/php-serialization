@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "parityMode": "full",
+  "setup": {
+    "shared": [
+      "hooks"
+    ],
+    "parity": [
+      "php-serialize-install-python"
+    ],
+    "runtimes": {
+      "go": [],
+      "php": [],
+      "php-ext": [],
+      "python": [
+        "php-serialize-install-python",
+        "build-python"
+      ],
+      "rust": [],
+      "ts": [
+        "build-js"
+      ]
+    }
+  },
+  "tools": {
+    "shared": [
+      "php"
+    ],
+    "parity": [
+      "php",
+      "python",
+      "uv"
+    ],
+    "python": [
+      "uv"
+    ]
+  },
+  "targets": {
+    "shared": [
+      "link-check",
+      "hooks-check",
+      "release-coverage",
+      "typecheck",
+      "contracts-check"
+    ],
+    "parity": [
+      "fuzz"
+    ],
+    "runtimes": {
+      "python": [
+        "test-python"
+      ],
+      "ts": [
+        "test-js"
+      ]
+    }
+  }
+}
