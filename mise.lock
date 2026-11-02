@@ -37,6 +37,35 @@ url = "https://github.com/asamarts/alint/releases/download/v0.18.2/alint-v0.18.2
 url_api = "https://api.github.com/repos/asamarts/alint/releases/assets/636119395"
 provenance = "github-attestations"
 
+[[tools."http:composer"]]
+version = "2.10.3"
+backend = "http:composer"
+specifiers = ["2.10.3"]
+
+[tools."http:composer"."platforms.linux-arm64"]
+checksum = "sha256:7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+url = "https://getcomposer.org/download/2.10.3/composer.phar"
+
+[tools."http:composer"."platforms.linux-x64"]
+checksum = "sha256:7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+url = "https://getcomposer.org/download/2.10.3/composer.phar"
+
+[tools."http:composer"."platforms.macos-arm64"]
+checksum = "sha256:7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+url = "https://getcomposer.org/download/2.10.3/composer.phar"
+
+[tools."http:composer"."platforms.macos-x64"]
+checksum = "sha256:7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+url = "https://getcomposer.org/download/2.10.3/composer.phar"
+
+[tools."http:composer"."platforms.windows-arm64"]
+checksum = "sha256:7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+url = "https://getcomposer.org/download/2.10.3/composer.phar"
+
+[tools."http:composer"."platforms.windows-x64"]
+checksum = "sha256:7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+url = "https://getcomposer.org/download/2.10.3/composer.phar"
+
 [[tools.node]]
 version = "26.12.0"
 backend = "core:node"
