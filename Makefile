@@ -17,7 +17,7 @@ include node_modules/@polyspec/kit/scripts/kit/kit-bootstrap.mk
 # .github/workflows run with make ci-targets (a target is in one job).
 CHECK_TARGETS := kit-check suppression-check bypass-check divergence-check link-check rules-check rebuild-check language-check test-markers-check duplication-check layout-check hooks-check owner-validate release-coverage parity-declarations-check docs-check contracts-check fuzz parity-check lint-python typecheck lint-ts test-js test-python
 
-.PHONY: check install php-serialize-install php-serialize-install-python deps-node deps-python contracts contracts-check fuzz typecheck
+.PHONY: check install php-serialize-install php-serialize-install-python deps-node deps-python contracts contracts-check fuzz typecheck fuzz-temp-test
 
 # check runs the full suite on a clean committed tree: ci-targets with FINAL_RUN=1 refuses any other tree.
 check:
@@ -47,8 +47,12 @@ contracts-check:
 	$(NODE) scripts/contracts.mts --check
 
 # fuzz gives corrupted and generated input with a fixed seed to real PHP and to both ports (scripts/fuzz.mts).
-fuzz:
+fuzz: fuzz-temp-test
 	$(NODE) scripts/fuzz.mts
+
+# fuzz-temp-test checks that a run removes the directory that a killed run left.
+fuzz-temp-test:
+	$(NODE) $(KIT)/run-tests.$(KIT_EXT) node -- scripts/fuzz-temp.test.mts
 
 typecheck:
 	$(NODE) node_modules/typescript/bin/tsc -p tsconfig.json

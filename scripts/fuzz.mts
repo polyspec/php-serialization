@@ -3,10 +3,11 @@
 // deliberate refusals, which PHP names with a warning or an incomplete class, must be refused. Usage:
 // node scripts/fuzz.mts [--count N] [--seed N]; the input and the output of the run stay in a directory of the run.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { runDirectory } from './fuzz-temp.mts';
 import { PHP_TREE } from './php-tree.mts';
 
 interface Reply {
@@ -226,7 +227,7 @@ function sameBytes(port: string, php: string, tree: unknown): boolean {
   return common(port) === common(php);
 }
 
-const directory = mkdtempSync(join(tmpdir(), 'php-serialize-fuzz-'));
+const directory = runDirectory(tmpdir());
 try {
   const inputs: string[] = [];
   const unique = new Set<string>();

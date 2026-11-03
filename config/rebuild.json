@@ -18,6 +18,10 @@
       "kind": "policy",
       "reason": "the PHP that writes the typed tree which the contract and the fuzz compare, a rule of this repository"
     },
+    "scripts/fuzz-temp.mts": {
+      "kind": "policy",
+      "reason": "the directory of a fuzz run, which fuzz.mts needs for the inputs and outputs of real PHP and the ports, and the removal of what killed runs left, a rule of this repository"
+    },
     "scripts/fuzz.mts": {
       "kind": "policy",
       "reason": "compares the ports with real PHP on corrupted and generated input, the proof of this repository; it needs PHP as the oracle and the typed tree of the contract"

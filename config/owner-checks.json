@@ -45,6 +45,8 @@
     {
       "paths": [
         "scripts/fuzz.mts",
+        "scripts/fuzz-temp.mts",
+        "scripts/fuzz-temp.test.mts",
         "packages/js/index.js",
         "packages/js/tests/*",
         "packages/python/src/polyspec/php_serialize/*",

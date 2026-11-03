@@ -5,6 +5,7 @@
 
 <a id="unreleased"></a>
 ## Unreleased
+- A fuzz run removes the directories of the runs whose process is gone, so a killed run no longer leaves about 216 MB in the temporary directory for good (T1.3).
 
 ## 0.0.1
 
