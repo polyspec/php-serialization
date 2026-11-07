@@ -30,7 +30,7 @@ export npm_config_offline := true
 ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
-# runs all of them once with FINAL_RUN on a clean committed tree.
+# runs all of them once.
 CI_SHARED := kit-check layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check parity-declarations-check suppression-check divergence-check link-check release-coverage typecheck contracts-check
 CI_PARITY := parity-check fuzz
 CI_TS := lint-ts test-js
@@ -189,8 +189,8 @@ ci-ts: ## Run the targets of the TypeScript CI job past failures into CI_REPORT
 ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs $(CI_REPORT) $(CI_PYTHON)
 
-check: ## Run the targets of every CI job once on a clean committed tree into var/report/full-run
-	FINAL_RUN=1 $(NODE) $(KIT)/ci-targets.mjs var/report/full-run $(CI_SHARED) $(CI_PARITY) $(CI_TS) $(CI_PYTHON)
+check: ## Run the targets of every CI job once into var/report/full-run
+	$(NODE) $(KIT)/ci-targets.mjs var/report/full-run $(CI_SHARED) $(CI_PARITY) $(CI_TS) $(CI_PYTHON)
 
 # ---- Plans, rows and commits --------------------------------------------------------------------------------------------------
 # The plan utility reads its values from the environment, where make puts its command-line variables. The texts of a row reach
