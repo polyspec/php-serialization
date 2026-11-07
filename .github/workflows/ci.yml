@@ -1,6 +1,6 @@
-# CI: one pipeline (PRINCIPLES S12). The job kit calls the workflow that kit gives this repository (ci-pipeline.yml, a copy of
-# make kit-sync), which runs the gates of kit-gates once and, in each of its jobs, the targets that config/ci.json declares for
-# that job. The release workflow releases the commit whose run of this workflow is green.
+# CI of php-serialize: one workflow whose jobs run the targets of the Makefile, each job the target that names its list
+# (CI_SHARED, CI_PARITY, CI_TS and CI_PYTHON of the Makefile), past failures, with the report of ci-targets as an artifact. The
+# release workflow releases the commit whose run of this workflow is green.
 name: ci
 
 on:
@@ -17,5 +17,95 @@ permissions:
   contents: read
 
 jobs:
-  kit:
-    uses: ./.github/workflows/ci-pipeline.yml
+  # The checks of the repository and of the contract: alint for the layout, PHP for contracts-check, the Python of mise.toml.
+  shared:
+    runs-on: ubuntu-24.04
+    steps:
+      # actions/checkout v7.0.1: with the whole history, which the checks of the documents and the owners read.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      # shivammathur/setup-php 2.40.0: the PHP of .php-version, the reference of the format.
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version-file: .php-version
+          tools: none
+          coverage: none
+      - uses: ./.github/actions/bootstrap
+      - name: install the tools of the job
+        run: make install-tools TOOLS="alint php python"
+      - name: shared checks
+        run: make ci-shared
+      # actions/upload-artifact v7.0.1: the report of make ci-targets, var/report/ci-targets.
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: report-shared
+          path: var/report/ci-targets/
+          if-no-files-found: ignore
+
+  # The parity of both ports and the fuzz against real PHP, which reads the installed Python package.
+  parity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version-file: .php-version
+          tools: none
+          coverage: none
+      - uses: ./.github/actions/bootstrap
+      - name: install the tools of the job
+        run: make install-tools TOOLS="php python uv"
+      - name: install the Python package
+        run: make php-serialize-install-python
+      - name: parity and fuzz
+        run: make ci-parity
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: report-parity
+          path: var/report/ci-targets/
+          if-no-files-found: ignore
+
+  # The lint and the unit tests of packages/js.
+  ts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/bootstrap
+      - name: build the package
+        run: make build-js
+      - name: lint and unit tests
+        run: make ci-ts
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: report-ts
+          path: var/report/ci-targets/
+          if-no-files-found: ignore
+
+  # The lint and the unit tests of packages/python, against the installed package.
+  python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/bootstrap
+      - name: install the tools of the job
+        run: make install-tools TOOLS="python uv ruff vulture"
+      - name: install and build the package
+        run: make php-serialize-install-python build-python
+      - name: lint and unit tests
+        run: make ci-python
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: report-python
+          path: var/report/ci-targets/
+          if-no-files-found: ignore

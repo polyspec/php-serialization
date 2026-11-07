@@ -20,3 +20,7 @@ namespaces = true
 
 [tool.setuptools.package-data]
 "polyspec.php_serialize" = ["py.typed"]
+
+# vulture reports unused functions and classes from its default confidence on; make lint-python runs it from this folder.
+[tool.vulture]
+min_confidence = 60

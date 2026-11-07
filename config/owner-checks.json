@@ -71,31 +71,29 @@
     },
     {
       "paths": [
+        "Makefile",
         ".github/workflows/*.yml",
         ".github/actions/**"
       ],
       "targets": [
-        "kit-check"
-      ]
-    },
-    {
-      "paths": [
-        ".githooks/pre-commit",
-        ".githooks/commit-msg",
-        "config/checklist.json",
-        "config/owner-checks.json"
-      ],
-      "targets": [
-        "hooks-check",
+        "rules-check",
         "owner-validate"
       ]
     },
     {
       "paths": [
-        ".claude/settings.json",
-        "PRINCIPLES.md",
-        "PRINCIPLES.ko.md",
+        "config/checklist.json",
+        "config/owner-checks.json"
+      ],
+      "targets": [
+        "owner-validate",
+        "docs-check"
+      ]
+    },
+    {
+      "paths": [
         ".editorconfig",
+        ".npmrc",
         "package-lock.json",
         "config/*.json",
         "config/*.yml",
@@ -122,7 +120,9 @@
     },
     {
       "paths": [
-        "config/layout.yml"
+        "config/layout.yml",
+        "config/layout.kit.yml",
+        "config/composer.schema.json"
       ],
       "targets": [
         "layout-check"
@@ -149,7 +149,9 @@
         "**/*.mts",
         "**/*.mjs",
         "**/*.js",
-        "**/*.ts"
+        "**/*.ts",
+        ".oxlintrc.json",
+        "knip.json"
       ],
       "targets": [
         "lint-ts",
@@ -158,7 +160,8 @@
     },
     {
       "paths": [
-        "**/*.py"
+        "**/*.py",
+        "ruff.toml"
       ],
       "targets": [
         "lint-python",

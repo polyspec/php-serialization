@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "comment": "The class of each tool of php-serialize that make rebuild-check checks (S1). The copies of kit are not listed: kit classifies them.",
+  "comment": "The class of each tool of php-serialize that make rebuild-check checks (S1).",
   "tools": {
     "packages/js/index.js": {
       "kind": "policy",

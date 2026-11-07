@@ -3,7 +3,7 @@
 
 [한국어](AGENTS.ko.md)
 
-The working principles of every polyspec repository are in [PRINCIPLES.md](PRINCIPLES.md). This document states the rules of this repository only.
+The working principles of every polyspec repository are in [PRINCIPLES.md](https://github.com/polyspec/kit/blob/main/PRINCIPLES.md) of kit. This document states the rules of this repository only.
 
 <a id="reference"></a>
 ## Reference
@@ -18,7 +18,7 @@ The working principles of every polyspec repository are in [PRINCIPLES.md](PRINC
 <a id="tools"></a>
 ## Tools
 
-- Own: The shared tools come from the npm package `@polyspec/kit`, pinned to its release asset; the copies of its `kit.copies` are written by `make kit-sync` and never edited here.
-  Enforced by: `make kit-check`
+- Own: The recipes are this repository's own: the `Makefile` runs the utilities of the npm package `@polyspec/kit`, pinned to its release asset, with explicit arguments, and each tool reads its settings from its own file (`.npmrc`, `mise.toml`, `ruff.toml`, `.oxlintrc.json`, `knip.json`). kit includes no recipe and writes no file here.
+  Enforced by: none, which utility a recipe runs is the choice of this repository.
 - Own: Development runs the Red and Green unit tests that own a change; CI runs the full suite on every push to `main`.
   Enforced by: none, a local run is not observed by a tool.
