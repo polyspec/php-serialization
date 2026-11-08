@@ -106,7 +106,7 @@ lint: lint-ts lint-python
 # The build of the package of a runtime with the build of its ecosystem; the JavaScript package has none (kit K1106).
 build-js: ## The JavaScript package has no build step; offline
 build-python: ## Build the Python package with uv build; offline
-	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/python -- var/tools/bin/uv build
+	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/python -- $(UV) build
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
