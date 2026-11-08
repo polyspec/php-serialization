@@ -27,5 +27,18 @@
     "packages/python/pyproject.toml": "archive"
   },
   "notReleased": {},
-  "goModules": {}
+  "goModules": {},
+  "annotatedTags": true,
+  "packageFiles": [
+    "package.json",
+    "composer.json",
+    "Cargo.toml",
+    "pyproject.toml",
+    "go.mod",
+    "VERSION"
+  ],
+  "writtenFiles": [
+    "config/phpunit/composer.json",
+    ".mise/locks/**"
+  ]
 }

@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- The repository runs kit 0.0.99 and passes it every value that kit 0.0.98 fixed, so each target runs the same commands and tests; make kit-check is gone with kit 0.0.99 (T1.6).
+
 ## 0.0.2
 
 - The Makefile holds the recipes of the repository and runs the utilities of the installed kit; the settings of npm, mise, uv, ruff, vulture, oxlint and knip live in their own files, and the copies that kit wrote are the repository's own files or gone (T1.4).

@@ -104,9 +104,7 @@
         "mise.lock",
         ".mise/**"
       ],
-      "targets": [
-        "kit-check"
-      ]
+      "targets": []
     },
     {
       "paths": [

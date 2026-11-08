@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 644bfee9046f03e530c53b7723d1c31db802847a4b801b79bbc5676282bade93 -->
+<!-- source-sha256: c0566e55a467b33052af0da3f06d4c4c8e1a3dfcfc5c5a823baeb6710ebc4ce2 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- repository는 kit 0.0.99를 실행하고, kit 0.0.98이 정해 두던 모든 값을 넘기므로 각 target은 같은 명령과 시험을 실행한다. make kit-check는 kit 0.0.99와 함께 없어졌다(T1.6).
 
 ## 0.0.2
 

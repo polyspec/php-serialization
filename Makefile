@@ -23,6 +23,9 @@ export MISE_CONFIG_DIR := $(VAR_TOOLS)/mise/config
 export MISE_GLOBAL_CONFIG_FILE := $(CURDIR)/mise.toml
 export MISE_GLOBAL_CONFIG_ROOT := $(CURDIR)
 MISE_ENVIRONMENT := MISE_DATA_DIR MISE_CACHE_DIR MISE_STATE_DIR MISE_CONFIG_DIR MISE_GLOBAL_CONFIG_FILE MISE_GLOBAL_CONFIG_ROOT
+# kit 0.0.98's run-tests dropped NODE_TEST_CONTEXT, so a node --test that a recipe starts from inside a node test runs as
+# its own run, not as a child of that test (kit K1094); no recipe passes it on.
+unexport NODE_TEST_CONTEXT
 export PATH := $(VAR_TOOLS)/bin:$(VAR_TOOLS)/mise/shims:$(PATH)
 
 # A check reads no network: make install downloads what the checks read, and every other recipe runs npm offline.
@@ -31,7 +34,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := kit-check layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check parity-declarations-check suppression-check divergence-check link-check release-coverage typecheck contracts-check
+CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check parity-declarations-check suppression-check divergence-check link-check release-coverage typecheck contracts-check
 CI_PARITY := parity-check fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -40,7 +43,7 @@ CI_REPORT ?= var/report/ci-targets
 .PHONY: install install-tools install-packages toolchain-lock php-serialize-install-python link unlink link-check \
 	build build-js build-python test test-js test-python lint lint-ts lint-python typecheck \
 	contracts contracts-check fuzz fuzz-temp-test parity-check parity-declarations-check \
-	kit-check layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check test-markers-check \
+	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check test-markers-check \
 	duplication-check suppression-check divergence-check \
 	check ci-shared ci-parity ci-ts ci-python \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
@@ -56,11 +59,14 @@ install: ## Install the tools, the packages, the Python package and the links of
 	$(MAKE) --no-print-directory install-tools
 	$(MAKE) --no-print-directory php-serialize-install-python
 
+# The home and the cache of the Composer that install-tools and install-symbols run, the folders of var/tools that kit 0.0.98
+# set (kit K1095).
+COMPOSER_TOOL_ENV = COMPOSER_HOME=$(CURDIR)/var/tools/composer/home COMPOSER_CACHE_DIR=$(CURDIR)/var/tools/composer/cache
 install-tools: ## Install all locked tools of mise.toml, or the selectors of TOOLS; TOOLS=npm runs the bootstrap; ONLINE
 ifeq ($(TOOLS),npm)
 	$(ONLINE) node $(KIT)/bootstrap/bootstrap.mjs
 else
-	$(ONLINE) $(NODE) $(KIT)/install-tools.mjs $(TOOLS)
+	$(COMPOSER_TOOL_ENV) $(ONLINE) $(NODE) $(KIT)/install-tools.mjs --no-self-update $(TOOLS)
 endif
 
 install-packages: ## Install the packages of package-lock.json with the npm of var/tools, which reads .npmrc; ONLINE
@@ -97,12 +103,17 @@ build: build-js build-python
 test: test-js test-python
 lint: lint-ts lint-python
 
-build-js build-python: ## Build the package of the runtime with the build of its ecosystem; offline
-	$(NODE) $(KIT)/runtime-targets.mjs build $(@:build-%=%)
+# The build of the package of a runtime with the build of its ecosystem; the JavaScript package has none (kit K1106).
+build-js: ## The JavaScript package has no build step; offline
+build-python: ## Build the Python package with uv build; offline
+	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/python -- var/tools/bin/uv build
 
-# The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI.
-test-js test-python: ## Run the unit tests of the package of the runtime with the name filter CASES=<pattern>; offline
-	$(NODE) $(KIT)/runtime-targets.mjs $(@:test-%=%)
+# The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
+# runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
+test-js: ## Run the unit tests of the JavaScript package with the name filter CASES=<pattern>; offline
+	$(NODE) $(KIT)/runtime-targets.mjs test --runner node --roots packages/js -- --test-timeout=30000 --test-concurrency=1
+test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
+	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots packages/python --venv .venv
 
 lint-ts: ## Lint the TypeScript and JavaScript with oxlint (.oxlintrc.json) and knip (knip.json); offline
 	$(NODE) $(KIT)/lint-ts.mjs
@@ -127,7 +138,7 @@ fuzz: fuzz-temp-test ## Compare both ports with real PHP on corrupted and genera
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.
 fuzz-temp-test: ## Run the test of the fuzz directories; offline
-	$(NODE) $(KIT)/run-tests.mjs node -- scripts/fuzz-temp.test.mts
+	$(NODE) $(KIT)/run-tests.mjs node --timeout 30 -- --test-concurrency=1 scripts/fuzz-temp.test.mts
 
 # config/parity.json declares the implementations and the units that each of them holds.
 parity-check: ## Run the parity bindings and check every rule of config/parity.json; UNITS="<id>..." selects units; offline
@@ -137,32 +148,33 @@ parity-declarations-check: ## Check the rules of config/parity.json that need no
 	$(NODE) $(KIT)/parity.mjs --declarations $(foreach unit,$(UNITS),--unit $(unit))
 
 # ---- The checks of the repository -------------------------------------------------------------------------------------------
-kit-check: ## Check config/*.json against the schemas of kit; offline
-	$(NODE) $(KIT)/kit-check.mjs
-
 # alint checks the tree against config/layout.yml, which extends config/layout.kit.yml with the map of this repository.
 layout-check: ## Check the folder layout, that Git ignores each install directory and that no tracked file is generated; offline
 	$(ALINT) check --config config/layout.yml --color never --compact .
-	$(NODE) $(KIT)/generated-files.mjs installs
-	$(NODE) $(KIT)/generated-files.mjs tracked
+	$(NODE) $(KIT)/generated-files.mjs installs var package.json=node_modules pyproject.toml=.venv composer.json=vendor
+	$(NODE) $(KIT)/generated-files.mjs tracked --binary ELF --binary Mach-O --binary PE
 
 docs-check: ## Check the documents of config/documents.json and the checklists of config/checklist.json; offline
-	$(NODE) $(KIT)/check-documents.mjs
+	$(NODE) $(KIT)/check-documents.mjs --checklist-place --private-path /Users/ --private-path /home/ --kit-rows
 
 rules-check: ## Check that every rule of AGENTS.md names a check that CI runs; offline
 	$(NODE) $(KIT)/check-rules.mjs AGENTS.md
 
 owner-check: ## Run the checks that own the changed paths (config/owner-checks.json); PATHS="a b" or BASE=<revision>
-	$(NODE) $(KIT)/owner-check.mjs $(if $(PATHS),--paths "$(PATHS)") $(if $(BASE),--base $(BASE))
+	$(NODE) $(KIT)/owner-check.mjs --every-path $(if $(PATHS),--paths "$(PATHS)") $(if $(BASE),--base $(BASE))
 
 owner-validate: ## Check that config/owner-checks.json owns every tracked path and names only existing targets; offline
-	$(NODE) $(KIT)/owner-check.mjs --validate
+	$(NODE) $(KIT)/owner-check.mjs --every-path --validate
 
+# The tool sources of rebuild-check, the values that kit 0.0.98 fixed (kit K1080): the scripts and generators, each glob quoted.
+REBUILD_SOURCES := --source 'scripts/**/*.{mts,mjs,cjs,js,ts,py,php,sh,mk}' --source 'packages/*/{scripts,tools,bin}/**/*.{mts,mjs,cjs,js,ts,py,php,sh,mk}' --source 'packages/*/*/{scripts,tools,bin}/**/*.{mts,mjs,cjs,js,ts,py,php,sh,mk}' --source '**/*_generate.go' --source '**/*.generate.{mts,mjs,cjs,js,ts,py,php,sh,mk}' --source 'benchmarks/**/*.{mts,mjs,cjs,js,ts,py,php,sh,mk}' --source 'examples/**/*.{mts,mjs,cjs,js,ts,py,php,sh,mk}' --source 'tests/fixtures/*/generate.*'
+# The files among the sources that are no tool source (kit K1080): the .d.ts declarations and the tests.
+REBUILD_EXCLUDES := --exclude '**/*.d.ts' --exclude '*/**/{test,tests}/**' --exclude 'test/**' --exclude 'tests/**/{*_generate.go,*.generate.*}' --exclude '**/*.{test,spec}.{js,jsx,ts,tsx,cjs,cts,mjs,mts}' --exclude '**/{*_test.go,test_*.py,*_test.py,*Test.php}'
 rebuild-check: ## Check that every tool of config/rebuild.json has its class; offline
-	$(NODE) $(KIT)/rebuild-check.mjs
+	$(NODE) $(KIT)/rebuild-check.mjs $(REBUILD_SOURCES) $(REBUILD_EXCLUDES)
 
 language-check: ## Fail on Hangul in the code; offline
-	$(NODE) $(KIT)/language-check.mjs
+	$(NODE) $(KIT)/language-check.mjs --forbid '\p{Script=Hangul}'
 
 test-markers-check: ## Fail on a test that a marker skips or narrows; offline
 	$(NODE) $(KIT)/test-markers.mjs
@@ -174,23 +186,23 @@ suppression-check: ## Fail on a suppression of a lint finding without its reason
 	$(NODE) $(KIT)/suppression-check.mjs
 
 divergence-check: ## Fail on an implementation that diverges through a branch on the runtime; offline
-	$(NODE) $(KIT)/divergence-check.mjs
+	$(NODE) $(KIT)/divergence-check.mjs --reason-kind generated --reason-kind fixture --reason-kind test --reason-kind harness --reason-kind ecosystem --reason-kind external --feature-state partial --feature-state unsupported --parity config/parity.json
 
 # ---- CI -----------------------------------------------------------------------------------------------------------------------
 ci-shared: ## Run the targets of the shared CI job past failures into CI_REPORT
-	$(NODE) $(KIT)/ci-targets.mjs $(CI_REPORT) $(CI_SHARED)
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_SHARED)
 
 ci-parity: ## Run the targets of the parity CI job past failures into CI_REPORT
-	$(NODE) $(KIT)/ci-targets.mjs $(CI_REPORT) $(CI_PARITY)
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PARITY)
 
 ci-ts: ## Run the targets of the TypeScript CI job past failures into CI_REPORT
-	$(NODE) $(KIT)/ci-targets.mjs $(CI_REPORT) $(CI_TS)
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_TS)
 
 ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
-	$(NODE) $(KIT)/ci-targets.mjs $(CI_REPORT) $(CI_PYTHON)
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PYTHON)
 
 check: ## Run the targets of every CI job once into var/report/full-run
-	$(NODE) $(KIT)/ci-targets.mjs var/report/full-run $(CI_SHARED) $(CI_PARITY) $(CI_TS) $(CI_PYTHON)
+	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_PARITY) $(CI_TS) $(CI_PYTHON)
 
 # ---- Plans, rows and commits --------------------------------------------------------------------------------------------------
 # The plan utility reads its values from the environment, where make puts its command-line variables. The texts of a row reach
@@ -198,7 +210,7 @@ check: ## Run the targets of every CI job once into var/report/full-run
 raw_text = $(foreach v,$(1),$(if $(filter undefined,$(origin $(v))),,$(v)='$(subst ','\'',$(value $(v)))'))
 
 plan-new: ## Write the plan NAME=<slug> with TITLE and TITLE_KO into docs/plans/<slug>/; offline
-	$(NODE) $(KIT)/plan.mjs plan-new
+	NAME_PATTERN='^[a-z][a-z0-9-]*$$' $(NODE) $(KIT)/plan.mjs plan-new
 
 plan-split: ## Move the items IDS from the plan FROM to the plan TO; offline
 	$(NODE) $(KIT)/plan.mjs plan-split
@@ -207,7 +219,7 @@ item-new: ## Add the item ID to the checklist of PLAN with TASK, TASK_KO, DELIVE
 	$(call raw_text,TASK TASK_KO DELIVERABLES VERIFICATION) $(NODE) $(KIT)/plan.mjs item-new
 
 item-edit: ## Replace the cells of the item ID with TASK, TASK_KO, DELIVERABLES, VERIFICATION, CAUSE, RETRY, CAUSE_KO or RETRY_KO; offline
-	$(call raw_text,TASK TASK_KO DELIVERABLES VERIFICATION CAUSE RETRY CAUSE_KO RETRY_KO) $(NODE) $(KIT)/plan.mjs item-edit
+	$(call raw_text,TASK TASK_KO DELIVERABLES VERIFICATION CAUSE RETRY CAUSE_KO RETRY_KO) DONE_STAYS=1 $(NODE) $(KIT)/plan.mjs item-edit
 
 item-state: ## Move the item ID to STATE in both languages; offline
 	$(NODE) $(KIT)/plan.mjs item-state
@@ -229,23 +241,35 @@ text-absent: export KIT_TEXT_ABSENT_TEXT = $(value TEXT)
 text-absent: ## Fail while the tracked file FILE holds the stale text TEXT: the Red of a row whose change is text; offline
 	$(NODE) $(KIT)/text-absent.mjs
 
+# The declaration of make hooks (kit K1099): no hook,
+# the merges of the changelogs and checklists (kit K354) and their drivers, which run twin-merge of this checkout.
+TWIN_MERGE_DRIVER := make --no-print-directory twin-merge MERGE="%O %A %B %P"
+HOOK_DECLARATION := --merge 'CHANGELOG.md=kit-changelog' --merge 'CHANGELOG.ko.md=kit-twin' \
+	--merge 'docs/plans/*/checklist.md=kit-checklist' --merge 'docs/plans/*/checklist.ko.md=kit-twin' \
+	--driver 'kit-twin=$(TWIN_MERGE_DRIVER)' --driver 'kit-changelog=$(TWIN_MERGE_DRIVER)' --driver 'kit-checklist=$(TWIN_MERGE_DRIVER)'
 # hooks declares the merge drivers of the changelogs and the checklists, which git runs as make twin-merge.
 hooks: ## Declare the merge drivers of the changelogs and the checklists; offline
-	$(NODE) $(KIT)/git-hooks.mjs install
+	$(NODE) $(KIT)/git-hooks.mjs install $(HOOK_DECLARATION)
 
 twin-merge: ## The merge driver of a changelog or checklist; git runs it with MERGE="<base> <ours> <theirs> <path>"; offline
 	@$(NODE) $(KIT)/twin-merge.mjs $(MERGE)
 
+# The worktree of a row (kit K1107), as kit 0.0.98 made it: ../<main checkout>-<NAME>-<ID> on <TYPE or fix>/<NAME>-<ID> from main;
+# a worktree without node_modules first gets npm ci of the npm of var/tools, then make install and make link-check run in it. The
+# worktree runs its own tools in a make of its own (kit K858): the recipe drops the flags of this make and this var/tools from PATH.
+WORKTREE_MAIN = $(patsubst %/.git,%,$(shell git rev-parse --path-format=absolute --git-common-dir))
+WORKTREE_DECLARATION = --folder $(WORKTREE_MAIN)-$(NAME)-$(ID) --branch $(or $(TYPE),fix)/$(NAME)-$(ID) --base main --prepare 'test -d node_modules || PATH="$(KIT_TOOLS)/bin:$$PATH" $(NPM) ci --ignore-scripts' --make install --make link-check
+WORKTREE_ENVIRONMENT = env -u MAKEFLAGS -u MFLAGS -u MAKELEVEL PATH="$$(printf '%s' "$$PATH" | awk -v RS=: -v ORS=: -v tools='$(KIT_TOOLS)' 'index($$0, tools) != 1' | sed 's/:$$//')"
 worktree-setup: ## Create or reuse the row worktree NAME for ID and TYPE from main and run make install in it; ONLINE
-	$(ONLINE) $(NODE) $(KIT)/worktree-setup.mjs $(NAME) $(ID) $(or $(TYPE),fix)
+	$(ONLINE) $(WORKTREE_ENVIRONMENT) $(NODE) $(KIT)/worktree-setup.mjs $(WORKTREE_DECLARATION)
 
 land: ## Land the branch BRANCH on main fast-forward and remove its worktree; offline
-	$(NODE) $(KIT)/land.mjs $(BRANCH)
+	$(NODE) $(KIT)/land.mjs $(BRANCH) main
 
 # ---- Release (.github/workflows/release.yml) ----------------------------------------------------------------------------------
 release-tag: ## Tag the commit of the successful CI run RUN of ci.yml on main with the newest version of its change log; AUTO for workflow_run
 	@test -n "$$RUN" || { echo "release-tag: RUN is required, for example make release-tag RUN=123"; exit 1; }
-	$(NODE) $(KIT)/release-run.mjs tag "$$RUN"$(if $(AUTO), --auto)
+	RELEASE_MAIN=origin/main $(NODE) $(KIT)/release-run.mjs tag "$$RUN"$(if $(AUTO), --auto)
 
 release-tools: ## Install the tools that config/release.json needs for the release; ONLINE
 	$(ONLINE) $(NODE) $(KIT)/release-tools.mjs
@@ -259,15 +283,15 @@ release-tools-path: ## Append var/tools/bin and the shims of mise to GITHUB_PATH
 
 release-assets: ## Build the archive of every package of TAG into var/release/assets; ONLINE
 	@test -n "$$TAG" || { echo "release-assets: TAG is required, for example make release-assets TAG=v0.0.1"; exit 1; }
-	$(ONLINE) $(NODE) $(KIT)/release.mjs assets "$$TAG"
+	RELEASE_ASSETS=var/release/assets $(ONLINE) $(NODE) $(KIT)/release.mjs assets "$$TAG"
 
 release-publish: ## Create the GitHub Release of TAG as a draft with its notes and the files of release-assets
 	@test -n "$$TAG" || { echo "release-publish: TAG is required, for example make release-publish TAG=v0.0.1"; exit 1; }
-	$(NODE) $(KIT)/release.mjs publish "$$TAG"
+	RELEASE_ASSETS=var/release/assets RELEASE_RECORDS=var/release $(NODE) $(KIT)/release.mjs publish "$$TAG"
 
 release-undraft: ## Make the draft release of TAG public
 	@test -n "$$TAG" || { echo "release-undraft: TAG is required, for example make release-undraft TAG=v0.0.1"; exit 1; }
-	$(NODE) $(KIT)/release.mjs undraft "$$TAG"
+	RELEASE_RECORDS=var/release $(NODE) $(KIT)/release.mjs undraft "$$TAG"
 
 release-coverage: ## Require every package file of the checkout to be classified in config/release.json; offline
 	$(NODE) $(KIT)/release.mjs coverage
