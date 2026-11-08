@@ -1,5 +1,5 @@
 // Requirements: RQ-001, RQ-002, RQ-003, RQ-004, RQ-006, RQ-007.
-// The feature units of config/parity.json: the forms, the depth and the refusals of the contract, built values and large input.
+// The forms, the depth and the refusals of the contract, built values and large input.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';

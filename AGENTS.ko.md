@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: b740d52c80192398352c4eb44423fa1a3220edac2cbed7ba2c44c312f87803b4 -->
+<!-- source-sha256: db2047addb6ff3c971440e4b55575df9457023d41d48fdcb186061ce0c303d84 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -13,8 +13,8 @@
   Enforced by: `make contracts-check`, `make fuzz`
 - Own: 기록은 형식의 출처로 PHP만 적고 이 repository만 설명합니다.
   Enforced by: none, 기록의 표현은 판단입니다.
-- Own: contract는 실제 PHP가 쓴 데이터만 담고 언어별 형태를 담지 않습니다. 새 runtime은 `packages/` 아래의 새 패키지와 `config/parity.json`의 항목 하나입니다.
-  Enforced by: `make parity-declarations-check`
+- Own: contract는 실제 PHP가 쓴 데이터만 담고 언어별 형태를 담지 않습니다. 새 runtime은 `packages/` 아래의 새 패키지입니다.
+  Enforced by: none, 안내 규칙: kit은 구현들이 서로 어떻게 관계되는지 검사하지 않으며, 각 저장소가 자기 테스트를 실행한다(K1129)
 
 <a id="tools"></a>
 ## 도구

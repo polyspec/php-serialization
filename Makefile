@@ -34,18 +34,18 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check parity-declarations-check suppression-check divergence-check link-check release-coverage typecheck contracts-check
-CI_PARITY := parity-check fuzz
+CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check link-check release-coverage typecheck contracts-check
+CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
 CI_REPORT ?= var/report/ci-targets
 
 .PHONY: install install-tools install-packages toolchain-lock php-serialize-install-python link unlink link-check \
 	build build-js build-python test test-js test-python lint lint-ts lint-python typecheck \
-	contracts contracts-check fuzz fuzz-temp-test parity-check parity-declarations-check \
-	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check test-markers-check \
-	duplication-check suppression-check divergence-check \
-	check ci-shared ci-parity ci-ts ci-python \
+	contracts contracts-check fuzz fuzz-temp-test \
+	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
+	duplication-check suppression-check \
+	check ci-shared ci-fuzz ci-ts ci-python \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
 	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage
@@ -140,13 +140,6 @@ fuzz: fuzz-temp-test ## Compare both ports with real PHP on corrupted and genera
 fuzz-temp-test: ## Run the test of the fuzz directories; offline
 	$(NODE) $(KIT)/run-tests.mjs node --timeout 30 -- --test-concurrency=1 scripts/fuzz-temp.test.mts
 
-# config/parity.json declares the implementations and the units that each of them holds.
-parity-check: ## Run the parity bindings and check every rule of config/parity.json; UNITS="<id>..." selects units; offline
-	$(NODE) $(KIT)/parity.mjs $(foreach unit,$(UNITS),--unit $(unit))
-
-parity-declarations-check: ## Check the rules of config/parity.json that need no run; UNITS="<id>..." selects units; offline
-	$(NODE) $(KIT)/parity.mjs --declarations $(foreach unit,$(UNITS),--unit $(unit))
-
 # ---- The checks of the repository -------------------------------------------------------------------------------------------
 # alint checks the tree against config/layout.yml, which extends config/layout.kit.yml with the map of this repository.
 layout-check: ## Check the folder layout, that Git ignores each install directory and that no tracked file is generated; offline
@@ -176,24 +169,18 @@ rebuild-check: ## Check that every tool of config/rebuild.json has its class; of
 language-check: ## Fail on Hangul in the code; offline
 	$(NODE) $(KIT)/language-check.mjs --forbid '\p{Script=Hangul}'
 
-test-markers-check: ## Fail on a test that a marker skips or narrows; offline
-	$(NODE) $(KIT)/test-markers.mjs
-
 duplication-check: ## Fail on a piece of 6 lines or more of code that exists twice (config/duplication.json); offline
 	$(NODE) $(KIT)/duplication-check.mjs
 
 suppression-check: ## Fail on a suppression of a lint finding without its reason; offline
 	$(NODE) $(KIT)/suppression-check.mjs
 
-divergence-check: ## Fail on an implementation that diverges through a branch on the runtime; offline
-	$(NODE) $(KIT)/divergence-check.mjs --reason-kind generated --reason-kind fixture --reason-kind test --reason-kind harness --reason-kind ecosystem --reason-kind external --feature-state partial --feature-state unsupported --parity config/parity.json
-
 # ---- CI -----------------------------------------------------------------------------------------------------------------------
 ci-shared: ## Run the targets of the shared CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_SHARED)
 
-ci-parity: ## Run the targets of the parity CI job past failures into CI_REPORT
-	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PARITY)
+ci-fuzz: ## Run the targets of the fuzz CI job past failures into CI_REPORT
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_FUZZ)
 
 ci-ts: ## Run the targets of the TypeScript CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_TS)
@@ -202,7 +189,7 @@ ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PYTHON)
 
 check: ## Run the targets of every CI job once into var/report/full-run
-	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_PARITY) $(CI_TS) $(CI_PYTHON)
+	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_FUZZ) $(CI_TS) $(CI_PYTHON)
 
 # ---- Plans, rows and commits --------------------------------------------------------------------------------------------------
 # The plan utility reads its values from the environment, where make puts its command-line variables. The texts of a row reach

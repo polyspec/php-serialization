@@ -1,4 +1,4 @@
-"""The feature units of config/parity.json, for RQ-001, RQ-002, RQ-003, RQ-004, RQ-006 and RQ-007: the forms, the depth and
+"""For RQ-001, RQ-002, RQ-003, RQ-004, RQ-006 and RQ-007: the forms, the depth and
 the refusals of the contract, built values and large input."""
 
 from __future__ import annotations

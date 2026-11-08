@@ -12,8 +12,8 @@ The working principles of every polyspec repository are in [PRINCIPLES.md](https
   Enforced by: `make contracts-check`, `make fuzz`
 - Own: Records name PHP as the only source of the format and describe this repository only.
   Enforced by: none, the wording of records is a judgement.
-- Own: The contract holds data that real PHP writes and no shape of a language, so a new runtime is a new package under `packages/` and one entry of `config/parity.json`.
-  Enforced by: `make parity-declarations-check`
+- Own: The contract holds data that real PHP writes and no shape of a language, so a new runtime is a new package under `packages/`.
+  Enforced by: none, a guided rule: kit does not check how implementations relate; each repository runs its own tests (K1129)
 
 <a id="tools"></a>
 ## Tools

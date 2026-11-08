@@ -1,6 +1,6 @@
 // Requirements: RQ-001, RQ-002, RQ-003, RQ-004, RQ-005, RQ-006.
 // Checks the package against contracts/php-serialize.json, which real PHP writes (make contracts): each case is a top-level
-// test named by its id, the suite unit `contract` of config/parity.json.
+// test named by its id.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';

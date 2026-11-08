@@ -108,12 +108,12 @@
     },
     {
       "paths": [
-        "config/parity.json",
         "packages/**",
         "docs/spec/*.md"
       ],
       "targets": [
-        "parity-declarations-check"
+        "test-js",
+        "test-python"
       ]
     },
     {

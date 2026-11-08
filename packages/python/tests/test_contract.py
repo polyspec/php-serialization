@@ -1,7 +1,7 @@
 """Checks the package against contracts/php-serialize.json, which real PHP writes (make contracts), for RQ-001, RQ-002, RQ-003,
 RQ-004, RQ-005 and RQ-006.
 
-Each case is the test method test_<id>, a case of the suite unit `contract` of config/parity.json.
+Each case is the test method test_<id>.
 """
 
 from __future__ import annotations

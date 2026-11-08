@@ -45,8 +45,8 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
-  # The parity of both ports and the fuzz against real PHP, which reads the installed Python package.
-  parity:
+  # The fuzz of both ports against real PHP, which reads the installed Python package.
+  fuzz:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -62,13 +62,13 @@ jobs:
         run: make install-tools TOOLS="php python uv"
       - name: install the Python package
         run: make php-serialize-install-python
-      - name: parity and fuzz
-        run: make ci-parity
+      - name: fuzz
+        run: make ci-fuzz
       - name: report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: report-parity
+          name: report-fuzz
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
