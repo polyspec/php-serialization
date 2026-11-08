@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: cbf070b3304fa16d4527addcc17aacccc44d88c9e51a6e6c58e43e83cbec40b9 -->
+<!-- source-sha256: f5fd95767e28c16391fd00c82a5becebc9bc69a13d52f06e59b0c23b5e3bca61 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- php-serialize는 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102를 채택한다. recipe 줄은 바뀌지 않는다(T1.10).
 
 ## 0.0.3
 

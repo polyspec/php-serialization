@@ -1,5 +1,5 @@
 <!-- doc-id: execution-checklist -->
-<!-- source-sha256: 87a60b74f7833e2e5935694412f48bb689c5fa58caecebb03ae4937519abd54b -->
+<!-- source-sha256: 227e641aa5b542f076b647e28c4f294a8a2e110632eb4d80e5e272075ff6700b -->
 # 실행 checklist
 
 ## Wave 1 — 첫 release
@@ -15,3 +15,4 @@
 | T1.7 | parity를 지우는 kit 0.0.100을 채택한다: config/parity.json과 parity-check, parity-declarations-check, test-markers-check, divergence-check target을 지운다. parity와 fuzz를 돌리던 CI job은 ci-fuzz로 fuzz를 돌린다. 새 runtime의 AGENTS 규칙은 parity 항목을 이름 짓지 않는다. 0.0.100 release asset을 고정한다 | `config/parity.json`, `Makefile`, `.github/workflows/ci.yml`, `AGENTS.md(.ko)`, `config/owner-checks.json`, `config/layout.kit.yml`, `package.json`, `package-lock.json` | `make owner-validate`, `make docs-check` and `make lint-ts` exit 0 | [o] |
 | T1.8 | kit 거부 두 가지만 멈추는 kit 0.0.101을 채택한다: 0.0.101 release asset을 고정하며, recipe 줄은 바뀌지 않는다 | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
 | T1.9 | 0.0.3 release | version commit과 release asset | `make release-coverage`와 version commit의 CI run에서 만들어진 release | [v] |
+| T1.10 | 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102를 채택한다: 0.0.102 release asset을 고정하며, recipe 줄은 바뀌지 않는다 | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |

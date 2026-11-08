@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- php-serialize adopts kit 0.0.102, whose uv-install puts back the provider links when its install fails; no recipe line changes (T1.10).
+
 ## 0.0.3
 
 - The repository runs kit 0.0.101 without parity: config/parity.json and its targets are gone with kit 0.0.100 (T1.7, T1.8).
