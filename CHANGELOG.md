@@ -6,6 +6,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.3
+
+- The repository runs kit 0.0.101 without parity: config/parity.json and its targets are gone with kit 0.0.100 (T1.7, T1.8).
 - The repository runs kit 0.0.99 and passes it every value that kit 0.0.98 fixed, so each target runs the same commands and tests; make kit-check is gone with kit 0.0.99 (T1.6).
 
 ## 0.0.2

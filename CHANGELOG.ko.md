@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: c0566e55a467b33052af0da3f06d4c4c8e1a3dfcfc5c5a823baeb6710ebc4ce2 -->
+<!-- source-sha256: cbf070b3304fa16d4527addcc17aacccc44d88c9e51a6e6c58e43e83cbec40b9 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.3
+
+- repository는 parity 없이 kit 0.0.101을 실행한다. config/parity.json과 그 target은 kit 0.0.100과 함께 없어졌다(T1.7, T1.8).
 - repository는 kit 0.0.99를 실행하고, kit 0.0.98이 정해 두던 모든 값을 넘기므로 각 target은 같은 명령과 시험을 실행한다. make kit-check는 kit 0.0.99와 함께 없어졌다(T1.6).
 
 ## 0.0.2
