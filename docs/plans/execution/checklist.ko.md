@@ -1,5 +1,5 @@
 <!-- doc-id: execution-checklist -->
-<!-- source-sha256: b1fc03b1cd2f2c1f8afa45181d58e115d2d492e615296e469ef6e90b889317b3 -->
+<!-- source-sha256: 9372588617b56520a1f97af53908359f263f96273662e4f038714c985d93ce3c -->
 # 실행 checklist
 
 ## Wave 1 — 첫 release
@@ -13,3 +13,4 @@
 | T1.5 | 0.0.2 release | version commit과 release asset | `make release-coverage`와 version commit의 CI run에서 만들어진 release | [v] |
 | T1.6 | kit 0.0.99를 0.0.98의 동작 그대로 채택한다: kit 0.0.98이 정해 두고 0.0.99가 호출자에게서 받는 모든 값을 이 저장소의 recipe와 설정이 넘기므로, 각 target은 0.0.98에서와 같은 명령과 시험을 실행한다. 인수 조건: package.json과 package-lock.json이 0.0.99 release asset을 고정한다. kit-check는 kit 0.0.99와 함께 사라진다(그 config/*.json 검사는 각 도구의 schema다). 바뀐 모든 target의 make -n은 명시한 인자를 빼면 0.0.98과 같은 명령을 나열한다. test-js, test-python, fuzz-temp-test의 시험 목록은 같다. | Makefile, config/checklist.json, config/documents.json, config/duplication.json, config/generated.json, config/owner-checks.json, config/release.json, package.json, package-lock.json, CHANGELOG.md, CHANGELOG.ko.md | `make -n` of each changed target under 0.0.98 and 0.0.99, the test lists of test-js, test-python and fuzz-temp-test, `make docs-check`, `make duplication-check`, `make lint-ts` and the CI run of the commit | [v] |
 | T1.7 | parity를 지우는 kit 0.0.100을 채택한다: config/parity.json과 parity-check, parity-declarations-check, test-markers-check, divergence-check target을 지운다. parity와 fuzz를 돌리던 CI job은 ci-fuzz로 fuzz를 돌린다. 새 runtime의 AGENTS 규칙은 parity 항목을 이름 짓지 않는다. 0.0.100 release asset을 고정한다 | `config/parity.json`, `Makefile`, `.github/workflows/ci.yml`, `AGENTS.md(.ko)`, `config/owner-checks.json`, `config/layout.kit.yml`, `package.json`, `package-lock.json` | `make owner-validate`, `make docs-check` and `make lint-ts` exit 0 | [o] |
+| T1.8 | kit 거부 두 가지만 멈추는 kit 0.0.101을 채택한다: 0.0.101 release asset을 고정하며, recipe 줄은 바뀌지 않는다 | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
