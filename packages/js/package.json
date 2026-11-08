@@ -1,6 +1,6 @@
 {
   "name": "@polyspec/php-serialize",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "The PHP serialize format for Node.js, ported from the php-src source",
   "license": "BSD-3-Clause",
   "type": "module",

@@ -6,6 +6,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.4
+
+- The repository runs kit 0.0.102, whose uv-install puts back the provider links when its install fails (T1.10, T1.11).
 - php-serialize adopts kit 0.0.102, whose uv-install puts back the provider links when its install fails; no recipe line changes (T1.10).
 
 ## 0.0.3

@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: f5fd95767e28c16391fd00c82a5becebc9bc69a13d52f06e59b0c23b5e3bca61 -->
+<!-- source-sha256: c19db59a718a4525d9440d1997f97222bcd121b39ad3d814f2a083dbbc6241a4 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.4
+
+- 저장소는 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102에서 실행된다(T1.10, T1.11).
 - php-serialize는 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102를 채택한다. recipe 줄은 바뀌지 않는다(T1.10).
 
 ## 0.0.3

@@ -1,5 +1,5 @@
 <!-- doc-id: execution-checklist -->
-<!-- source-sha256: 227e641aa5b542f076b647e28c4f294a8a2e110632eb4d80e5e272075ff6700b -->
+<!-- source-sha256: 52bf4664904e5926d88be895de7148742e95e0d6f68c8fb2f067ff3bc3a27386 -->
 # 실행 checklist
 
 ## Wave 1 — 첫 release
@@ -16,3 +16,4 @@
 | T1.8 | kit 거부 두 가지만 멈추는 kit 0.0.101을 채택한다: 0.0.101 release asset을 고정하며, recipe 줄은 바뀌지 않는다 | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
 | T1.9 | 0.0.3 release | version commit과 release asset | `make release-coverage`와 version commit의 CI run에서 만들어진 release | [v] |
 | T1.10 | 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102를 채택한다: 0.0.102 release asset을 고정하며, recipe 줄은 바뀌지 않는다 | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
+| T1.11 | 0.0.4 release | version commit과 release asset | `make release-coverage`와 version commit의 CI run에서 만들어진 release | [o] |
