@@ -16,3 +16,4 @@
 | T1.9 | Release 0.0.3 | The version commit and the release assets | `make release-coverage` and the release of the CI run of the version commit | [v] |
 | T1.10 | Adopt kit 0.0.102, whose uv-install puts back the provider links when its install fails: pin the 0.0.102 release asset; no recipe line changes | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
 | T1.11 | Release 0.0.4 | The version commit and the release assets | `make release-coverage` and the release of the CI run of the version commit | [o] |
+| T1.12 | Adopt kit 0.0.103, which keeps the output, errors and failures that kit used to drop silently (kit K1136–K1165): pin the 0.0.103 release asset | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |

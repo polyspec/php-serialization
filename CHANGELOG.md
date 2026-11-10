@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- The repository adopts kit 0.0.103, which keeps the output, errors and failures that kit used to drop silently (kit K1136–K1165) (T1.12).
+
 ## 0.0.4
 
 - The repository runs kit 0.0.102, whose uv-install puts back the provider links when its install fails (T1.10, T1.11).
