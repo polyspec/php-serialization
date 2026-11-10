@@ -138,7 +138,7 @@ fuzz: fuzz-temp-test ## Compare both ports with real PHP on corrupted and genera
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.
 fuzz-temp-test: ## Run the test of the fuzz directories; offline
-	$(NODE) $(KIT)/run-tests.mjs node --timeout 30 -- --test-concurrency=1 scripts/fuzz-temp.test.mts
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/fuzz-temp.test.mts
 
 # ---- The checks of the repository -------------------------------------------------------------------------------------------
 # alint checks the tree against config/layout.yml, which extends config/layout.kit.yml with the map of this repository.

@@ -1,5 +1,5 @@
 <!-- doc-id: execution-checklist -->
-<!-- source-sha256: a7337ca19474c08625ae856bc2dac6719e766e89e00b45bea2c2af36cb16923a -->
+<!-- source-sha256: 88f496def67d2bbf869e6ca4ececa98a952ed5826d4f49bd6347254f359abade -->
 # 실행 checklist
 
 ## Wave 1 — 첫 release
@@ -19,3 +19,4 @@
 | T1.11 | 0.0.4 release | version commit과 release asset | `make release-coverage`와 version commit의 CI run에서 만들어진 release | [o] |
 | T1.12 | kit이 조용히 버리던 출력, 오류, 실패를 남기는 kit 0.0.103(kit K1136–K1165)를 채택한다: 0.0.103 release asset을 고정한다 | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
 | T1.13 | 0.0.5 release | version commit과 release asset | `make release-coverage`와 version commit의 CI run에서 만들어진 release | [o] |
+| T1.14 | run-tests의 시간 제한을 없앤 kit 0.0.105(kit K1175)를 채택한다: 0.0.105 release asset을 고정하고, 0.0.105가 알 수 없는 option으로 거부하는 `fuzz-temp-test`의 run-tests `--timeout`을 뺀다 | `package.json`, `package-lock.json`, `Makefile` | `make fuzz-temp-test`, `make docs-check`, `make lint-ts` exit 0 | [o] |
