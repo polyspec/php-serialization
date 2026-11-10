@@ -19,3 +19,4 @@
 | T1.12 | Adopt kit 0.0.103, which keeps the output, errors and failures that kit used to drop silently (kit K1136–K1165): pin the 0.0.103 release asset | `package.json`, `package-lock.json` | `make docs-check` and `make lint-ts` exit 0 | [o] |
 | T1.13 | Release 0.0.5 | The version commit and the release assets | `make release-coverage` and the release of the CI run of the version commit | [o] |
 | T1.14 | Adopt kit 0.0.105, which removed the time limits of run-tests (kit K1175): pin the 0.0.105 release asset and drop the `--timeout` that `fuzz-temp-test` passed to run-tests, which 0.0.105 refuses as an unknown option | `package.json`, `package-lock.json`, `Makefile` | `make fuzz-temp-test`, `make docs-check` and `make lint-ts` exit 0 | [o] |
+| T1.15 | Release 0.0.6 | The version commit and the release assets | `make release-coverage` and the release of the CI run of the version commit | [o] |

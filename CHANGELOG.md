@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.6
+
 - The repository adopts kit 0.0.105, which removed the time limits of run-tests (kit K1175), and passes no `--timeout` to run-tests (T1.14).
 
 ## 0.0.5
