@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "polyspec-php-serialize"
-version = "0.0.4"
+version = "0.0.5"
 description = "The PHP serialize format for Python, ported from the php-src source"
 readme = "README.md"
 license = "BSD-3-Clause"
