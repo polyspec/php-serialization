@@ -1,4 +1,4 @@
-# CI of php-serialize: one workflow whose jobs run the targets of the Makefile, each job the target that names its list
+# CI of php-serialization: one workflow whose jobs run the targets of the Makefile, each job the target that names its list
 # (CI_SHARED, CI_FUZZ, CI_TS, CI_PYTHON and CI_RUST of the Makefile), past failures, with the report of ci-targets as an artifact. The
 # release workflow releases the commit whose run of this workflow is green.
 name: ci
@@ -61,7 +61,7 @@ jobs:
       - name: install the tools of the job
         run: make install-tools TOOLS="php python uv"
       - name: install the Python package and the Rust toolchain
-        run: make php-serialize-install-python php-serialize-install-rust
+        run: make php-serialization-install-python php-serialization-install-rust
       - name: fuzz
         run: make ci-fuzz
       - name: report
@@ -99,7 +99,7 @@ jobs:
       - name: install the tools of the job
         run: make install-tools TOOLS="python uv ruff vulture"
       - name: install and build the package
-        run: make php-serialize-install-python build-python
+        run: make php-serialization-install-python build-python
       - name: lint and unit tests
         run: make ci-python
       - name: report
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
       - name: install the Rust toolchain and the locked crates
-        run: make php-serialize-install-rust
+        run: make php-serialization-install-rust
       - name: lint and tests
         run: make ci-rust
       - name: report

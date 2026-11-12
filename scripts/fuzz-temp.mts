@@ -3,7 +3,7 @@
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-const LEFT = /^php-serialize-fuzz-(\d+)-/;
+const LEFT = /^php-serialization-fuzz-(\d+)-/;
 
 function isAlive(pid: number): boolean {
   try {
@@ -20,5 +20,5 @@ export function runDirectory(root: string): string {
     const pid = LEFT.exec(name)?.[1];
     if (pid !== undefined && !isAlive(Number(pid))) rmSync(join(root, name), { recursive: true, force: true });
   }
-  return mkdtempSync(join(root, `php-serialize-fuzz-${String(process.pid)}-`));
+  return mkdtempSync(join(root, `php-serialization-fuzz-${String(process.pid)}-`));
 }

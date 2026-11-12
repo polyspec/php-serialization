@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
-use polyspec_php_serialize::{Error, Key, Node, ObjectId, PhpValue, ReferenceId};
+use polyspec_php_serialization::{Error, Key, Node, ObjectId, PhpValue, ReferenceId};
 use serde_json::{json, Value};
 
 #[derive(Default)]

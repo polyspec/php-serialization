@@ -1,4 +1,4 @@
-# The recipes of php-serialize. Each target runs a utility of the installed @polyspec/kit (node_modules/@polyspec/kit/dist,
+# The recipes of php-serialization. Each target runs a utility of the installed @polyspec/kit (node_modules/@polyspec/kit/dist,
 # the built package, also when the folder is a link to a kit checkout) with the arguments that this repository gives it; kit
 # includes no recipe here and sets no setting of a tool (kit docs/spec/utilities-and-recipes.md). The tools read their settings
 # from their own files: npm from .npmrc, mise and uv from mise.toml, ruff from ruff.toml, vulture from the [tool.vulture] of
@@ -41,8 +41,8 @@ CI_PYTHON := lint-python test-python
 CI_RUST := lint-rust test-rust bindings-check
 CI_REPORT ?= var/report/ci-targets
 
-.PHONY: install install-tools install-packages toolchain-lock php-serialize-install-python link unlink link-check \
-	php-serialize-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings bindings-check \
+.PHONY: install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
+	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings bindings-check \
 	contracts contracts-check fuzz fuzz-temp-test \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
@@ -58,8 +58,8 @@ install: ## Install the tools, the packages, the Python package and the links of
 	$(MAKE) --no-print-directory install-tools TOOLS=npm
 	$(MAKE) --no-print-directory install-packages
 	$(MAKE) --no-print-directory install-tools
-	$(MAKE) --no-print-directory php-serialize-install-python
-	$(MAKE) --no-print-directory php-serialize-install-rust
+	$(MAKE) --no-print-directory php-serialization-install-python
+	$(MAKE) --no-print-directory php-serialization-install-rust
 
 # The home and the cache of the Composer that install-tools and install-symbols run, the folders of var/tools that kit 0.0.98
 # set (kit K1095).
@@ -82,17 +82,17 @@ toolchain-lock: ## Write mise.lock with mise lock for the platforms of TOOLCHAIN
 	$(ONLINE) $(MISE) install --locked uv python
 	python="$$($(MISE) which python3)" && UV_PYTHON="$$python" $(ONLINE) $(MISE) lock --global --platform $(TOOLCHAIN_LOCK_PLATFORMS)
 
-# php-serialize-install-python makes legacy/packages/python/.venv from the Python of mise.toml and installs the package into it,
+# php-serialization-install-python makes legacy/packages/python/.venv from the Python of mise.toml and installs the package into it,
 # non-editable, since the python extractor of kit reads the file list of the installed distribution; link then makes the
 # installed package folder a link to the sources of the checkout when .links names one.
-php-serialize-install-python: ## Make legacy/packages/python/.venv and install the package into it, then link; ONLINE
+php-serialization-install-python: ## Make legacy/packages/python/.venv and install the package into it, then link; ONLINE
 	$(NODE) $(KIT)/python-venv.mjs legacy/packages/python/.venv
 	$(ONLINE) $(UV) pip install --python legacy/packages/python/.venv/bin/python --link-mode copy --no-deps legacy/packages/python
 	$(MAKE) --no-print-directory link
 
-# php-serialize-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
+# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
 # Cargo.lock, so that every Rust recipe runs with --locked and offline.
-php-serialize-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
+php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
 	$(ONLINE) cargo fetch --locked
 
@@ -118,7 +118,7 @@ build-python: ## Build the Python package with uv build; offline
 
 # The Rust recipes of the core name its package (-p): the binding crates of the workspace include the sources that make
 # bindings generates, so they build only after it (bindgen design L-2).
-CORE := polyspec-php-serialize
+CORE := polyspec-php-serialization
 
 build-rust: ## Build the Rust crate with cargo; offline
 	cargo build -p $(CORE) --locked --offline

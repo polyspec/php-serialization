@@ -1,4 +1,4 @@
-# The ruff configuration of php-serialize, from the ruff.toml of kit (kit docs/examples/native-settings.md). make lint-python
+# The ruff configuration of php-serialization, from the ruff.toml of kit (kit docs/examples/native-settings.md). make lint-python
 # runs ruff from the root, and ruff applies this file to every Python file of the checkout.
 target-version = "py314"
 # ruff's own setting for its cache, which otherwise is .ruff_cache at the root (layout S5 refuses it): var holds what the tools

@@ -6,7 +6,7 @@ mod common;
 use common::build::build;
 use common::tree::{base64, bytes_of, tree};
 use libtest_mimic::{Arguments, Failed, Trial};
-use polyspec_php_serialize::{serialize, unserialize, Error};
+use polyspec_php_serialization::{serialize, unserialize, Error};
 use serde_json::Value;
 
 const CONTRACT: &str = concat!(

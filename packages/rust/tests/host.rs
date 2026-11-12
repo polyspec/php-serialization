@@ -3,7 +3,7 @@
 
 use bindgen_core::HostValues;
 use bindgen_core::{Failure, Handle, HostText, HostValue, Key, KeyedMap, Raised, ValueKind};
-use polyspec_php_serialize::{check_reference, check_std_class, from_host, serialize, Error};
+use polyspec_php_serialization::{check_reference, check_std_class, from_host, serialize, Error};
 
 /// Whether the stand-in language has a float type apart from its integer type (PHP, Python) or one number type
 /// (JavaScript), which decides whether a number is described as a float or as an untyped number (U-7 (f)).

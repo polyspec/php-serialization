@@ -1137,7 +1137,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "polyspec-php-serialize"
+name = "polyspec-php-serialization"
 version = "0.0.6"
 dependencies = [
  "base64 0.22.1",
@@ -1148,31 +1148,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "polyspec-php-serialize-node"
+name = "polyspec-php-serialization-node"
 version = "0.0.6"
 dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
  "polyspec-bindgen-core",
- "polyspec-php-serialize",
+ "polyspec-php-serialization",
 ]
 
 [[package]]
-name = "polyspec-php-serialize-php-ext"
+name = "polyspec-php-serialization-php-ext"
 version = "0.0.6"
 dependencies = [
  "ext-php-rs",
  "polyspec-bindgen-core",
- "polyspec-php-serialize",
+ "polyspec-php-serialization",
 ]
 
 [[package]]
-name = "polyspec-php-serialize-python"
+name = "polyspec-php-serialization-python"
 version = "0.0.6"
 dependencies = [
  "polyspec-bindgen-core",
- "polyspec-php-serialize",
+ "polyspec-php-serialization",
  "pyo3",
 ]
 

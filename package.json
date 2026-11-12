@@ -1,5 +1,5 @@
 {
-  "name": "@polyspec/php-serialize-workspace",
+  "name": "@polyspec/php-serialization-workspace",
   "version": "0.0.6",
   "private": true,
   "description": "The workspace of the PHP serialize format for Node.js and Python",
@@ -25,7 +25,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/polyspec/php-serialize.git"
+    "url": "https://github.com/polyspec/php-serialization.git"
   },
   "devDependencies": {
     "@polyspec/kit": "https://github.com/polyspec/kit/releases/download/v0.0.105/polyspec-kit-0.0.105.tgz",

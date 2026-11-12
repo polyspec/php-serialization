@@ -1,4 +1,4 @@
-# Release workflow of php-serialize. Each step runs one target of the Makefile with TAG, vX.Y.Z, from the environment, which
+# Release workflow of php-serialization. Each step runs one target of the Makefile with TAG, vX.Y.Z, from the environment, which
 # release-tag writes.
 #
 # The workflow starts by itself when a push run of the CI workflow ci succeeds on main: it checks out the head_sha of that run,

@@ -1,7 +1,7 @@
 {
-  "name": "@polyspec/php-serialize",
+  "name": "@polyspec/php-serialization",
   "version": "0.0.6",
-  "description": "The php-serialize library of polyspec for Node",
+  "description": "The php-serialization library of polyspec for Node",
   "license": "MIT",
   "main": "./generated/index.cjs",
   "types": "./generated/index.d.ts",

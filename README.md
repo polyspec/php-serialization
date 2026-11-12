@@ -1,5 +1,5 @@
 <!-- doc-id: overview -->
-# php-serialize
+# php-serialization
 
 [한국어](README.ko.md)
 
@@ -9,7 +9,7 @@ The serialize format of PHP for other languages, so that a server in another lan
 | --- | --- | --- |
 | [Node.js](legacy/packages/js/README.md) (legacy, not released) | `@polyspec/php-serialize` | `@polyspec/php-serialize` |
 | [Python](legacy/packages/python/README.md) (legacy, not released) | `polyspec-php-serialize` | `polyspec.php_serialize` |
-| [Rust](packages/rust/README.md) | `polyspec-php-serialize` (crate, not published) | `polyspec_php_serialize` |
+| [Rust](packages/rust/README.md) | `polyspec-php-serialization` (crate, not published) | `polyspec_php_serialization` |
 
 The Node.js and Python packages are the legacy packages of the [transition](docs/spec/php-serialize.md#transition): the bindings that bindgen generates into `packages/python`, `packages/ts` and `packages/php-ext` replace them.
 

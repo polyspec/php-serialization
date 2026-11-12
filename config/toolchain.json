@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "comment": "The toolchains of php-serialize that no other file declares. npm is declared in the devEngines.packageManager of package.json and PHP in .php-version. mise is the release that make install-tools TOOLS=npm installs with the sha256 of each platform; mise.toml declares the tools it installs and mise.lock locks them.",
+  "comment": "The toolchains of php-serialization that no other file declares. npm is declared in the devEngines.packageManager of package.json and PHP in .php-version. mise is the release that make install-tools TOOLS=npm installs with the sha256 of each platform; mise.toml declares the tools it installs and mise.lock locks them.",
   "mise": {
     "version": "2026.10.8",
     "sha256": {

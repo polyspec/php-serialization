@@ -1,4 +1,4 @@
-# The common layout rules of php-serialize (S5, S7, S9), from the config/layout.kit.yml of kit, which this repository owns:
+# The common layout rules of php-serialization (S5, S7, S9), from the config/layout.kit.yml of kit, which this repository owns:
 # kit neither writes nor compares it (kit docs/spec/utilities-and-recipes.md). make layout-check runs them through
 # config/layout.yml, which extends this file and adds the map of the repository. This file lies in config/ because alint
 # reads an extends: target only from the folder of the config that names it.

@@ -1,11 +1,11 @@
 [package]
-name = "polyspec-php-serialize"
+name = "polyspec-php-serialization"
 version = "0.0.6"
 edition = "2021"
 rust-version = "1.99.0"
 description = "The serialize format of PHP: its values, unserialize and serialize, byte for byte as PHP"
 readme = "README.md"
-repository = "https://github.com/polyspec/php-serialize.git"
+repository = "https://github.com/polyspec/php-serialization.git"
 license = "BSD-3-Clause"
 publish = false
 # The package holds the interface contract of the bindings beside the source, so that a library that takes or gives a
@@ -13,7 +13,7 @@ publish = false
 include = ["/src/**/*.rs", "/interface.json", "/README.md"]
 
 [lib]
-name = "polyspec_php_serialize"
+name = "polyspec_php_serialization"
 path = "src/lib.rs"
 
 [dependencies]

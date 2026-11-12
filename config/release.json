@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "repositoryUrl": "https://github.com/polyspec/php-serialize",
+  "repositoryUrl": "https://github.com/polyspec/php-serialization",
   "changelog": "CHANGELOG.md",
   "changelogTranslations": [
     "CHANGELOG.ko.md"
@@ -17,7 +17,7 @@
     "packages/php-ext/composer.json": "a binding package of bindgen, released after the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)) and kit makes its platform assets (K-3)",
     "packages/python/Cargo.toml": "a binding package of bindgen, released after the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)) and kit makes its platform assets (K-3)",
     "packages/python/pyproject.toml": "a binding package of bindgen, released after the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)) and kit makes its platform assets (K-3)",
-    "packages/rust/Cargo.toml": "the core crate polyspec-php-serialize, publish = false: the bindings that packages/rust/interface.json generates build it from the source of the checkout (RQ-011), and no runtime installs it alone",
+    "packages/rust/Cargo.toml": "the core crate polyspec-php-serialization, publish = false: the bindings that packages/rust/interface.json generates build it from the source of the checkout (RQ-011), and no runtime installs it alone",
     "packages/ts/Cargo.toml": "a binding package of bindgen, released after the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)) and kit makes its platform assets (K-3)",
     "packages/ts/package.json": "a binding package of bindgen, released after the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)) and kit makes its platform assets (K-3)"
   },

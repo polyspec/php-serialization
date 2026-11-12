@@ -1,7 +1,7 @@
 //! Requirements: RQ-002, RQ-004, RQ-005, RQ-006, RQ-007, RQ-008, RQ-009, RQ-010. The building of a value, the offsets of
 //! errors, the text of floats and values deeper than a stack holds.
 
-use polyspec_php_serialize::{
+use polyspec_php_serialization::{
     serialize, unserialize, Error, Key, Node, PhpFloat, PhpValue, DEPTH_LIMIT,
 };
 

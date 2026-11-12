@@ -1,4 +1,4 @@
-# The bootstrap of every CI job of php-serialize: .github/workflows/ci.yml and release.yml run it after their checkout with
+# The bootstrap of every CI job of php-serialization: .github/workflows/ci.yml and release.yml run it after their checkout with
 # `uses: ./.github/actions/bootstrap`. It installs the locked kit package, whose utilities the Makefile runs, then the mise,
 # node and npm of mise.toml and the packages of package-lock.json. A job that needs PHP sets it up before.
 name: bootstrap

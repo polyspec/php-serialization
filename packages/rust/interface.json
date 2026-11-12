@@ -1,8 +1,8 @@
 {
   "schema": "polyspec/interface@1",
-  "library": "php-serialize",
+  "library": "php-serialization",
   "core": {
-    "crate": "polyspec-php-serialize",
+    "crate": "polyspec-php-serialization",
     "path": "packages/rust"
   },
   "targets": [
@@ -12,15 +12,15 @@
   ],
   "packages": {
     "php": {
-      "package": "polyspec/php-serialize",
-      "namespace": "Polyspec\\PhpSerialize"
+      "package": "polyspec/php-serialization",
+      "namespace": "Polyspec\\PhpSerialization"
     },
     "python": {
-      "package": "polyspec-php-serialize",
-      "module": "polyspec.php_serialize"
+      "package": "polyspec-php-serialization",
+      "module": "polyspec.php_serialization"
     },
     "node": {
-      "package": "@polyspec/php-serialize",
+      "package": "@polyspec/php-serialization",
       "entries": {
         ".": {
           "formats": [
@@ -35,41 +35,41 @@
   },
   "types": {
     "php_value": {
-      "library": "php-serialize",
+      "library": "php-serialization",
       "unit": "php_value"
     }
   },
   "errors": {
     "classes": {
       "value": {
-        "php": "Polyspec\\PhpSerialize\\PhpSerializeValueError",
-        "python": "PhpSerializeValueError",
-        "node": "PhpSerializeValueError"
+        "php": "Polyspec\\PhpSerialization\\PhpSerializationValueError",
+        "python": "PhpSerializationValueError",
+        "node": "PhpSerializationValueError"
       },
       "type": {
-        "php": "Polyspec\\PhpSerialize\\PhpSerializeTypeError",
-        "python": "PhpSerializeTypeError",
-        "node": "PhpSerializeTypeError"
+        "php": "Polyspec\\PhpSerialization\\PhpSerializationTypeError",
+        "python": "PhpSerializationTypeError",
+        "node": "PhpSerializationTypeError"
       },
       "io": {
-        "php": "Polyspec\\PhpSerialize\\PhpSerializeIoError",
-        "python": "PhpSerializeIoError",
-        "node": "PhpSerializeIoError"
+        "php": "Polyspec\\PhpSerialization\\PhpSerializationIoError",
+        "python": "PhpSerializationIoError",
+        "node": "PhpSerializationIoError"
       },
       "store": {
-        "php": "Polyspec\\PhpSerialize\\PhpSerializeStoreError",
-        "python": "PhpSerializeStoreError",
-        "node": "PhpSerializeStoreError"
+        "php": "Polyspec\\PhpSerialization\\PhpSerializationStoreError",
+        "python": "PhpSerializationStoreError",
+        "node": "PhpSerializationStoreError"
       },
       "busy": {
-        "php": "Polyspec\\PhpSerialize\\PhpSerializeBusyError",
-        "python": "PhpSerializeBusyError",
-        "node": "PhpSerializeBusyError"
+        "php": "Polyspec\\PhpSerialization\\PhpSerializationBusyError",
+        "python": "PhpSerializationBusyError",
+        "node": "PhpSerializationBusyError"
       },
       "internal": {
-        "php": "Polyspec\\PhpSerialize\\PhpSerializeInternalError",
-        "python": "PhpSerializeInternalError",
-        "node": "PhpSerializeInternalError"
+        "php": "Polyspec\\PhpSerialization\\PhpSerializationInternalError",
+        "python": "PhpSerializationInternalError",
+        "node": "PhpSerializationInternalError"
       }
     },
     "fixed": [
@@ -92,77 +92,77 @@
     ],
     "kinds": [
       {
-        "variant": "polyspec_php_serialize::Error::Syntax",
+        "variant": "polyspec_php_serialization::Error::Syntax",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::Depth",
+        "variant": "polyspec_php_serialization::Error::Depth",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::Reference",
+        "variant": "polyspec_php_serialization::Error::Reference",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::IntRange",
+        "variant": "polyspec_php_serialization::Error::IntRange",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::TrailingData",
+        "variant": "polyspec_php_serialization::Error::TrailingData",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::Class",
+        "variant": "polyspec_php_serialization::Error::Class",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::TopArrayReference",
+        "variant": "polyspec_php_serialization::Error::TopArrayReference",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::PropertyName",
+        "variant": "polyspec_php_serialization::Error::PropertyName",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::ArrayHeld",
+        "variant": "polyspec_php_serialization::Error::ArrayHeld",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::NestedReference",
+        "variant": "polyspec_php_serialization::Error::NestedReference",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::TopReference",
+        "variant": "polyspec_php_serialization::Error::TopReference",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::UnknownId",
+        "variant": "polyspec_php_serialization::Error::UnknownId",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::UnsupportedValue",
+        "variant": "polyspec_php_serialization::Error::UnsupportedValue",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::InvalidText",
+        "variant": "polyspec_php_serialization::Error::InvalidText",
         "category": "value",
         "class": "format_error"
       },
       {
-        "variant": "polyspec_php_serialize::Error::Internal",
+        "variant": "polyspec_php_serialization::Error::Internal",
         "category": "internal"
       }
     ],
@@ -198,7 +198,7 @@
           "raises": [],
           "wait": "none",
           "core": {
-            "path": "polyspec_php_serialize::Error::offset",
+            "path": "polyspec_php_serialization::Error::offset",
             "receiver": "&self"
           }
         }
@@ -233,19 +233,19 @@
           ],
           "returns": "php_value",
           "raises": [
-            "polyspec_php_serialize::Error::Syntax",
-            "polyspec_php_serialize::Error::Depth",
-            "polyspec_php_serialize::Error::Reference",
-            "polyspec_php_serialize::Error::IntRange",
-            "polyspec_php_serialize::Error::TrailingData",
-            "polyspec_php_serialize::Error::Class",
-            "polyspec_php_serialize::Error::TopArrayReference",
-            "polyspec_php_serialize::Error::PropertyName",
-            "polyspec_php_serialize::Error::Internal"
+            "polyspec_php_serialization::Error::Syntax",
+            "polyspec_php_serialization::Error::Depth",
+            "polyspec_php_serialization::Error::Reference",
+            "polyspec_php_serialization::Error::IntRange",
+            "polyspec_php_serialization::Error::TrailingData",
+            "polyspec_php_serialization::Error::Class",
+            "polyspec_php_serialization::Error::TopArrayReference",
+            "polyspec_php_serialization::Error::PropertyName",
+            "polyspec_php_serialization::Error::Internal"
           ],
           "wait": "none",
           "core": {
-            "path": "polyspec_php_serialize::unserialize"
+            "path": "polyspec_php_serialization::unserialize"
           }
         },
         {
@@ -266,20 +266,20 @@
           ],
           "returns": "bytes",
           "raises": [
-            "polyspec_php_serialize::Error::Depth",
-            "polyspec_php_serialize::Error::PropertyName",
-            "polyspec_php_serialize::Error::ArrayHeld",
-            "polyspec_php_serialize::Error::NestedReference",
-            "polyspec_php_serialize::Error::TopReference",
-            "polyspec_php_serialize::Error::UnknownId",
-            "polyspec_php_serialize::Error::Internal",
-            "polyspec_php_serialize::Error::UnsupportedValue",
-            "polyspec_php_serialize::Error::InvalidText",
-            "polyspec_php_serialize::Error::IntRange"
+            "polyspec_php_serialization::Error::Depth",
+            "polyspec_php_serialization::Error::PropertyName",
+            "polyspec_php_serialization::Error::ArrayHeld",
+            "polyspec_php_serialization::Error::NestedReference",
+            "polyspec_php_serialization::Error::TopReference",
+            "polyspec_php_serialization::Error::UnknownId",
+            "polyspec_php_serialization::Error::Internal",
+            "polyspec_php_serialization::Error::UnsupportedValue",
+            "polyspec_php_serialization::Error::InvalidText",
+            "polyspec_php_serialization::Error::IntRange"
           ],
           "wait": "none",
           "core": {
-            "path": "polyspec_php_serialize::serialize"
+            "path": "polyspec_php_serialization::serialize"
           }
         },
         {
@@ -292,7 +292,7 @@
           "visibility": "public",
           "type": "uint",
           "value": 4096,
-          "core": "polyspec_php_serialize::DEPTH_LIMIT"
+          "core": "polyspec_php_serialization::DEPTH_LIMIT"
         }
       ]
     },
@@ -331,7 +331,7 @@
           ],
           "raises": [],
           "wait": "none",
-          "core": "polyspec_php_serialize::PhpFloat::new"
+          "core": "polyspec_php_serialization::PhpFloat::new"
         },
         {
           "id": "php_float.value",
@@ -344,7 +344,7 @@
           "raises": [],
           "wait": "none",
           "core": {
-            "path": "polyspec_php_serialize::PhpFloat::value",
+            "path": "polyspec_php_serialization::PhpFloat::value",
             "receiver": "&self"
           }
         },
@@ -360,12 +360,12 @@
           "raises": [],
           "wait": "none",
           "core": {
-            "path": "polyspec_php_serialize::PhpFloat::value",
+            "path": "polyspec_php_serialization::PhpFloat::value",
             "receiver": "&self"
           }
         }
       ],
-      "core_type": "polyspec_php_serialize::PhpFloat"
+      "core_type": "polyspec_php_serialization::PhpFloat"
     },
     {
       "id": "std_class",
@@ -410,16 +410,16 @@
             }
           ],
           "raises": [
-            "polyspec_php_serialize::Error::UnsupportedValue",
-            "polyspec_php_serialize::Error::InvalidText",
-            "polyspec_php_serialize::Error::IntRange",
-            "polyspec_php_serialize::Error::Depth",
-            "polyspec_php_serialize::Error::PropertyName",
-            "polyspec_php_serialize::Error::NestedReference",
-            "polyspec_php_serialize::Error::Internal"
+            "polyspec_php_serialization::Error::UnsupportedValue",
+            "polyspec_php_serialization::Error::InvalidText",
+            "polyspec_php_serialization::Error::IntRange",
+            "polyspec_php_serialization::Error::Depth",
+            "polyspec_php_serialization::Error::PropertyName",
+            "polyspec_php_serialization::Error::NestedReference",
+            "polyspec_php_serialization::Error::Internal"
           ],
           "wait": "none",
-          "core": "polyspec_php_serialize::check_std_class"
+          "core": "polyspec_php_serialization::check_std_class"
         },
         {
           "id": "std_class.properties",
@@ -477,16 +477,16 @@
             }
           ],
           "raises": [
-            "polyspec_php_serialize::Error::UnsupportedValue",
-            "polyspec_php_serialize::Error::InvalidText",
-            "polyspec_php_serialize::Error::IntRange",
-            "polyspec_php_serialize::Error::Depth",
-            "polyspec_php_serialize::Error::PropertyName",
-            "polyspec_php_serialize::Error::NestedReference",
-            "polyspec_php_serialize::Error::Internal"
+            "polyspec_php_serialization::Error::UnsupportedValue",
+            "polyspec_php_serialization::Error::InvalidText",
+            "polyspec_php_serialization::Error::IntRange",
+            "polyspec_php_serialization::Error::Depth",
+            "polyspec_php_serialization::Error::PropertyName",
+            "polyspec_php_serialization::Error::NestedReference",
+            "polyspec_php_serialization::Error::Internal"
           ],
           "wait": "none",
-          "core": "polyspec_php_serialize::check_reference"
+          "core": "polyspec_php_serialization::check_reference"
         },
         {
           "id": "reference.value",
@@ -511,7 +511,7 @@
       "kind": "alias",
       "visibility": "public",
       "origin": "value",
-      "core_type": "polyspec_php_serialize::PhpValue",
+      "core_type": "polyspec_php_serialization::PhpValue",
       "out": [
         {
           "kind": "null",
@@ -980,9 +980,21 @@
       "id": "change-php-package",
       "rule": "RQ-011",
       "reason": "RQ-011: the PHP extension is a new package of the crate; PHP's own serialize stays the oracle",
-      "symbol": "Polyspec\\PhpSerialize",
+      "symbol": "Polyspec\\PhpSerialization",
       "from": {
         "php": "none"
+      },
+      "to": "functions"
+    },
+    {
+      "id": "change-names",
+      "rule": "N-3",
+      "reason": "plan N-3, N-1: a library of a data format is named after the format, so the repository is php-serialization; design P-1 and E-2 give its package, module and error class names: Composer polyspec/php-serialization, PHP Polyspec\\PhpSerialization, PyPI polyspec-php-serialization, Python polyspec.php_serialization, npm @polyspec/php-serialization, PHP extension polyspec_php_serialization, PhpSerialization<Category>Error",
+      "symbol": "polyspec/php-serialize, Polyspec\\PhpSerialize, polyspec-php-serialize, polyspec.php_serialize, @polyspec/php-serialize",
+      "from": {
+        "php": "Composer polyspec/php-serialize, namespace Polyspec\\PhpSerialize, extension polyspec_php_serialize, PhpSerialize<Category>Error",
+        "python": "PyPI polyspec-php-serialize, module polyspec.php_serialize, PhpSerialize<Category>Error",
+        "node": "npm @polyspec/php-serialize, PhpSerialize<Category>Error"
       },
       "to": "functions"
     }

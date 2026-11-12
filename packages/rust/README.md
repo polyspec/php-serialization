@@ -1,16 +1,16 @@
 <!-- doc-id: rust-overview -->
-# php-serialize for Rust
+# php-serialization for Rust
 
 [한국어](README.ko.md)
 
-The crate `polyspec-php-serialize` holds the rules of the format (RQ-011): the value of PHP, unserialize and serialize, byte for byte as PHP. The bindings of the other runtimes are generated from the interface contract `interface.json` of this crate (`packages/rust/interface.json`, in the crate package) and call this crate.
+The crate `polyspec-php-serialization` holds the rules of the format (RQ-011): the value of PHP, unserialize and serialize, byte for byte as PHP. The bindings of the other runtimes are generated from the interface contract `interface.json` of this crate (`packages/rust/interface.json`, in the crate package) and call this crate.
 
 ```rust
-use polyspec_php_serialize::{serialize, unserialize};
+use polyspec_php_serialization::{serialize, unserialize};
 
 let value = unserialize(b"a:1:{s:1:\"a\";d:1;}")?;
 assert_eq!(serialize(&value)?, b"a:1:{s:1:\"a\";d:1;}");
-# Ok::<(), polyspec_php_serialize::Error>(())
+# Ok::<(), polyspec_php_serialization::Error>(())
 ```
 
 | PHP | Rust |

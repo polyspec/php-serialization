@@ -8,7 +8,7 @@ mod tree;
 
 use std::process::ExitCode;
 
-use polyspec_php_serialize::{serialize, unserialize};
+use polyspec_php_serialization::{serialize, unserialize};
 use serde_json::json;
 
 fn reply(input: &[u8]) -> String {
