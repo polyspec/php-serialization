@@ -166,7 +166,7 @@
         "format",
         "error"
       ],
-      "module": "php_serialize",
+      "module": "",
       "kind": "error",
       "visibility": "public",
       "origin": "generated",
@@ -200,7 +200,7 @@
         "php",
         "serialize"
       ],
-      "module": "php_serialize",
+      "module": "",
       "kind": "functions",
       "visibility": "public",
       "origin": "generated",
@@ -290,7 +290,7 @@
         "php",
         "float"
       ],
-      "module": "php_serialize",
+      "module": "",
       "kind": "class",
       "visibility": "public",
       "origin": "value",
@@ -347,7 +347,7 @@
         "std",
         "class"
       ],
-      "module": "php_serialize",
+      "module": "",
       "kind": "class",
       "visibility": "public",
       "origin": "value",
@@ -410,7 +410,7 @@
       "name": [
         "reference"
       ],
-      "module": "php_serialize",
+      "module": "",
       "kind": "class",
       "visibility": "public",
       "origin": "value",
@@ -469,7 +469,7 @@
       "name": [
         "value"
       ],
-      "module": "php_serialize",
+      "module": "",
       "kind": "alias",
       "of": {
         "todo": "U-7 (a): the contract types cannot name null or an array with int and bytes keys, so the union of the language types is that of the in rows (T-2)"
