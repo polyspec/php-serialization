@@ -74,3 +74,8 @@ Until the generated bindings replace them (RQ-011), the Node.js and Python packa
 | Failures | unserialize throws `UnserializeError` with `offset` and without a kind; serialize throws `TypeError` or `RangeError` (Node.js), `TypeError`, `OverflowError` or `ValueError` (Python) | Every failure has a kind of [the table](#kinds) | RQ-010: a caller tells a refusal on purpose from a corrupt record or a value too deep only by a kind; a message is no interface |
 | A reference as the top value of serialize | Writes the value of the reference | Refuses it with `top_reference` | RQ-008: PHP has no top reference; writing its value would turn a value that PHP cannot hold into another value |
 | A string key in the canonical form of an integer, and a repeated key | Normalized while serialize writes the array | Normalized when the key is set | RQ-008: the value never holds a key that a PHP array cannot hold; the bytes are the same |
+
+<a id="transition"></a>
+## Transition
+
+The Node.js and Python packages are in `legacy/packages/js` and `legacy/packages/python`, and the bindings that bindgen generates from `packages/rust/interface.json` take `packages/python`, `packages/ts` and `packages/php-ext` (RQ-011). The legacy packages keep their API and their own implementation, are no release target, and run their tests and the fuzz from their new paths, as the reference of the comparison with the bindings. Each is removed by a change of its own once the binding of its language passes the contract, the package tests and the fuzz (plan V-6 (5)); until then [the table above](#differences) lists where they differ from the crate.

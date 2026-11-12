@@ -1,5 +1,5 @@
 <!-- doc-id: overview -->
-<!-- source-sha256: 7548395e1a97fd63b4e01a7852561e9f56cd2211808fd8f3564cd9dfe7747277 -->
+<!-- source-sha256: 894fab87ba099c62859ea53502e74e6b77279ba5abfd7da8387c4e7986c38b00 -->
 # php-serialize
 
 [English](README.md)
@@ -8,9 +8,11 @@
 
 | 패키지 | 설치 이름 | Import |
 | --- | --- | --- |
-| [Node.js](packages/js/README.ko.md) | `@polyspec/php-serialize` | `@polyspec/php-serialize` |
-| [Python](packages/python/README.ko.md) | `polyspec-php-serialize` | `polyspec.php_serialize` |
+| [Node.js](legacy/packages/js/README.ko.md) (legacy, 배포하지 않음) | `@polyspec/php-serialize` | `@polyspec/php-serialize` |
+| [Python](legacy/packages/python/README.ko.md) (legacy, 배포하지 않음) | `polyspec-php-serialize` | `polyspec.php_serialize` |
 | [Rust](packages/rust/README.ko.md) | `polyspec-php-serialize` (crate, 배포하지 않음) | `polyspec_php_serialize` |
+
+Node.js와 Python 패키지는 [이행](docs/spec/php-serialize.ko.md#transition)의 legacy 패키지이며, bindgen이 `packages/python`, `packages/ts`, `packages/php-ext`에 생성하는 바인딩이 그것을 대체합니다.
 
 <a id="proof"></a>
 ## 검증

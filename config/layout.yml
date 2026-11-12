@@ -22,3 +22,13 @@ rules:
     paths:
       - "scripts/**/*.{js,mjs,cjs,py,sh,bash,zsh,rb,pl,php,go,rs,ps1,bat,cmd}"
       - "tests/**/*.{js,mjs,cjs,py,sh,bash,zsh,rb,pl,php,go,rs,ps1,bat,cmd}"
+
+  # S6 exception of the transition (docs/spec/php-serialize.md#transition): legacy/ holds the Node.js and Python packages
+  # that the generated bindings replace, under their former paths, until each is removed by a change of its own (plan
+  # V-6 (5)).
+  - id: layout-root-folders
+    paths: ["*", "!packages", "!contracts", "!docs", "!scripts", "!tests", "!examples", "!benchmarks", "!config", "!.github", "!.kit", "!.mise", "!legacy"]
+
+  # T-1a: the stub of the PHP extension is generated into packages/php-ext/generated, which is not tracked.
+  - id: php-ext-stub-place
+    paths: ["**/*.stub.php", "!packages/php-ext/src/*.stub.php", "!packages/php-ext/generated/*.stub.php"]

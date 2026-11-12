@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 278701a8b1bc3aaddc9757c3699671ba61c3e882be2d49bdece464c74566c1af -->
+<!-- source-sha256: abe769edc0866435665756e3d24af42c2854df72a09dcd98c4a2dbba56b38476 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -15,6 +15,7 @@
 - crate의 `DEPTH_LIMIT`는 인터페이스 계약의 `uint` 타입인 `u64`이고, crate는 Node.js class `PhpFloat`의 생성자, `value`, `valueOf`가 부르는 `PhpFloat`를 가진다(RQ-008) (T2.1).
 - `php_value`의 값 표를 채운다: alias만 `out`·`in` 행을 가지고 `PhpFloat`, `StdClass`, `Reference`를 모으며, `StdClass`의 속성은 text와 bytes key의 keyed map이고, JavaScript number는 정수가 아니면 float, 안전 정수면 int, 그 밖에는 float로 다시 읽힌다. 언어에서 `php_value`를 받는 코어가 생길 때까지 `StdClass`와 `Reference` 생성자의 코어만 `todo`로 남는다(T2.1).
 - crate는 언어의 값을 `from_host`로 읽는다(RQ-012): 바인딩은 값을 한 단계씩 설명하고 handle의 자식에 답하며(`HostValues`), JavaScript number는 안전 정수이고 `-0`이 아니면 int이고, 객체와 참조는 정체성을 지키며, PHP에 없는 값은 새 kind `unsupported_value`, `invalid_text`나 이제 언어 값의 정수도 가리키는 `int_range`로 거부한다. `StdClass`와 `Reference` 생성자는 같은 규칙으로 받는 것을 판정하는 `check_std_class`와 `check_reference`를 부르므로 인터페이스 계약에 `todo`가 남지 않는다(T2.1).
+- Node.js와 Python 패키지를 `legacy/packages/js`와 `legacy/packages/python`으로 옮기고 생성된 바인딩이 대체할 때까지 배포 대상에서 뺀다([이행](docs/spec/php-serialize.ko.md#transition)). 바인딩은 `bindgen scaffold`가 쓰는 얇은 패키지 `packages/python`, `packages/ts`, `packages/php-ext`이며, 루트 Cargo workspace가 crate와 함께 하나의 `Cargo.lock`으로 담고, `make bindings`와 `make bindings-check`는 고정한 commit의 bindgen을 실행한다(T2.1).
 
 ## 0.0.6
 

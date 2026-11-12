@@ -72,7 +72,7 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
-  # The lint and the unit tests of packages/js.
+  # The lint and the unit tests of legacy/packages/js.
   ts:
     runs-on: ubuntu-24.04
     steps:
@@ -90,7 +90,7 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
-  # The lint and the unit tests of packages/python, against the installed package.
+  # The lint and the unit tests of legacy/packages/python, against the installed package.
   python:
     runs-on: ubuntu-24.04
     steps:

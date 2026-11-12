@@ -15,6 +15,14 @@ The working principles of every polyspec repository are in [PRINCIPLES.md](https
 - Own: The contract holds data that real PHP writes and no shape of a language, so a new runtime is a new package under `packages/`.
   Enforced by: none, a guided rule: kit does not check how implementations relate; each repository runs its own tests (K1129)
 
+<a id="layout"></a>
+## Layout
+
+- Own: S6 exception of the transition: `legacy/packages/js` and `legacy/packages/python` hold the Node.js and Python packages that the generated bindings replace. They are no release target and stay until each is removed by a change of its own, once the binding of its language passes the contract, the package tests and the fuzz ([transition](docs/spec/php-serialize.md#transition), plan V-6 (5)).
+  Enforced by: `make layout-check`, `make release-coverage`
+- Own: The binding packages `packages/python`, `packages/ts` and `packages/php-ext` are what `bindgen scaffold` writes from `packages/rust/interface.json`, and their `generated/` is not tracked. The root Cargo workspace holds them with the core crate, and the Rust recipes of the core name its package.
+  Enforced by: `make bindings-check`
+
 <a id="tools"></a>
 ## Tools
 

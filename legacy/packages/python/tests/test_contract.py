@@ -17,7 +17,7 @@ from .tree import b64, new_state, tree
 
 CONTRACT = json.loads(
     (
-        Path(__file__).resolve().parents[3] / "contracts" / "php-serialize.json"
+        Path(__file__).resolve().parents[4] / "contracts" / "php-serialize.json"
     ).read_text("utf-8")
 )
 

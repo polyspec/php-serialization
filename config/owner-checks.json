@@ -47,10 +47,10 @@
         "scripts/fuzz.mts",
         "scripts/fuzz-temp.mts",
         "scripts/fuzz-temp.test.mts",
-        "packages/js/index.js",
-        "packages/js/tests/*",
-        "packages/python/src/polyspec/php_serialize/*",
-        "packages/python/tests/*",
+        "legacy/packages/js/index.js",
+        "legacy/packages/js/tests/*",
+        "legacy/packages/python/src/polyspec/php_serialize/*",
+        "legacy/packages/python/tests/*",
         "packages/rust/src/**",
         "packages/rust/examples/**",
         "packages/rust/tests/common/**"
@@ -62,11 +62,15 @@
     {
       "paths": [
         "package.json",
-        "packages/js/package.json",
-        "packages/python/pyproject.toml",
+        "legacy/packages/js/package.json",
+        "legacy/packages/python/pyproject.toml",
         "config/release.json",
         "CHANGELOG.md",
-        "CHANGELOG.ko.md"
+        "CHANGELOG.ko.md",
+        "Cargo.toml",
+        "packages/python/pyproject.toml",
+        "packages/ts/package.json",
+        "packages/php-ext/composer.json"
       ],
       "targets": [
         "release-coverage"
@@ -101,8 +105,8 @@
         "config/*.json",
         "config/*.yml",
         "LICENSE",
-        "packages/js/LICENSE",
-        "packages/python/LICENSE",
+        "legacy/packages/js/LICENSE",
+        "legacy/packages/python/LICENSE",
         "mise.toml",
         "mise.lock",
         ".mise/**"
@@ -111,7 +115,7 @@
     },
     {
       "paths": [
-        "packages/**",
+        "legacy/packages/**",
         "docs/spec/*.md"
       ],
       "targets": [
@@ -173,11 +177,26 @@
       "paths": [
         "packages/rust/**",
         "clippy.toml",
-        "rust-toolchain.toml"
+        "rust-toolchain.toml",
+        "Cargo.toml",
+        "Cargo.lock"
       ],
       "targets": [
         "lint-rust",
         "test-rust"
+      ]
+    },
+    {
+      "paths": [
+        "packages/python/**",
+        "packages/ts/**",
+        "packages/php-ext/**",
+        "packages/rust/interface.json",
+        "scripts/bindgen.mts",
+        "Cargo.lock"
+      ],
+      "targets": [
+        "bindings-check"
       ]
     }
   ]

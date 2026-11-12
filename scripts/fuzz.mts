@@ -368,9 +368,9 @@ try {
 
   const runs: { name: string; command: string; args: string[]; cwd: string; input: string }[] = [
     { name: 'php', command: 'php', args: ['-d', 'memory_limit=-1', '--', inputFile, join(directory, 'php')], cwd: '.', input: PHP_PROBE },
-    { name: 'rust', command: resolve('packages/rust/target/release/examples/probe'), args: [inputFile, join(directory, 'rust')], cwd: '.', input: '' },
-    { name: 'node', command: process.execPath, args: ['packages/js/tests/probe.mjs', inputFile, join(directory, 'node')], cwd: '.', input: '' },
-    { name: 'python', command: resolve('packages/python/.venv/bin/python'), args: ['-m', 'tests.probe', inputFile, join(directory, 'python')], cwd: 'packages/python', input: '' },
+    { name: 'rust', command: resolve('target/release/examples/probe'), args: [inputFile, join(directory, 'rust')], cwd: '.', input: '' },
+    { name: 'node', command: process.execPath, args: ['legacy/packages/js/tests/probe.mjs', inputFile, join(directory, 'node')], cwd: '.', input: '' },
+    { name: 'python', command: resolve('legacy/packages/python/.venv/bin/python'), args: ['-m', 'tests.probe', inputFile, join(directory, 'python')], cwd: 'legacy/packages/python', input: '' },
   ];
   const replies = new Map<string, Reply[]>();
   let failed = false;

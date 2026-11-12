@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: 993d9ad72964b4a24e08305b9a7545ee24583ade9b595ab7ea98fa6f8018e4b0 -->
+<!-- source-sha256: 656035ee44a5c9bc840b541c426f51b2e4b57949fb04d6b6236c81bf62700b0b -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -15,6 +15,14 @@
   Enforced by: none, 기록의 표현은 판단입니다.
 - Own: contract는 실제 PHP가 쓴 데이터만 담고 언어별 형태를 담지 않습니다. 새 runtime은 `packages/` 아래의 새 패키지입니다.
   Enforced by: none, 안내 규칙: kit은 구현들이 서로 어떻게 관계되는지 검사하지 않으며, 각 저장소가 자기 테스트를 실행한다(K1129)
+
+<a id="layout"></a>
+## 배치
+
+- Own: 이행 기간의 S6 예외: `legacy/packages/js`와 `legacy/packages/python`은 생성된 바인딩이 대체하는 Node.js와 Python 패키지를 담습니다. 배포 대상이 아니며, 그 언어의 바인딩이 contract, 패키지 시험, fuzz를 통과하면 각각 그것만의 변경으로 없앱니다([이행](docs/spec/php-serialize.ko.md#transition), 계획 V-6 (5)).
+  Enforced by: `make layout-check`, `make release-coverage`
+- Own: 바인딩 패키지 `packages/python`, `packages/ts`, `packages/php-ext`는 `bindgen scaffold`가 `packages/rust/interface.json`에서 쓰는 그대로이며, 그 `generated/`는 추적하지 않습니다. 루트 Cargo workspace가 코어 crate와 함께 그것들을 담고, 코어의 Rust 레시피는 코어 package를 이름으로 지정합니다.
+  Enforced by: `make bindings-check`
 
 <a id="tools"></a>
 ## 도구

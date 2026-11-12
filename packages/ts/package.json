@@ -1,0 +1,21 @@
+{
+  "name": "@polyspec/php-serialize",
+  "version": "0.0.6",
+  "description": "The php-serialize library of polyspec for Node",
+  "license": "MIT",
+  "main": "./generated/index.cjs",
+  "types": "./generated/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./generated/index.d.ts",
+      "import": "./generated/index.mjs",
+      "require": "./generated/index.cjs"
+    }
+  },
+  "files": [
+    "generated/index.cjs",
+    "generated/index.mjs",
+    "generated/index.d.ts",
+    "generated/*.node"
+  ]
+}

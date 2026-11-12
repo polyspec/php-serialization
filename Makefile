@@ -2,7 +2,7 @@
 # the built package, also when the folder is a link to a kit checkout) with the arguments that this repository gives it; kit
 # includes no recipe here and sets no setting of a tool (kit docs/spec/utilities-and-recipes.md). The tools read their settings
 # from their own files: npm from .npmrc, mise and uv from mise.toml, ruff from ruff.toml, vulture from the [tool.vulture] of
-# packages/python/pyproject.toml, oxlint from .oxlintrc.json and knip from knip.json.
+# legacy/packages/python/pyproject.toml, oxlint from .oxlintrc.json and knip from knip.json.
 KIT := node_modules/@polyspec/kit/dist
 
 # The tools of every run are the releases that the tracked declaration files name: npm in devEngines.packageManager of
@@ -38,11 +38,11 @@ CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check la
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
-CI_RUST := lint-rust test-rust
+CI_RUST := lint-rust test-rust bindings-check
 CI_REPORT ?= var/report/ci-targets
 
 .PHONY: install install-tools install-packages toolchain-lock php-serialize-install-python link unlink link-check \
-	php-serialize-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck \
+	php-serialize-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings bindings-check \
 	contracts contracts-check fuzz fuzz-temp-test \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
@@ -82,19 +82,19 @@ toolchain-lock: ## Write mise.lock with mise lock for the platforms of TOOLCHAIN
 	$(ONLINE) $(MISE) install --locked uv python
 	python="$$($(MISE) which python3)" && UV_PYTHON="$$python" $(ONLINE) $(MISE) lock --global --platform $(TOOLCHAIN_LOCK_PLATFORMS)
 
-# php-serialize-install-python makes packages/python/.venv from the Python of mise.toml and installs the package into it,
+# php-serialize-install-python makes legacy/packages/python/.venv from the Python of mise.toml and installs the package into it,
 # non-editable, since the python extractor of kit reads the file list of the installed distribution; link then makes the
 # installed package folder a link to the sources of the checkout when .links names one.
-php-serialize-install-python: ## Make packages/python/.venv and install the package into it, then link; ONLINE
-	$(NODE) $(KIT)/python-venv.mjs packages/python/.venv
-	$(ONLINE) $(UV) pip install --python packages/python/.venv/bin/python --link-mode copy --no-deps packages/python
+php-serialize-install-python: ## Make legacy/packages/python/.venv and install the package into it, then link; ONLINE
+	$(NODE) $(KIT)/python-venv.mjs legacy/packages/python/.venv
+	$(ONLINE) $(UV) pip install --python legacy/packages/python/.venv/bin/python --link-mode copy --no-deps legacy/packages/python
 	$(MAKE) --no-print-directory link
 
-# php-serialize-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of
-# packages/rust/Cargo.lock, so that every Rust recipe runs with --locked and offline.
+# php-serialize-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
+# Cargo.lock, so that every Rust recipe runs with --locked and offline.
 php-serialize-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
-	$(ONLINE) cargo fetch --locked --manifest-path packages/rust/Cargo.toml
+	$(ONLINE) cargo fetch --locked
 
 # The local links of 0.0.x development: the git-ignored .links of the main checkout names the checkouts that provide packages.
 link: ## Link the packages to the checkouts of .links; offline
@@ -114,20 +114,24 @@ lint: lint-ts lint-python lint-rust
 # The build of the package of a runtime with the build of its ecosystem; the JavaScript package has none (kit K1106).
 build-js: ## The JavaScript package has no build step; offline
 build-python: ## Build the Python package with uv build; offline
-	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/python -- $(UV) build
+	$(NODE) $(KIT)/runtime-targets.mjs build --roots legacy/packages/python -- $(UV) build
+
+# The Rust recipes of the core name its package (-p): the binding crates of the workspace include the sources that make
+# bindings generates, so they build only after it (bindgen design L-2).
+CORE := polyspec-php-serialize
 
 build-rust: ## Build the Rust crate with cargo; offline
-	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/rust -- cargo build --locked --offline
+	cargo build -p $(CORE) --locked --offline
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
 test-js: ## Run the unit tests of the JavaScript package with the name filter CASES=<pattern>; offline
-	$(NODE) $(KIT)/runtime-targets.mjs test --runner node --roots packages/js -- --test-timeout=30000 --test-concurrency=1
+	$(NODE) $(KIT)/runtime-targets.mjs test --runner node --roots legacy/packages/js -- --test-timeout=30000 --test-concurrency=1
 test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
-	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots packages/python --venv .venv
+	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots legacy/packages/python --venv .venv
 
 test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test, with the name filter CASES=<pattern>; offline
-	$(NODE) $(KIT)/runtime-targets.mjs test --runner cargo --roots packages/rust -- --locked --offline
+	cargo test -p $(CORE) --locked --offline $(CASES)
 
 lint-ts: ## Lint the TypeScript and JavaScript with oxlint (.oxlintrc.json) and knip (knip.json); offline
 	$(NODE) $(KIT)/lint-ts.mjs
@@ -135,9 +139,21 @@ lint-ts: ## Lint the TypeScript and JavaScript with oxlint (.oxlintrc.json) and 
 lint-python: ## Lint the Python with ruff (ruff.toml) and vulture ([tool.vulture] of the package); offline
 	$(NODE) $(KIT)/lint-python.mjs
 
-# R-1: clippy with the [lints] of packages/rust/Cargo.toml and the disallowed methods of clippy.toml, every warning an error.
-lint-rust: ## Lint the Rust with cargo clippy ([lints] of packages/rust/Cargo.toml and clippy.toml); offline
-	$(NODE) $(KIT)/lint-rust.mjs --locked --offline
+# R-1: clippy with the [workspace.lints] of Cargo.toml and the disallowed methods of clippy.toml, every warning an error, and
+# rustfmt.
+lint-rust: ## Lint the Rust crate with cargo clippy ([workspace.lints] of Cargo.toml and clippy.toml) and rustfmt; offline
+	cargo clippy -p $(CORE) --locked --offline --all-targets -- -D warnings
+	cargo fmt -p $(CORE) --check
+
+# ---- Bindings -----------------------------------------------------------------------------------------------------------------
+# bindgen runs at the commit of polyspec-bindgen-core that Cargo.lock pins (scripts/bindgen.mts).
+BINDGEN := $(NODE) scripts/bindgen.mts
+
+bindings: ## Write the generated sources of packages/{php-ext,python,ts}/generated, which are not tracked, with bindgen; offline
+	$(BINDGEN) generate --root .
+
+bindings-check: ## Check the interface contract and that the binding packages are what bindgen scaffold writes; offline
+	$(BINDGEN) check packages/rust/interface.json
 
 typecheck: ## Check the TypeScript of scripts/ with tsc; offline
 	$(NODE) node_modules/typescript/bin/tsc -p tsconfig.json
@@ -153,7 +169,7 @@ contracts-check: ## Fail when real PHP writes another contracts/php-serialize.js
 # fuzz gives corrupted and generated input and the bytes of random values of PHP, with a fixed seed, to real PHP, to the Rust
 # crate, whose probe it builds first, and to the Node.js and Python packages (scripts/fuzz.mts).
 fuzz: fuzz-temp-test ## Compare the Rust crate and both ports with real PHP on corrupted and generated input; offline
-	cargo build --locked --offline --release --manifest-path packages/rust/Cargo.toml --example probe
+	cargo build -p $(CORE) --locked --offline --release --example probe
 	$(NODE) scripts/fuzz.mts
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.

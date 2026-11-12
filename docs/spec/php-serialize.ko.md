@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: 46493d9a99986c7b4e907eab17eee016a68bbf44855350e061ca57cfadf1c6e2 -->
+<!-- source-sha256: f6af86589f224432ab420b9e00f1065a68d922d18d597553fccc7503c61e5b8d -->
 # PHP serialize 계약
 
 [English](php-serialize.md)
@@ -75,3 +75,8 @@ runtime이 담을 수 없는 값은 변경하지 않고 unserialize의 오류로
 | 실패 | unserialize는 kind 없이 `offset`을 가진 `UnserializeError`를 던지고, serialize는 `TypeError`나 `RangeError`(Node.js), `TypeError`, `OverflowError`, `ValueError`(Python)를 던짐 | 모든 실패가 [표](#kinds)의 kind를 가짐 | RQ-010: 호출자는 일부러 거부한 입력, 손상된 레코드, 너무 깊은 값을 kind로만 구별합니다. 메시지는 인터페이스가 아닙니다 |
 | serialize의 최상위 값인 참조 | 참조의 값을 씀 | `top_reference`로 거부 | RQ-008: PHP에는 최상위 참조가 없으며, 그 값을 쓰면 PHP가 담을 수 없는 값을 다른 값으로 바꿉니다 |
 | 정수의 정규형인 문자열 key와 반복된 key | serialize가 배열을 쓸 때 정규화 | key를 설정할 때 정규화 | RQ-008: 값은 PHP 배열이 담을 수 없는 key를 갖지 않습니다. bytes는 같습니다 |
+
+<a id="transition"></a>
+## 이행
+
+Node.js와 Python 패키지는 `legacy/packages/js`와 `legacy/packages/python`에 있고, bindgen이 `packages/rust/interface.json`에서 생성하는 바인딩이 `packages/python`, `packages/ts`, `packages/php-ext`를 차지합니다(RQ-011). legacy 패키지는 API와 자기 구현을 지키고, 배포 대상이 아니며, 바인딩과 비교하는 기준으로 새 경로에서 시험과 fuzz를 실행합니다. 각 패키지는 그 언어의 바인딩이 contract, 패키지 시험, fuzz를 통과하면 그것만의 변경으로 없앱니다(계획 V-6 (5)). 그때까지 [위 표](#differences)가 crate와 다른 곳을 적습니다.

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { PhpFloat, StdClass, UnserializeError, serialize, unserialize } from '../index.js';
 import { newState, tree } from './tree.mjs';
 
-const contract = JSON.parse(readFileSync(new URL('../../../contracts/php-serialize.json', import.meta.url), 'utf8'));
+const contract = JSON.parse(readFileSync(new URL('../../../../contracts/php-serialize.json', import.meta.url), 'utf8'));
 const bytesOf = (text) => new Uint8Array(Buffer.from(text, 'base64'));
 const base64 = (bytes) => Buffer.from(bytes).toString('base64');
 
