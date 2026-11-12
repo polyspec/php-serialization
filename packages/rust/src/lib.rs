@@ -5,12 +5,14 @@
 mod error;
 mod float;
 mod host;
+mod out;
 mod read;
 mod value;
 mod write;
 
 pub use error::Error;
 pub use host::{check_reference, check_std_class, from_host};
+pub use out::{to_host, Children};
 pub use read::unserialize;
 pub use value::{
     ArrayId, Key, Node, ObjectId, PhpArray, PhpFloat, PhpValue, ReferenceId, StdClass,

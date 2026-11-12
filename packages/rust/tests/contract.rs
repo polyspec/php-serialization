@@ -6,14 +6,17 @@
 mod common;
 
 use binding_core::Failure;
+use binding_core::{OutValue, OutValues};
 use common::build::build;
 use common::g5::{hex, Host};
 use common::tree::{base64, bytes_of, tree};
 use libtest_mimic::{Arguments, Failed, Trial};
 use polyspec_php_serialization::{
-    check_reference, check_std_class, from_host, serialize, unserialize, Error, PhpFloat,
+    check_reference, check_std_class, from_host, serialize, to_host, unserialize, Error, PhpFloat,
+    PhpValue,
 };
 use serde_json::Value;
+use std::collections::HashMap;
 
 const CONTRACT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -75,14 +78,106 @@ fn read_case(entry: &Value, written: &str) -> Result<(), Failed> {
     // The argument of serialize in the form of G-5, which a language gives, writes the same bytes (RQ-012). A value
     // that holds an object or a reference twice has no such form.
     if let Some(argument) = entry.get("value") {
-        let bytes = serialize(&value_of(argument)?).map_err(|error| error.to_string())?;
+        let taken = value_of(argument)?;
+        let bytes = serialize(&taken).map_err(|error| error.to_string())?;
         if base64(&bytes) != written {
             return Err(
                 format!("the value of G-5 wrote {}", String::from_utf8_lossy(&bytes)).into(),
             );
         }
+        // RQ-013, U-1: to_host describes the value of the bytes as the case does, and a value that from_host took goes
+        // back to the language unchanged.
+        same_out(&value, argument, "the value of the bytes")?;
+        same_out(&taken, argument, "the value that from_host took")?;
     }
     Ok(())
+}
+
+/// A higher-ranked helper of the form of design U-7 (a'): `out` takes `&T` and gives `(OutValue, V)` where `V:
+/// OutValues` may borrow the value. binding_core will give it as `assert_out`; until then this test states it.
+trait OutFn<'a, T: 'a>: Fn(&'a T) -> (OutValue, <Self as OutFn<'a, T>>::Values) {
+    type Values: OutValues;
+}
+
+impl<'a, T: 'a, F, V: OutValues> OutFn<'a, T> for F
+where
+    F: Fn(&'a T) -> (OutValue, V),
+{
+    type Values = V;
+}
+
+fn assert_out<T, F: for<'a> OutFn<'a, T>>(_: F) {}
+
+/// Compares what to_host gives for a value with a value of G-5.
+fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed> {
+    assert_out::<PhpValue, _>(to_host);
+    let (top, mut children) = to_host(value);
+    let actual = g5_of(top, &mut children, &mut HashMap::new());
+    if &actual != expected {
+        return Err(format!("{what}: to_host gives {actual}, the case {expected}").into());
+    }
+    Ok(())
+}
+
+fn hex_of(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+/// The key of an entry as G-5 writes it.
+fn key_of(key: &OutValue) -> Value {
+    match key {
+        OutValue::Int(number) => serde_json::json!({"int": number.value()}),
+        OutValue::Bytes(bytes) => serde_json::json!({"hex": hex_of(bytes.value())}),
+        other => serde_json::json!({"unexpected": format!("{:?}", other.kind())}),
+    }
+}
+
+/// An OutValue as a value of G-5; a reference is numbered by its first position, as the case numbers it.
+fn g5_of(
+    out: OutValue,
+    children: &mut dyn OutValues,
+    references: &mut HashMap<u64, usize>,
+) -> Value {
+    use serde_json::json;
+    match out {
+        OutValue::Null => json!({"kind": "null"}),
+        OutValue::Bool(flag) => json!({"kind": "bool", "value": flag}),
+        OutValue::Int(number) => json!({"kind": "int", "value": number.value()}),
+        OutValue::Float(number) => {
+            let value = number.value();
+            let form = if value.is_nan() {
+                json!({"float": "nan"})
+            } else if value.is_infinite() {
+                json!({"float": if value > 0.0 { "inf" } else { "-inf" }})
+            } else {
+                json!(value)
+            };
+            json!({"kind": "float", "value": form})
+        }
+        OutValue::Bytes(bytes) => json!({"kind": "bytes", "value": {"hex": hex_of(bytes.value())}}),
+        OutValue::Map(map) => {
+            let mut pairs = Vec::new();
+            for at in 0..map.len() {
+                let (key, item) = children.entry(map.handle(), at);
+                pairs.push(json!([key_of(&key), g5_of(item, children, references)]));
+            }
+            json!({"kind": "map", "value": pairs})
+        }
+        OutValue::Object { handle, len } => {
+            let mut pairs = Vec::new();
+            for at in 0..len {
+                let (name, item) = children.entry(handle, at);
+                pairs.push(json!([key_of(&name), g5_of(item, children, references)]));
+            }
+            json!({"kind": "object", "value": pairs})
+        }
+        OutValue::Reference { handle, value } => {
+            let next = references.len();
+            let id = *references.entry(handle.raw()).or_insert(next);
+            json!({"kind": "reference", "value": {"id": id, "value": g5_of(*value, children, references)}})
+        }
+        other => json!({"unexpected": format!("{:?}", other.kind())}),
+    }
 }
 
 /// The argument of unserialize, `{"hex": ...}`, which is the bytes that PHP wrote (base64 in bytes).
@@ -130,8 +225,14 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
     match group {
         "serialize" => {
             let top = host.describe(given("value")?)?;
-            let result = from_host(&mut host, top).map(drop);
-            check_failure(result, entry)
+            match from_host(&mut host, top) {
+                Ok(value) => {
+                    check_failure(Ok(()), entry)?;
+                    // RQ-013, U-1: a value that the format takes goes back to the language unchanged.
+                    same_out(&value, given("value")?, "the value that from_host took")
+                }
+                Err(failure) => check_failure(Err(failure), entry),
+            }
         }
         "php_float.constructor" | "php_float.value" | "php_float.value_of" => {
             let value = given("value")?.as_f64().ok_or("value is no float")?;

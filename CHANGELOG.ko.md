@@ -22,6 +22,7 @@
 - `Cargo.lock`은 binding f26aaa0을 고정하고 바인딩 package는 그 scaffold가 쓰는 것이다. Node 패키지는 addon의 플랫폼 패키지마다 optional dependency를 가진다.
 - 계약의 `serialize`는 실제로 내는 kind만 적는다: `array_held`와 `unknown_id`는 Rust 값 builder의 실패이며, `from_host`는 언어의 배열마다 새 배열을 만들고 자기가 만든 식별자만 쓴다(`host.rs`, `Walk::open_array`, `Walk::put`).
 - K-1, G-5: `contracts/php-serialize.json`의 모든 항목은 `unserialize`의 인자를 `data`(`{"hex"}`)로, `serialize`의 인자를 `value`(`{"kind", "value"}`)로 주며, `make contracts`가 같은 PHP에서 쓴다. `contracts/host-values.json`은 serialize와 `StdClass`·`Reference` 생성자가 거부하거나(`top_reference`, `nested_reference`, `property_name`) 받는 언어의 값과 `PhpFloat`, `StdClass`, `Reference`의 모든 member의 case를 담는다. contract 시험은 두 형식을 `from_host`로 읽는다. 그 member들의 `depth`, `unsupported_value`, `invalid_text`, `int_range`는 case가 없다: 앞의 것은 4097단계로 중첩된 값이, 나머지는 일부 언어에만 있는 값이 필요하다. `internal`은 binding의 실패 주입 지점을 기다린다.
+- RQ-013: crate는 값 alias `php_value`의 `out`인 `to_host`로 PHP 값을 언어에 준다: 값을 빌리는 `OutValues`로 handle의 자식을 묻는 `OutValue`다. contract 시험은 `to_host`가 모든 항목의 bytes의 값을 그 `value`로 기술하는지, `from_host`가 받은 값이 바뀌지 않고 돌아오는지 확인한다.
 
 ## 0.0.6
 
