@@ -15,7 +15,11 @@
   "files": [
     "generated/index.cjs",
     "generated/index.mjs",
-    "generated/index.d.ts",
-    "generated/*.node"
-  ]
+    "generated/index.d.ts"
+  ],
+  "optionalDependencies": {
+    "@polyspec/php-serialization-linux-x64-gnu": "0.0.6",
+    "@polyspec/php-serialization-linux-arm64-gnu": "0.0.6",
+    "@polyspec/php-serialization-darwin-arm64": "0.0.6"
+  }
 }

@@ -19,6 +19,7 @@
 - crate는 더 새 commit의 bindgen_core를 받고 그 `HostValues`로 값의 자식을 묻는다. JavaScript number는 타입 없는 수로 오므로 crate는 더 이상 바인딩에 수의 모형을 묻지 않는다(RQ-012). `packages/ts`의 scaffold에 `build.rs`가 더해진다(T2.1).
 - 레포 이름은 형식의 이름인 php-serialization이고(계획 N-3) 모든 이름이 그것을 따른다(설계 P-1, E-2): crate `polyspec-php-serialization`, Composer 패키지 `polyspec/php-serialization`(네임스페이스 `Polyspec\PhpSerialization`, 확장 `polyspec_php_serialization`), PyPI 패키지 `polyspec-php-serialization`(모듈 `polyspec.php_serialization`), npm 패키지 `@polyspec/php-serialization`, 오류 클래스 `PhpSerialization<Category>Error`. 인터페이스 계약은 이 변경을 `changes`에 적는다. `legacy/` 아래의 legacy 패키지는 이름을 그대로 두며 배포하지 않는다.
 - 레포는 binding 레포(bindgen의 새 이름)의 `polyspec-binding-core`(`binding_core`, `Cargo.lock`이 고정하는 Git 의존 `https://github.com/polyspec/binding.git`)에 의존하고 그 도구를 `scripts/binding.mts`로 실행한다. 바인딩 package는 `binding scaffold`가 쓰는 것이다. Python 오류 클래스는 Python의 클래스 형식으로 쓴 레포 이름인 `PHPSerialization<Category>Error`다(설계 N-2: 약어 낱말은 Python에서 모두 대문자, PHP와 Node에서 첫 글자만 대문자이며 두 언어는 `PhpSerialization<Category>Error`를 유지한다).
+- `Cargo.lock`은 binding f26aaa0을 고정하고 바인딩 package는 그 scaffold가 쓰는 것이다. Node 패키지는 addon의 플랫폼 패키지마다 optional dependency를 가진다.
 
 ## 0.0.6
 
