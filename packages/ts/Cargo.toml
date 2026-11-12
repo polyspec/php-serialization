@@ -5,7 +5,7 @@ version = "0.0.6"
 edition = "2021"
 rust-version = "1.99.0"
 publish = false
-build = "generated/build.rs"
+build = "build.rs"
 
 [lib]
 name = "polyspec_php_serialize_node"

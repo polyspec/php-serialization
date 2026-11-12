@@ -1,10 +1,17 @@
 //! Requirements: RQ-003, RQ-004, RQ-006, RQ-008, RQ-009, RQ-012. from_host and the constructors of the language classes,
 //! over a language that a table of values stands for: a handle is the index of a value in the table.
 
+use bindgen_core::HostValues;
 use bindgen_core::{Failure, Handle, HostText, HostValue, Key, KeyedMap, Raised, ValueKind};
-use polyspec_php_serialize::{
-    check_reference, check_std_class, from_host, serialize, Error, HostValues, Numbers,
-};
+use polyspec_php_serialize::{check_reference, check_std_class, from_host, serialize, Error};
+
+/// Whether the stand-in language has a float type apart from its integer type (PHP, Python) or one number type
+/// (JavaScript), which decides whether a number is described as a float or as an untyped number (U-7 (f)).
+#[derive(Clone, Copy)]
+enum Numbers {
+    Typed,
+    Untyped,
+}
 
 /// A value of the stand-in language.
 #[derive(Clone)]
@@ -70,7 +77,10 @@ impl Host {
             Lang::Undefined => HostValue::Undefined,
             Lang::Int(number) => HostValue::Int(number),
             Lang::Big => HostValue::Number(String::from("9223372036854775808")),
-            Lang::Float(number) => HostValue::Float(number),
+            Lang::Float(number) => match self.numbers {
+                Numbers::Typed => HostValue::Float(number),
+                Numbers::Untyped => HostValue::UntypedNumber(number),
+            },
             Lang::Text(text) => HostValue::Text(HostText::Utf16(text.encode_utf16().collect())),
             Lang::Utf16(units) => HostValue::Text(HostText::Utf16(units)),
             Lang::Bytes(bytes) => HostValue::Bytes(bytes),
@@ -108,10 +118,6 @@ impl Host {
 }
 
 impl HostValues for Host {
-    fn numbers(&self) -> Numbers {
-        self.numbers
-    }
-
     fn item(&mut self, list: Handle, index: u64) -> Result<HostValue, Raised> {
         match self.get(list) {
             Lang::List(items) => match items.get(index_of(index)) {
@@ -154,7 +160,7 @@ fn written(values: Vec<Lang>, numbers: Numbers) -> Result<String, Failure<Error>
 fn kind(result: Result<String, Failure<Error>>) -> Option<&'static str> {
     match result {
         Err(Failure::Kind(error)) => Some(error.kind()),
-        Ok(_) | Err(Failure::Raised(_)) => None,
+        Ok(_) | Err(Failure::Raised(_) | Failure::Callback(_)) => None,
     }
 }
 
@@ -335,11 +341,9 @@ fn depth() -> Result<(), Failure<Error>> {
         let mut values: Vec<Lang> = (1..=depth).map(|next| Lang::List(vec![next])).collect();
         values.push(Lang::Null);
         let result = written(values, Numbers::Untyped);
-        assert_eq!(
-            kind(result.clone()),
-            if refused { Some("depth") } else { None }
-        );
-        if !refused {
+        if refused {
+            assert_eq!(kind(result), Some("depth"));
+        } else {
             result?;
         }
     }
@@ -366,11 +370,11 @@ fn constructors() {
         values: vec![Lang::Null, Lang::Instance(ValueKind::Reference, 0)],
         numbers: Numbers::Untyped,
     };
-    assert_eq!(check_std_class(&mut host, None), Ok(()));
+    assert!(check_std_class(&mut host, None).is_ok());
     let mut properties = KeyedMap::new();
     properties.insert(Key::Text(String::from("a")), HostValue::Int(1));
     properties.insert(Key::Bytes(vec![0xff]), HostValue::Null);
-    assert_eq!(check_std_class(&mut host, Some(properties)), Ok(()));
+    assert!(check_std_class(&mut host, Some(properties)).is_ok());
     for key in [Key::Int(1), Key::Bytes(b"\0a".to_vec())] {
         let mut properties = KeyedMap::new();
         properties.insert(key, HostValue::Null);
@@ -379,14 +383,14 @@ fn constructors() {
             Err(Failure::Kind(_))
         ));
     }
-    assert_eq!(check_reference(&mut host, None), Ok(()));
-    assert_eq!(check_reference(&mut host, Some(HostValue::Int(1))), Ok(()));
+    assert!(check_reference(&mut host, None).is_ok());
+    assert!(check_reference(&mut host, Some(HostValue::Int(1))).is_ok());
     let reference = HostValue::Value {
         kind: ValueKind::Reference,
         handle: handle(1),
     };
-    assert_eq!(
+    assert!(matches!(
         check_reference(&mut host, Some(reference)),
         Err(Failure::Kind(Error::NestedReference))
-    );
+    ));
 }

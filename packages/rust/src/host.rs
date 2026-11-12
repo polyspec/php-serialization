@@ -1,57 +1,16 @@
 //! from_host: a value of a language to a value of PHP (RQ-012). The binding describes the value one level at a time as
-//! a [`HostValue`] and answers the questions of the core about the children of a handle through [`HostValues`]; every
+//! a [`HostValue`] and answers the questions of the core about the children of a handle through [`HostValues`] of
+//! bindgen_core; every
 //! rule of what a value of a language is in PHP is here, once (P-1). The walk keeps its own stack, so it never recurses
 //! (RQ-006).
 
 use std::collections::{HashMap, HashSet};
 
-use bindgen_core::{Failure, Handle, HostText, HostValue, KeyedMap, Raised, ValueKind};
+use bindgen_core::{Failure, Handle, HostText, HostValue, HostValues, KeyedMap, ValueKind};
 
 use crate::at_depth_limit;
 use crate::error::Error;
 use crate::value::{ArrayId, Key, Node, ObjectId, PhpValue, ReferenceId};
-
-/// How a language tells an integer from a float (RQ-012).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Numbers {
-    /// The language has an integer type and a float type apart (PHP, Python, Go): a float is a float.
-    Typed,
-    /// The language has one number type (JavaScript): a number that is a safe integer and not `-0` is an integer, and
-    /// every other number is a float. The binding of such a language gives a float of PHP whose value is an integer as
-    /// a `PhpFloat`, which is a float whatever its value (RQ-008).
-    Untyped,
-}
-
-/// The side of the binding in the walk of a value (RQ-012): it answers for the handles that it put into the
-/// [`HostValue`]s it gave. A question may run language code (a getter, an iterator), so its failure is the exception of
-/// that code, which goes back to the caller unchanged.
-pub trait HostValues {
-    /// How the language tells an integer from a float.
-    fn numbers(&self) -> Numbers;
-
-    /// The item at `index` of a list (`HostValue::List`).
-    ///
-    /// # Errors
-    ///
-    /// The exception that the language raised.
-    fn item(&mut self, list: Handle, index: u64) -> Result<HostValue, Raised>;
-
-    /// The key and the value of the entry at `index` of a map, a PHP array or an object (`HostValue::Map`,
-    /// `HostValue::PhpArray`, `HostValue::StdClass`), in the order of the language.
-    ///
-    /// # Errors
-    ///
-    /// The exception that the language raised.
-    fn entry(&mut self, map: Handle, index: u64) -> Result<(HostValue, HostValue), Raised>;
-
-    /// The content of an instance of a class of the value table (`HostValue::Value`), which its `read` member gives: the
-    /// float of a `PhpFloat`, the map of the properties of a `StdClass`, the value of a `Reference`.
-    ///
-    /// # Errors
-    ///
-    /// The exception that the language raised.
-    fn read(&mut self, value: Handle) -> Result<HostValue, Raised>;
-}
 
 /// The value of PHP of a value of a language (RQ-012).
 ///
@@ -217,11 +176,9 @@ impl<'h> Walk<'h> {
         match key {
             HostValue::Int(number) => Ok(Key::Int(number)),
             HostValue::Number(_) => Err(Failure::Kind(Error::IntRange { offset: None })),
-            HostValue::Float(number) => match (self.host.numbers(), integer_of_number(number)) {
-                (Numbers::Untyped, Some(integer)) => Ok(Key::Int(integer)),
-                (Numbers::Untyped | Numbers::Typed, _) => {
-                    Err(Failure::Kind(Error::UnsupportedValue))
-                }
+            HostValue::UntypedNumber(number) => match integer_of_number(number) {
+                Some(integer) => Ok(Key::Int(integer)),
+                None => Err(Failure::Kind(Error::UnsupportedValue)),
             },
             HostValue::Text(text) => Ok(Key::of_string(bytes_of_text(text)?)),
             HostValue::Bytes(bytes) => Ok(Key::of_string(bytes)),
@@ -245,9 +202,10 @@ impl<'h> Walk<'h> {
             HostValue::Bool(flag) => Node::Bool(flag),
             HostValue::Int(number) => Node::Int(number),
             HostValue::Number(_) => return Err(Failure::Kind(Error::IntRange { offset: None })),
-            HostValue::Float(number) => match (self.host.numbers(), integer_of_number(number)) {
-                (Numbers::Untyped, Some(integer)) => Node::Int(integer),
-                (Numbers::Untyped | Numbers::Typed, _) => Node::Float(number),
+            HostValue::Float(number) => Node::Float(number),
+            HostValue::UntypedNumber(number) => match integer_of_number(number) {
+                Some(integer) => Node::Int(integer),
+                None => Node::Float(number),
             },
             HostValue::Text(text) => Node::String(bytes_of_text(text)?),
             HostValue::Bytes(bytes) => Node::String(bytes),
@@ -261,7 +219,9 @@ impl<'h> Walk<'h> {
             }
             HostValue::Value { kind, handle } => match kind {
                 ValueKind::Float => match self.host.read(handle)? {
-                    HostValue::Float(number) => Node::Float(number),
+                    HostValue::Float(number) | HostValue::UntypedNumber(number) => {
+                        Node::Float(number)
+                    }
                     _ => return Err(Failure::Kind(Error::UnsupportedValue)),
                 },
                 ValueKind::Object => {
