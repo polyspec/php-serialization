@@ -38,14 +38,15 @@ CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check la
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
+CI_RUST := lint-rust test-rust
 CI_REPORT ?= var/report/ci-targets
 
 .PHONY: install install-tools install-packages toolchain-lock php-serialize-install-python link unlink link-check \
-	build build-js build-python test test-js test-python lint lint-ts lint-python typecheck \
+	php-serialize-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck \
 	contracts contracts-check fuzz fuzz-temp-test \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
-	check ci-shared ci-fuzz ci-ts ci-python \
+	check ci-shared ci-fuzz ci-ts ci-python ci-rust \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
 	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage
@@ -58,6 +59,7 @@ install: ## Install the tools, the packages, the Python package and the links of
 	$(MAKE) --no-print-directory install-packages
 	$(MAKE) --no-print-directory install-tools
 	$(MAKE) --no-print-directory php-serialize-install-python
+	$(MAKE) --no-print-directory php-serialize-install-rust
 
 # The home and the cache of the Composer that install-tools and install-symbols run, the folders of var/tools that kit 0.0.98
 # set (kit K1095).
@@ -88,6 +90,12 @@ php-serialize-install-python: ## Make packages/python/.venv and install the pack
 	$(ONLINE) $(UV) pip install --python packages/python/.venv/bin/python --link-mode copy --no-deps packages/python
 	$(MAKE) --no-print-directory link
 
+# php-serialize-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of
+# packages/rust/Cargo.lock, so that every Rust recipe runs with --locked and offline.
+php-serialize-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
+	$(ONLINE) rustup toolchain install --no-self-update
+	$(ONLINE) cargo fetch --locked --manifest-path packages/rust/Cargo.toml
+
 # The local links of 0.0.x development: the git-ignored .links of the main checkout names the checkouts that provide packages.
 link: ## Link the packages to the checkouts of .links; offline
 	$(NODE) $(KIT)/link.mjs link
@@ -99,14 +107,17 @@ link-check: ## Fail while the links differ from .links; offline
 	$(NODE) $(KIT)/link-check.mjs
 
 # ---- Build, test, lint ------------------------------------------------------------------------------------------------------
-build: build-js build-python
-test: test-js test-python
-lint: lint-ts lint-python
+build: build-js build-python build-rust
+test: test-js test-python test-rust
+lint: lint-ts lint-python lint-rust
 
 # The build of the package of a runtime with the build of its ecosystem; the JavaScript package has none (kit K1106).
 build-js: ## The JavaScript package has no build step; offline
 build-python: ## Build the Python package with uv build; offline
 	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/python -- $(UV) build
+
+build-rust: ## Build the Rust crate with cargo; offline
+	$(NODE) $(KIT)/runtime-targets.mjs build --roots packages/rust -- cargo build --locked --offline
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
@@ -115,11 +126,18 @@ test-js: ## Run the unit tests of the JavaScript package with the name filter CA
 test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
 	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots packages/python --venv .venv
 
+test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test, with the name filter CASES=<pattern>; offline
+	$(NODE) $(KIT)/runtime-targets.mjs test --runner cargo --roots packages/rust -- --locked --offline
+
 lint-ts: ## Lint the TypeScript and JavaScript with oxlint (.oxlintrc.json) and knip (knip.json); offline
 	$(NODE) $(KIT)/lint-ts.mjs
 
 lint-python: ## Lint the Python with ruff (ruff.toml) and vulture ([tool.vulture] of the package); offline
 	$(NODE) $(KIT)/lint-python.mjs
+
+# R-1: clippy with the [lints] of packages/rust/Cargo.toml and the disallowed methods of clippy.toml, every warning an error.
+lint-rust: ## Lint the Rust with cargo clippy ([lints] of packages/rust/Cargo.toml and clippy.toml); offline
+	$(NODE) $(KIT)/lint-rust.mjs --locked --offline
 
 typecheck: ## Check the TypeScript of scripts/ with tsc; offline
 	$(NODE) node_modules/typescript/bin/tsc -p tsconfig.json
@@ -132,8 +150,10 @@ contracts: ## Write contracts/php-serialize.json from real PHP; offline
 contracts-check: ## Fail when real PHP writes another contracts/php-serialize.json; offline
 	$(NODE) scripts/contracts.mts --check
 
-# fuzz gives corrupted and generated input with a fixed seed to real PHP and to both ports (scripts/fuzz.mts).
-fuzz: fuzz-temp-test ## Compare both ports with real PHP on corrupted and generated input; offline
+# fuzz gives corrupted and generated input and the bytes of random values of PHP, with a fixed seed, to real PHP, to the Rust
+# crate, whose probe it builds first, and to the Node.js and Python packages (scripts/fuzz.mts).
+fuzz: fuzz-temp-test ## Compare the Rust crate and both ports with real PHP on corrupted and generated input; offline
+	cargo build --locked --offline --release --manifest-path packages/rust/Cargo.toml --example probe
 	$(NODE) scripts/fuzz.mts
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.
@@ -188,8 +208,11 @@ ci-ts: ## Run the targets of the TypeScript CI job past failures into CI_REPORT
 ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PYTHON)
 
+ci-rust: ## Run the targets of the Rust CI job past failures into CI_REPORT
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_RUST)
+
 check: ## Run the targets of every CI job once into var/report/full-run
-	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_FUZZ) $(CI_TS) $(CI_PYTHON)
+	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_FUZZ) $(CI_TS) $(CI_PYTHON) $(CI_RUST)
 
 # ---- Plans, rows and commits --------------------------------------------------------------------------------------------------
 # The plan utility reads its values from the environment, where make puts its command-line variables. The texts of a row reach

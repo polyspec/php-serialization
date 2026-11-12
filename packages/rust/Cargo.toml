@@ -1,0 +1,53 @@
+[package]
+name = "polyspec-php-serialize"
+version = "0.0.6"
+edition = "2021"
+rust-version = "1.99.0"
+description = "The serialize format of PHP: its values, unserialize and serialize, byte for byte as PHP"
+readme = "README.md"
+repository = "https://github.com/polyspec/php-serialize.git"
+license = "BSD-3-Clause"
+publish = false
+
+[lib]
+name = "polyspec_php_serialize"
+path = "src/lib.rs"
+
+[dependencies]
+ryu = "=1.0.23"
+
+[dev-dependencies]
+base64 = "=0.22.1"
+libtest-mimic = "=0.8.2"
+serde_json = "=1.0.151"
+
+# One trial per case of contracts/php-serialize.json, so the harness of the test is libtest-mimic.
+[[test]]
+name = "contract"
+harness = false
+
+# The probe of make fuzz (scripts/fuzz.mts): one JSON reply per base64 input.
+[[example]]
+name = "probe"
+
+[lints]
+workspace = true
+
+[workspace]
+
+[workspace.lints.rust]
+warnings = "deny"
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+# R-1: no unwrap or expect, no discarded result, and every allow names its rule id; clippy.toml of the root disallows the
+# fallback methods of Option and Result.
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+allow_attributes_without_reason = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+let_underscore_must_use = "deny"
+let_underscore_untyped = "deny"
+map_err_ignore = "deny"

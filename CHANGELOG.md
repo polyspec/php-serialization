@@ -8,6 +8,7 @@
 
 - The specification defines the value of the format (RQ-008), refuses a property name that starts with U+0000 when it reads and when a value is built (RQ-009), names the kind and the offset of every failure (RQ-010) and places the rules in the Rust crate `polyspec-php-serialize`, with the differences of the Node.js and Python packages judged (RQ-011) (T2.1).
 - The contract names the kind of every refusal in `raises`, holds property names that start with U+0000 in `stricter` and the new group `refused_values`, and the Node.js and Python packages refuse such a name when they read and when they write (RQ-009) (T2.1).
+- The Rust crate `polyspec-php-serialize` in `packages/rust` reads and writes the format over its own value of PHP with the kinds of RQ-010 and passes the contract (`make test-rust`, `make lint-rust`); `make fuzz` gives its input and the bytes of random values of PHP to the crate too, and CI runs a Rust job (T2.1).
 
 ## 0.0.6
 

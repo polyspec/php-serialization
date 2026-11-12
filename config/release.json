@@ -26,7 +26,9 @@
     "packages/js/package.json": "archive",
     "packages/python/pyproject.toml": "archive"
   },
-  "notReleased": {},
+  "notReleased": {
+    "packages/rust/Cargo.toml": "the core crate polyspec-php-serialize, publish = false: the bindings that contracts/interface.json generates build it from the source of the checkout (RQ-011), and no runtime installs it alone"
+  },
   "goModules": {},
   "annotatedTags": true,
   "packageFiles": [

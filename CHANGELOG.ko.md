@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 3086c41439a5faf579a86176bc893e48cd89a5a531734dc0124be814e9645f35 -->
+<!-- source-sha256: 2d05a032e31489d9d40c09b996c1e09239d5bb28c14723f4a8c8366a2449f6bf -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -9,6 +9,7 @@
 
 - 명세는 형식의 값을 정하고(RQ-008), U+0000으로 시작하는 속성 이름을 읽을 때와 값을 만들 때 거부하며(RQ-009), 모든 실패의 kind와 offset을 정하고(RQ-010), 규칙을 Rust crate `polyspec-php-serialize`에 두고 Node.js와 Python 패키지의 차이를 판정한다(RQ-011) (T2.1).
 - contract는 모든 거부의 kind를 `raises`에 적고, U+0000으로 시작하는 속성 이름을 `stricter`와 새 group `refused_values`에 담으며, Node.js와 Python 패키지는 그런 이름을 읽을 때와 쓸 때 거부한다(RQ-009) (T2.1).
+- `packages/rust`의 Rust crate `polyspec-php-serialize`는 PHP 값의 자기 타입 위에서 RQ-010의 kind로 형식을 읽고 쓰며 contract를 통과한다(`make test-rust`, `make lint-rust`). `make fuzz`는 입력과 무작위 PHP 값의 bytes를 crate에도 주고, CI는 Rust job을 실행한다(T2.1).
 
 ## 0.0.6
 

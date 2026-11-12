@@ -1,5 +1,5 @@
 # CI of php-serialize: one workflow whose jobs run the targets of the Makefile, each job the target that names its list
-# (CI_SHARED, CI_PARITY, CI_TS and CI_PYTHON of the Makefile), past failures, with the report of ci-targets as an artifact. The
+# (CI_SHARED, CI_FUZZ, CI_TS, CI_PYTHON and CI_RUST of the Makefile), past failures, with the report of ci-targets as an artifact. The
 # release workflow releases the commit whose run of this workflow is green.
 name: ci
 
@@ -45,7 +45,7 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
-  # The fuzz of both ports against real PHP, which reads the installed Python package.
+  # The fuzz of the Rust crate and both ports against real PHP, which reads the installed Python package.
   fuzz:
     runs-on: ubuntu-24.04
     steps:
@@ -60,8 +60,8 @@ jobs:
       - uses: ./.github/actions/bootstrap
       - name: install the tools of the job
         run: make install-tools TOOLS="php python uv"
-      - name: install the Python package
-        run: make php-serialize-install-python
+      - name: install the Python package and the Rust toolchain
+        run: make php-serialize-install-python php-serialize-install-rust
       - name: fuzz
         run: make ci-fuzz
       - name: report
@@ -107,5 +107,23 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: report-python
+          path: var/report/ci-targets/
+          if-no-files-found: ignore
+
+  # The lint and the tests of packages/rust: the contract and the unit tests with cargo test, clippy with the lints of R-1.
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/bootstrap
+      - name: install the Rust toolchain and the locked crates
+        run: make php-serialize-install-rust
+      - name: lint and tests
+        run: make ci-rust
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: report-rust
           path: var/report/ci-targets/
           if-no-files-found: ignore

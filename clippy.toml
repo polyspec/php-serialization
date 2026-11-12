@@ -1,0 +1,16 @@
+# The clippy configuration of php-serialize. clippy reads clippy.toml from the folder of the Cargo workspace and the folders
+# above it. A failure never becomes a plausible value (P-3): a Result or an Option is matched, passed on with ?, or turned into
+# an error with a kind. A use that is truly needed says so with #[allow(clippy::disallowed_methods, reason = "<rule id>")].
+disallowed-methods = [
+  { path = "core::option::Option::unwrap_or", reason = "P-3: a None becomes a plausible value; match it or give an error with a kind" },
+  { path = "core::option::Option::unwrap_or_default", reason = "P-3: a None becomes a default value; match it or give an error with a kind" },
+  { path = "core::option::Option::unwrap_or_else", reason = "P-3: a None becomes a computed fallback; match it or give an error with a kind" },
+  { path = "core::option::Option::map_or", reason = "P-3: a None becomes a plausible value; match it or give an error with a kind" },
+  { path = "core::option::Option::map_or_else", reason = "P-3: a None becomes a computed fallback; match it or give an error with a kind" },
+  { path = "core::result::Result::ok", reason = "P-2: an Err becomes None and its error is dropped; match it or use ?" },
+  { path = "core::result::Result::map_or", reason = "P-2: an Err becomes a plausible value; match it or use ?" },
+  { path = "core::result::Result::map_or_else", reason = "P-2: an Err becomes a computed fallback; match it or use ?" },
+  { path = "core::result::Result::unwrap_or", reason = "P-2: an Err becomes a plausible value; match it or use ?" },
+  { path = "core::result::Result::unwrap_or_default", reason = "P-2: an Err becomes a default value; match it or use ?" },
+  { path = "core::result::Result::unwrap_or_else", reason = "P-2: an Err becomes a computed fallback; match it or use ?" },
+]

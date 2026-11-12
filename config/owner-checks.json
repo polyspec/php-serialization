@@ -50,7 +50,10 @@
         "packages/js/index.js",
         "packages/js/tests/*",
         "packages/python/src/polyspec/php_serialize/*",
-        "packages/python/tests/*"
+        "packages/python/tests/*",
+        "packages/rust/src/**",
+        "packages/rust/examples/**",
+        "packages/rust/tests/common/**"
       ],
       "targets": [
         "fuzz"
@@ -164,6 +167,17 @@
       "targets": [
         "lint-python",
         "duplication-check"
+      ]
+    },
+    {
+      "paths": [
+        "packages/rust/**",
+        "clippy.toml",
+        "rust-toolchain.toml"
+      ],
+      "targets": [
+        "lint-rust",
+        "test-rust"
       ]
     }
   ]

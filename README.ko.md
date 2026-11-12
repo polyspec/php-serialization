@@ -1,5 +1,5 @@
 <!-- doc-id: overview -->
-<!-- source-sha256: 79324137ba9c18966399423a10f1e718a7f1c09cf68a6abaef17851e90f64315 -->
+<!-- source-sha256: 7548395e1a97fd63b4e01a7852561e9f56cd2211808fd8f3564cd9dfe7747277 -->
 # php-serialize
 
 [English](README.md)
@@ -10,11 +10,12 @@
 | --- | --- | --- |
 | [Node.js](packages/js/README.ko.md) | `@polyspec/php-serialize` | `@polyspec/php-serialize` |
 | [Python](packages/python/README.ko.md) | `polyspec-php-serialize` | `polyspec.php_serialize` |
+| [Rust](packages/rust/README.ko.md) | `polyspec-php-serialize` (crate, 배포하지 않음) | `polyspec_php_serialize` |
 
 <a id="proof"></a>
 ## 검증
 
-실제 PHP가 [`contracts/php-serialize.json`](contracts/php-serialize.json)을 쓰고, CI가 다시 생성해 비교합니다(`make contracts-check`). `make fuzz`는 고정된 seed로 입력을 깨뜨리거나 생성해 PHP와 각 패키지에 똑같이 줍니다. 각 패키지는 PHP가 거부하는 것을 거부하고, 같은 값을 읽고, 같은 bytes를 다시 써야 합니다.
+실제 PHP가 [`contracts/php-serialize.json`](contracts/php-serialize.json)을 쓰고, CI가 다시 생성해 비교합니다(`make contracts-check`). `make test-rust`는 contract의 모든 항목을 Rust crate에 실행합니다. `make fuzz`는 고정된 seed로 입력을 깨뜨리거나 생성하고 PHP가 무작위 PHP 값에 대해 serialize한 bytes를 더해 PHP, Rust crate, 각 패키지에 똑같이 줍니다. 각 패키지는 PHP가 거부하는 것을 거부하고, 같은 값을 읽고, 같은 bytes를 다시 써야 합니다.
 
 <a id="license"></a>
 ## 라이선스
