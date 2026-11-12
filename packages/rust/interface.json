@@ -268,10 +268,8 @@
           "raises": [
             "polyspec_php_serialization::Error::Depth",
             "polyspec_php_serialization::Error::PropertyName",
-            "polyspec_php_serialization::Error::ArrayHeld",
             "polyspec_php_serialization::Error::NestedReference",
             "polyspec_php_serialization::Error::TopReference",
-            "polyspec_php_serialization::Error::UnknownId",
             "polyspec_php_serialization::Error::Internal",
             "polyspec_php_serialization::Error::UnsupportedValue",
             "polyspec_php_serialization::Error::InvalidText",
