@@ -510,6 +510,10 @@
       "visibility": "public",
       "origin": "value",
       "core_type": "polyspec_php_serialization::PhpValue",
+      "core": {
+        "in": "polyspec_php_serialization::from_host",
+        "out": "polyspec_php_serialization::to_host"
+      },
       "out": [
         {
           "kind": "null",
