@@ -48,7 +48,7 @@ $values = [
     'float_1e14' => 1e14, 'float_1e15' => 1e15, 'float_1e16' => 1e16, 'float_1e17' => 1e17, 'float_1e18' => 1e18,
     'float_1e25' => 1e25, 'float_1_5e300' => 1.5e300, 'float_negative_1e25' => -1e25,
     'float_1e_3' => 1e-3, 'float_1e_4' => 1e-4, 'float_1e_5' => 1e-5, 'float_1_5e_7' => 1.5e-7,
-    'float_123456789012345678' => 123456789012345678.0, 'float_100000' => 100000.0, 'float_1234_5' => 1234.5,
+    'float_123456789012345678' => 123456789012345678.0, 'float_100000' => 100000.0, 'float_tie_even' => -98481486523842.625, 'float_1234_5' => 1234.5,
     'string_empty' => '', 'string_ascii' => 'hello', 'string_korean' => '안녕하세요', 'string_emoji' => "\u{1F600}",
     'string_quote' => 'a";s:1:"b', 'string_nul' => "a\0b", 'string_invalid_utf8' => "\xff\xfe", 'string_bom' => "\xef\xbb\xbfa",
     'string_numeric' => '5', 'string_newline' => "a\r\nb",
