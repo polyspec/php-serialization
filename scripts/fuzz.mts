@@ -1,7 +1,9 @@
-// Corrupts the bytes of the contract with a fixed seed and gives every input to real PHP and to both ports. A port must
-// refuse what PHP refuses, read what PHP reads into the same typed tree, and write back the bytes that PHP writes. The
-// deliberate refusals, which PHP names with a warning or an incomplete class, must be refused. Usage:
-// node scripts/fuzz.mts [--count N] [--seed N]; the input and the output of the run stay in a directory of the run.
+// Corrupts the bytes of the contract with a fixed seed, and has real PHP serialize random values of PHP with the same seed,
+// and gives every input to real PHP, to the Rust crate and to the Node.js and Python packages. An implementation must refuse
+// what PHP refuses, read what PHP reads into the same typed tree, and write back the bytes that PHP writes. The deliberate
+// refusals, which PHP names with a warning or an incomplete class, must be refused. The Rust probe is built before the run
+// (make fuzz). Usage: node scripts/fuzz.mts [--count N] [--values N] [--seed N]; the input and the output of the run stay
+// in a directory of the run.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -43,7 +45,7 @@ function seedBytes(list: unknown): Buffer[] {
   return list.map((entry: unknown) => Buffer.from(textOf(fieldsOf(entry).get('bytes')) ?? '', 'base64'));
 }
 
-const { values } = parseArgs({ options: { count: { type: 'string', default: '200000' }, seed: { type: 'string', default: '20261103' } } });
+const { values } = parseArgs({ options: { count: { type: 'string', default: '200000' }, values: { type: 'string', default: '20000' }, seed: { type: 'string', default: '20261103' } } });
 const count = Number(values.count);
 let state = Number(values.seed) >>> 0;
 
@@ -268,6 +270,76 @@ function sameBytes(port: string, php: string, tree: unknown): boolean {
   return common(port) === common(php);
 }
 
+// Random values of PHP with the seed of the run: every kind of scalar, the floats that the text of RQ-002 meets, keys of
+// every form, shared objects, references shared between positions, references to objects and arrays that hold themselves
+// through a reference (RQ-001 to RQ-005, RQ-008). Writes the base64 of serialize of each value, one per line.
+const PHP_VALUES = String.raw`<?php
+ini_set('serialize_precision', '-1');
+mt_srand((int) $argv[2]);
+function pick(array $items): mixed { return $items[mt_rand(0, count($items) - 1)]; }
+function randomBytes(): string {
+    $text = '';
+    for ($count = mt_rand(0, 4); $count > 0; $count--) $text .= pick(['', 'a', '5', '-5', '05', '-0', "\xff", "\0", '"', ';', '}', "\u{D55C}", "\u{1F600}", '9223372036854775808', chr(mt_rand(0, 255))]);
+    return $text;
+}
+function scalar(): mixed {
+    switch (mt_rand(0, 7)) {
+        case 0: return null;
+        case 1: return (bool) mt_rand(0, 1);
+        case 2: return pick([0, 1, -1, PHP_INT_MAX, PHP_INT_MIN, mt_rand(), -mt_rand(), (mt_rand() << 31) | mt_rand()]);
+        case 3: return pick([0.0, -0.0, 1.0, 0.5, 0.1, NAN, INF, -INF, 1e15, 1e17, 1e-4, 1e-5, PHP_FLOAT_MAX, 5e-324]);
+        case 4: return unpack('E', pack('NN', mt_rand(0, 0xFFFFFFFF), mt_rand(0, 0xFFFFFFFF)))[1];
+        case 5: return mt_rand(-100000, 100000) / 10 ** mt_rand(0, 8);
+        default: return randomBytes();
+    }
+}
+function randomKey(): int|string { return mt_rand(0, 1) ? pick([0, 1, 2, -1, 5, PHP_INT_MAX, PHP_INT_MIN, mt_rand()]) : randomBytes(); }
+function randomValue(int $depth, array &$objects): mixed {
+    switch (mt_rand(0, $depth > 0 ? 11 : 4)) {
+        case 5: case 6:
+            $array = [];
+            for ($count = mt_rand(0, 4); $count > 0; $count--) $array[] = randomValue($depth - 1, $objects);
+            return $array;
+        case 7:
+            $array = [];
+            for ($count = mt_rand(0, 4); $count > 0; $count--) $array[randomKey()] = randomValue($depth - 1, $objects);
+            return $array;
+        case 8:
+            // A property name that starts with U+0000 is refused (RQ-009); the contract holds such names.
+            $object = new stdClass();
+            for ($count = mt_rand(0, 3); $count > 0; $count--) {
+                $name = (string) randomKey();
+                if (!str_starts_with($name, "\0")) $object->{$name} = randomValue($depth - 1, $objects);
+            }
+            $objects[] = $object;
+            if (mt_rand(0, 2) === 0) $object->{'self'} = $object;
+            return $object;
+        case 9:
+            return $objects === [] ? null : pick($objects);
+        case 10:
+            $shared = randomValue($depth - 1, $objects);
+            $array = [];
+            for ($count = mt_rand(1, 3); $count > 0; $count--) {
+                $array[randomKey()] = &$shared;
+                if (mt_rand(0, 1)) $array[randomKey()] = randomValue($depth - 1, $objects);
+            }
+            unset($shared);
+            return $array;
+        case 11:
+            $cycle = ['a' => randomValue($depth - 1, $objects)];
+            $cycle['self'] = &$cycle;
+            return [$cycle];
+        default:
+            return scalar();
+    }
+}
+$out = fopen('php://stdout', 'w');
+for ($index = (int) $argv[1]; $index > 0; $index--) {
+    $objects = [];
+    fwrite($out, base64_encode(serialize(randomValue(5, $objects))) . "\n");
+}
+`;
+
 const directory = runDirectory(tmpdir());
 try {
   const inputs: string[] = [];
@@ -280,12 +352,23 @@ try {
       inputs.push(text);
     }
   }
+  const generated = spawnSync('php', ['-d', 'memory_limit=-1', '--', values.values, values.seed], { input: PHP_VALUES, encoding: 'utf8', maxBuffer: 1 << 30 });
+  if (generated.status !== 0) throw new Error(`php wrote no random values: ${generated.stderr}`);
+  let valueCount = 0;
+  for (const text of generated.stdout.split('\n')) {
+    if (text !== '' && !unique.has(text)) {
+      unique.add(text);
+      inputs.push(text);
+      valueCount++;
+    }
+  }
   const inputFile = join(directory, 'inputs');
   writeFileSync(inputFile, `${inputs.join('\n')}\n`);
-  console.log(`fuzz: ${count} inputs, seed ${values.seed}`);
+  console.log(`fuzz: ${count} inputs and ${valueCount} values of PHP, seed ${values.seed}`);
 
   const runs: { name: string; command: string; args: string[]; cwd: string; input: string }[] = [
     { name: 'php', command: 'php', args: ['-d', 'memory_limit=-1', '--', inputFile, join(directory, 'php')], cwd: '.', input: PHP_PROBE },
+    { name: 'rust', command: resolve('packages/rust/target/release/examples/probe'), args: [inputFile, join(directory, 'rust')], cwd: '.', input: '' },
     { name: 'node', command: process.execPath, args: ['packages/js/tests/probe.mjs', inputFile, join(directory, 'node')], cwd: '.', input: '' },
     { name: 'python', command: resolve('packages/python/.venv/bin/python'), args: ['-m', 'tests.probe', inputFile, join(directory, 'python')], cwd: 'packages/python', input: '' },
   ];
@@ -311,7 +394,7 @@ try {
     if (php === undefined) throw new Error(`php wrote no reply for input ${index}`);
     const key = php.refused ? 'php_refused' : php.deliberate !== undefined ? 'deliberate' : php.unwritable ? 'unwritable' : 'php_read';
     tally[key] = (tally[key] ?? 0) + 1;
-    for (const name of ['node', 'python']) {
+    for (const name of ['rust', 'node', 'python']) {
       const port = replies.get(name)?.[index];
       if (port === undefined) throw new Error(`${name} wrote no reply for input ${index}`);
       let problem: string | undefined;
