@@ -990,11 +990,10 @@
       "id": "change-names",
       "rule": "N-3",
       "reason": "plan N-3, N-1: a library of a data format is named after the format, so the repository is php-serialization; design P-1 and E-2 give its package, module and error class names: Composer polyspec/php-serialization, PHP Polyspec\\PhpSerialization, PyPI polyspec-php-serialization, Python polyspec.php_serialization, npm @polyspec/php-serialization, PHP extension polyspec_php_serialization, the error classes PhpSerialization<Category>Error in PHP and Node and PHPSerialization<Category>Error in Python (N-2: an acronym word is one capital word in PHP and Node and all capitals in Python)",
-      "symbol": "polyspec/php-serialize, Polyspec\\PhpSerialize, polyspec-php-serialize, polyspec.php_serialize, @polyspec/php-serialize",
+      "symbol": "polyspec-php-serialize, polyspec.php_serialize, @polyspec/php-serialize",
       "from": {
-        "php": "Composer polyspec/php-serialize, namespace Polyspec\\PhpSerialize, extension polyspec_php_serialize, PhpSerialize<Category>Error",
-        "python": "PyPI polyspec-php-serialize, module polyspec.php_serialize, PhpSerialize<Category>Error",
-        "node": "npm @polyspec/php-serialize, PhpSerialize<Category>Error"
+        "python": "PyPI polyspec-php-serialize, module polyspec.php_serialize",
+        "node": "npm @polyspec/php-serialize"
       },
       "to": "functions"
     }
