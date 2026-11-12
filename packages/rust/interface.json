@@ -352,12 +352,6 @@
           }
         }
       ],
-      "out": {
-        "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      },
-      "in": {
-        "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      },
       "core_type": "polyspec_php_serialize::PhpFloat"
     },
     {
@@ -391,7 +385,11 @@
                 "properties"
               ],
               "type": {
-                "todo": "T-2: no contract type is a map whose keys mix text and bytes; keyed_map of U-7 (c) is a make form only"
+                "keyed_map": "php_value",
+                "key": [
+                  "text",
+                  "bytes"
+                ]
               },
               "default": {
                 "empty": "map"
@@ -412,19 +410,17 @@
           "kind": "property",
           "visibility": "public",
           "returns": {
-            "todo": "T-2: no contract type is a map whose keys mix text and bytes; keyed_map of U-7 (c) is a make form only"
+            "keyed_map": "php_value",
+            "key": [
+              "text",
+              "bytes"
+            ]
           },
           "raises": [],
           "wait": "none",
           "writable": true
         }
-      ],
-      "out": {
-        "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      },
-      "in": {
-        "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      }
+      ]
     },
     {
       "id": "reference",
@@ -479,13 +475,7 @@
           "wait": "none",
           "writable": true
         }
-      ],
-      "out": {
-        "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      },
-      "in": {
-        "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      }
+      ]
     },
     {
       "id": "php_value",
@@ -494,9 +484,6 @@
       ],
       "module": "",
       "kind": "alias",
-      "of": {
-        "todo": "U-7 (a): the contract types cannot name null or an array with int and bytes keys, so the union of the language types is that of the in rows (T-2)"
-      },
       "visibility": "public",
       "origin": "value",
       "core_type": "polyspec_php_serialize::PhpValue",
@@ -838,10 +825,24 @@
           "node": "number",
           "cases": [
             {
-              "kind": {
-                "todo": "U-7 (f): the core tells an int from a float of a JavaScript number (RQ-008), but an in row without by classifies its type as one kind, so the int rows and the float rows that make a number do not both come back",
-                "found": "float"
+              "when": {
+                "predicate": "integral_float",
+                "is": false
               },
+              "kind": "float",
+              "read": "builtin"
+            },
+            {
+              "when": {
+                "predicate": "safe_integer",
+                "is": true
+              },
+              "kind": "int",
+              "read": "builtin"
+            },
+            {
+              "when": "else",
+              "kind": "float",
               "read": "builtin"
             }
           ]

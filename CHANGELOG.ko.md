@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 9d659430e97766a53c30994fc4d1820c1f45f49d8f0b77f10d290ff7c2d720e0 -->
+<!-- source-sha256: 4c77aa62d472f8b51b7b8b81c514592532b9ff3a60f5df3204ec472de97860d6 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -13,6 +13,7 @@
 - `contracts/interface.json`은 바인딩의 인터페이스 계약 초안이다: 함수, offset을 가진 오류 class, `php_value`의 값 표, Node.js와 Python 패키지에서 바뀌는 점. 형식이 아직 담지 못하는 곳은 `todo`로 둔다(T2.1).
 - 인터페이스 계약을 `packages/rust/interface.json`으로 옮기고 crate의 `include`에 넣는다. `php_value`를 받거나 내는 라이브러리가 Cargo가 해석한 패키지에서 값 표를 읽게 하기 위해서다. 계약은 bindgen 스키마를 따른다: category 오류 클래스는 모든 언어에서 `PhpSerialize<Category>Error`(`PhpSerializeValueError` 등)이고, `php_value`는 alias이며 그 값 표는 PHP 배열을 int와 bytes key의 map으로 만들고 `stdClass`와 참조는 PHP 객체와 참조 그대로 두며 각 언어의 내장 타입은 bindgen이 직접 읽는다. 형식이나 코어가 아직 담지 못하는 곳은 `todo`로 남는다(T2.1).
 - crate의 `DEPTH_LIMIT`는 인터페이스 계약의 `uint` 타입인 `u64`이고, crate는 Node.js class `PhpFloat`의 생성자, `value`, `valueOf`가 부르는 `PhpFloat`를 가진다(RQ-008) (T2.1).
+- `php_value`의 값 표를 채운다: alias만 `out`·`in` 행을 가지고 `PhpFloat`, `StdClass`, `Reference`를 모으며, `StdClass`의 속성은 text와 bytes key의 keyed map이고, JavaScript number는 정수가 아니면 float, 안전 정수면 int, 그 밖에는 float로 다시 읽힌다. 언어에서 `php_value`를 받는 코어가 생길 때까지 `StdClass`와 `Reference` 생성자의 코어만 `todo`로 남는다(T2.1).
 
 ## 0.0.6
 
