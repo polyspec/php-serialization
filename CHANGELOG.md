@@ -10,6 +10,7 @@
 - The contract names the kind of every refusal in `raises`, holds property names that start with U+0000 in `stricter` and the new group `refused_values`, and the Node.js and Python packages refuse such a name when they read and when they write (RQ-009) (T2.1).
 - The Rust crate `polyspec-php-serialize` in `packages/rust` reads and writes the format over its own value of PHP with the kinds of RQ-010 and passes the contract (`make test-rust`, `make lint-rust`); `make fuzz` gives its input and the bytes of random values of PHP to the crate too, and CI runs a Rust job (T2.1).
 - `contracts/interface.json` drafts the interface contract of the bindings: the functions, the error class with its offset, the value table of `php_value` and the changes from the Node.js and Python packages; the parts that its format cannot state yet are marked `todo` (T2.1).
+- The interface contract moves to `packages/rust/interface.json` and into the `include` of the crate, so that a library that takes or gives a `php_value` reads the value table from the package that Cargo resolved. It follows the schema of bindgen: the category error classes are `PhpSerialize<Category>Error` in every language (`PhpSerializeValueError` and so on), and `php_value` is an alias whose value table makes a PHP array a map with int and bytes keys, keeps `stdClass` and references as PHP objects and references, and reads the built-in types of each language itself. The parts that the format or the core cannot state yet stay `todo` (T2.1).
 
 ## 0.0.6
 

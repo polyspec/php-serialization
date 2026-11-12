@@ -3,7 +3,7 @@
 
 [한국어](README.ko.md)
 
-The crate `polyspec-php-serialize` holds the rules of the format (RQ-011): the value of PHP, unserialize and serialize, byte for byte as PHP. The bindings of the other runtimes are generated from `contracts/interface.json` and call this crate.
+The crate `polyspec-php-serialize` holds the rules of the format (RQ-011): the value of PHP, unserialize and serialize, byte for byte as PHP. The bindings of the other runtimes are generated from the interface contract `interface.json` of this crate (`packages/rust/interface.json`, in the crate package) and call this crate.
 
 ```rust
 use polyspec_php_serialize::{serialize, unserialize};

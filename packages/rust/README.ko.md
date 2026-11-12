@@ -1,10 +1,10 @@
 <!-- doc-id: rust-overview -->
-<!-- source-sha256: 235f4c40d931d370904d6458304e36acba9419735de6ec47244802cb647d415f -->
+<!-- source-sha256: 57b12508fa1e90a96bf94f7bcedcb0d4c8d5b86967708ab02a318594f75c32a7 -->
 # Rust용 php-serialize
 
 [English](README.md)
 
-crate `polyspec-php-serialize`는 형식의 규칙을 가집니다(RQ-011): PHP의 값, unserialize와 serialize를 PHP와 byte 단위로 같게. 다른 런타임의 바인딩은 `contracts/interface.json`에서 생성하며 이 crate를 부릅니다.
+crate `polyspec-php-serialize`는 형식의 규칙을 가집니다(RQ-011): PHP의 값, unserialize와 serialize를 PHP와 byte 단위로 같게. 다른 런타임의 바인딩은 이 crate의 인터페이스 계약 `interface.json`(crate 패키지에 들어가는 `packages/rust/interface.json`)에서 생성하며 이 crate를 부릅니다.
 
 ```rust
 use polyspec_php_serialize::{serialize, unserialize};

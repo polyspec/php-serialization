@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: a1bb5aae0bd59c94fe8e0a4d98e40722c269bc06b6cb7baad15a40461e06094f -->
+<!-- source-sha256: 56d9f703b2169dbf1051adac32ae73ef152df1384e445990a7b2ec91bfd7260c -->
 # PHP serialize 계약
 
 [English](php-serialize.md)
@@ -20,10 +20,10 @@
   - 배열은 key가 정수와 bytes 문자열인 순서 있는 map입니다. 64-bit 정수의 정규형인 문자열 key를 설정하면 그 정수를 설정하고(RQ-004), 배열이 가진 key를 설정하면 PHP의 대입처럼 그 위치의 값을 바꿉니다. 배열은 값이므로 한 위치가 가집니다. 다른 위치가 가진 배열을 또 다른 위치에 두는 것은 값을 만들 때 거부합니다.
   - `stdClass` 객체는 정체성을 가집니다. 한 객체를 가진 위치들은 같은 객체를 가지며, serialize는 첫 위치 뒤에서 그 객체를 `r:`로 씁니다. 속성은 bytes 이름에서 값으로 가는 순서 있는 map이며, 입력의 정수 key는 그 십진 숫자의 이름입니다(RQ-004).
   - 참조도 정체성을 가집니다. 한 참조를 가진 위치들은 그 값을 공유하며, serialize는 첫 위치 뒤에서 그 참조를 `R:`로 씁니다. PHP에서 `serialize`의 인자와 `unserialize`의 결과는 값이므로, 참조는 참조를 담지 않고 최상위 값은 참조가 아닙니다. 둘 다 값을 만들 때 거부합니다.
-  - 언어에서 값의 형태(bytes가 UTF-8인 문자열은 텍스트, key가 0부터 n-1인 배열은 list, 언어가 정수와 구별하지 못하는 정수 값 float는 자기 class)는 `contracts/interface.json`의 값 표가 정하며, 바인딩이 내보내는 모든 형태는 다시 읽으면 같은 값입니다. 다른 값 모델(JSON, 템플릿 데이터 모델)로의 변환은 이 형식의 규칙이 아니며, 변환을 가진 라이브러리가 정합니다.
+  - 언어에서 값의 형태(bytes가 UTF-8인 문자열은 텍스트, key가 0부터 n-1인 배열은 list, 언어가 정수와 구별하지 못하는 정수 값 float는 자기 class)는 `packages/rust/interface.json`의 값 표가 정하며, 바인딩이 내보내는 모든 형태는 다시 읽으면 같은 값입니다. 다른 값 모델(JSON, 템플릿 데이터 모델)로의 변환은 이 형식의 규칙이 아니며, 변환을 가진 라이브러리가 정합니다.
 - **RQ-009**: U+0000으로 시작하는 속성 이름은 거부합니다. unserialize는 그 bytes를 거부하며 반복된 key가 나중에 그 객체를 덮어써도 거부하고, 값은 그 이름을 만들 때 거부하므로 serialize는 그 이름을 쓰지 않습니다. PHP는 그런 이름을 모두 경고 없이 `stdClass` 객체로 읽습니다: `\0Class\0name`과 `\0*\0name` 형태는 `stdClass`가 선언하지 않는 private 또는 protected 속성이 되고, 다른 형태(`\0a`, `\0`)는 `foreach`와 `print_r`가 notice `Illegal member variable name`으로 알리는 속성이 됩니다. 두 경우 모두 객체 밖의 코드는 이름으로 읽지 못하며(`Cannot access property starting with "\0"`), `json_encode`는 그 속성을 버리고, 다른 언어에는 `stdClass`의 private·protected 속성이 없습니다. 다른 byte로 시작하는 이름은 빈 이름을 포함해 읽고 씁니다.
 - **RQ-010**: 모든 실패는 [kind 표](#kinds)의 kind를 가진 오류이며 HTTP 상태가 없습니다. 모든 kind의 category는 `value`이고, `internal`만 category `internal`입니다. unserialize의 오류는 입력의 0부터 센 byte 위치 offset을 가집니다: 문법을 깨는 첫 byte(입력이 일찍 끝나면 입력의 길이), 남은 bytes보다 큰 length나 count의 첫 숫자(RQ-007), 추가 bytes는 값 뒤의 첫 byte, 통째로 거부하는 token(너무 깊은 값, 참조, class, 정수, key)은 그 token의 첫 byte입니다. 메시지는 규칙이 아니며, 호출자는 kind로 실패를 구별합니다.
-- **RQ-011**: 규칙은 구현 하나, `packages/rust`의 Rust crate `polyspec-php-serialize`에 있습니다. 런타임의 바인딩은 `contracts/interface.json`에서 생성하며 규칙을 갖지 않습니다. Node.js와 Python 패키지는 생성된 바인딩이 contract, 패키지 시험, fuzz를 통과할 때까지 남으며, 그때까지 [차이 표](#differences)가 crate와 다르게 동작하는 곳을 적습니다.
+- **RQ-011**: 규칙은 구현 하나, `packages/rust`의 Rust crate `polyspec-php-serialize`에 있습니다. 런타임의 바인딩은 `packages/rust/interface.json`에서 생성하며 규칙을 갖지 않습니다. crate 패키지가 그 계약을 담으므로, `php_value`를 받거나 내는 라이브러리는 Cargo가 해석한 패키지에서 값 표를 읽습니다. Node.js와 Python 패키지는 생성된 바인딩이 contract, 패키지 시험, fuzz를 통과할 때까지 남으며, 그때까지 [차이 표](#differences)가 crate와 다르게 동작하는 곳을 적습니다.
 
 <a id="refused"></a>
 ## 일부러 거부하는 입력

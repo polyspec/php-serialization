@@ -8,6 +8,9 @@ readme = "README.md"
 repository = "https://github.com/polyspec/php-serialize.git"
 license = "BSD-3-Clause"
 publish = false
+# The package holds the interface contract of the bindings beside the source, so that a library that takes or gives a
+# php_value reads the value table from the package that Cargo resolved (RQ-011; bindgen design I-1, T-3).
+include = ["/src/**/*.rs", "/interface.json", "/README.md"]
 
 [lib]
 name = "polyspec_php_serialize"
