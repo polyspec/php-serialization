@@ -21,4 +21,4 @@ assert_eq!(serialize(&value)?, b"a:1:{s:1:\"a\";d:1;}");
 | `stdClass` | `Node::Object(ObjectId)`, a `StdClass` that every position of the object shares |
 | reference | `Node::Reference(ReferenceId)` at each position that shares it |
 
-A `PhpValue` holds its top value and its arrays, objects and references in flat tables, so neither reading, writing nor dropping a value recurses ([RQ-006](../../docs/spec/php-serialize.md#requirements)). Every failure is an `Error` whose `kind()` is one of [the table of kinds](../../docs/spec/php-serialize.md#kinds); an error of unserialize has its `offset()` in the input.
+A `PhpValue` holds its top value and its arrays, objects and references in flat tables, so neither reading, writing nor dropping a value recurses ([RQ-006](../../docs/spec/php-serialize.md#requirements)). Every failure is an `Error` whose `kind()` is one of [the table of kinds](../../docs/spec/php-serialize.md#kinds); an error of unserialize has its `offset()` in the input. `PhpFloat` holds a float for the binding of a language whose number does not tell a float whose value is an integer from the integer (RQ-008). `DEPTH_LIMIT` is a `u64`.

@@ -279,8 +279,7 @@
           "visibility": "public",
           "type": "uint",
           "value": 4096,
-          "core": "polyspec_php_serialize::DEPTH_LIMIT",
-          "todo": "core: DEPTH_LIMIT is a usize and uint is u64 (T-1); the const assertion of U-5 needs one type"
+          "core": "polyspec_php_serialize::DEPTH_LIMIT"
         }
       ]
     },
@@ -319,7 +318,7 @@
           ],
           "raises": [],
           "wait": "none",
-          "core": "todo"
+          "core": "polyspec_php_serialize::PhpFloat::new"
         },
         {
           "id": "php_float.value",
@@ -331,7 +330,26 @@
           "returns": "float",
           "raises": [],
           "wait": "none",
-          "core": "todo"
+          "core": {
+            "path": "polyspec_php_serialize::PhpFloat::value",
+            "receiver": "&self"
+          }
+        },
+        {
+          "id": "php_float.value_of",
+          "name": [
+            "value",
+            "of"
+          ],
+          "kind": "primitive",
+          "visibility": "public",
+          "returns": "float",
+          "raises": [],
+          "wait": "none",
+          "core": {
+            "path": "polyspec_php_serialize::PhpFloat::value",
+            "receiver": "&self"
+          }
         }
       ],
       "out": {
@@ -339,7 +357,8 @@
       },
       "in": {
         "todo": "schema: every unit of origin value needs out and in, but a class of a value type with an alias (U-7 (a)) takes the rows of the alias php_value"
-      }
+      },
+      "core_type": "polyspec_php_serialize::PhpFloat"
     },
     {
       "id": "std_class",
@@ -381,7 +400,9 @@
           ],
           "raises": [],
           "wait": "none",
-          "core": "todo"
+          "core": {
+            "todo": "core: the constructor takes a php_value from the language, and the core has no boundary type of a php_value parameter until from_host (plan 9c)"
+          }
         },
         {
           "id": "std_class.properties",
@@ -442,7 +463,9 @@
           ],
           "raises": [],
           "wait": "none",
-          "core": "todo"
+          "core": {
+            "todo": "core: the constructor takes a php_value from the language, and the core has no boundary type of a php_value parameter until from_host (plan 9c)"
+          }
         },
         {
           "id": "reference.value",

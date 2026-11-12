@@ -1,5 +1,5 @@
 <!-- doc-id: rust-overview -->
-<!-- source-sha256: 57b12508fa1e90a96bf94f7bcedcb0d4c8d5b86967708ab02a318594f75c32a7 -->
+<!-- source-sha256: d7dfb46e3a4b10babe3c3b3e87da46d77ab4ccce2fe6be7ef2f5276667890ca0 -->
 # Rust용 php-serialize
 
 [English](README.md)
@@ -22,4 +22,4 @@ assert_eq!(serialize(&value)?, b"a:1:{s:1:\"a\";d:1;}");
 | `stdClass` | `Node::Object(ObjectId)`: 객체의 모든 위치가 공유하는 `StdClass` |
 | reference | 그 참조를 공유하는 각 위치의 `Node::Reference(ReferenceId)` |
 
-`PhpValue`는 최상위 값과 배열, 객체, 참조를 평평한 표에 담으므로 값을 읽고 쓰고 버리는 일이 재귀하지 않습니다([RQ-006](../../docs/spec/php-serialize.ko.md#requirements)). 모든 실패는 `kind()`가 [kind 표](../../docs/spec/php-serialize.ko.md#kinds)의 하나인 `Error`이고, unserialize의 오류는 입력의 `offset()`을 가집니다.
+`PhpValue`는 최상위 값과 배열, 객체, 참조를 평평한 표에 담으므로 값을 읽고 쓰고 버리는 일이 재귀하지 않습니다([RQ-006](../../docs/spec/php-serialize.ko.md#requirements)). 모든 실패는 `kind()`가 [kind 표](../../docs/spec/php-serialize.ko.md#kinds)의 하나인 `Error`이고, unserialize의 오류는 입력의 `offset()`을 가집니다. `PhpFloat`는 정수 값인 float를 정수와 구별하지 못하는 언어의 바인딩을 위해 float를 담습니다(RQ-008). `DEPTH_LIMIT`는 `u64`입니다.

@@ -156,6 +156,28 @@ impl PhpArray {
     }
 }
 
+/// A float of PHP as a value of its own, for a language whose number does not tell a float whose value is an integer from
+/// the integer (RQ-008): the binding of such a language makes this value for every such float and reads its float back.
+/// It holds any float of 64 bits, `-0`, the infinities and NAN included, unchanged (RQ-002).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PhpFloat {
+    value: f64,
+}
+
+impl PhpFloat {
+    /// The value of the float.
+    #[must_use]
+    pub const fn new(value: f64) -> Self {
+        Self { value }
+    }
+
+    /// The float, as it was given (RQ-002).
+    #[must_use]
+    pub const fn value(&self) -> f64 {
+        self.value
+    }
+}
+
 /// An object of `stdClass`: an ordered map from property names of bytes to values (RQ-008).
 #[derive(Debug, Clone, Default)]
 pub struct StdClass {

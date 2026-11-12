@@ -1,12 +1,12 @@
 //! unserialize: the bytes of the format to a value (RQ-001 to RQ-007, RQ-009, RQ-010). The reader keeps its own stack of
 //! open arrays and objects, so it never recurses (RQ-006).
 
+use crate::at_depth_limit;
 use crate::error::{offset, Error};
 use crate::float::{parse_float, scan_float};
 use crate::value::{
     integer_of, ArrayId, ArraySlot, Key, Node, ObjectId, PhpValue, ReferenceId, StdClass,
 };
-use crate::DEPTH_LIMIT;
 
 /// A position of the value being read: the top value, an element of an array or a property of an object. A slot of the
 /// format names a position (RQ-005).
@@ -263,7 +263,7 @@ impl Reader<'_> {
         let is_object = matches!(container, Container::Object(_));
         let count = self.count(is_object)?;
         self.expect(b":{", "the brace that opens the entries")?;
-        if (count > 0 || is_object) && self.stack.len() >= DEPTH_LIMIT {
+        if (count > 0 || is_object) && at_depth_limit(self.stack.len()) {
             return Err(Error::Depth {
                 offset: Some(offset(start)),
             });

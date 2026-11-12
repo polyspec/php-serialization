@@ -1,7 +1,13 @@
 //! Requirements: RQ-002, RQ-004, RQ-005, RQ-006, RQ-007, RQ-008, RQ-009, RQ-010. The building of a value, the offsets of
 //! errors, the text of floats and values deeper than a stack holds.
 
-use polyspec_php_serialize::{serialize, unserialize, Error, Key, Node, PhpValue, DEPTH_LIMIT};
+use polyspec_php_serialize::{
+    serialize, unserialize, Error, Key, Node, PhpFloat, PhpValue, DEPTH_LIMIT,
+};
+
+/// The depth limit as a length: `DEPTH_LIMIT` is a `u64`, the type of the constants of the interface contract, and the tests
+/// build values of this depth.
+const LIMIT: usize = 4096;
 
 type Outcome = Result<(), Error>;
 
@@ -16,13 +22,27 @@ fn refusal(bytes: &[u8]) -> Option<(&'static str, Option<u64>)> {
     }
 }
 
+/// RQ-006: the depth of the tests is the limit of the crate.
+#[test]
+fn the_limit_is_the_depth_of_the_tests() {
+    assert_eq!(u64::try_from(LIMIT), Ok(DEPTH_LIMIT));
+}
+
+/// RQ-002, RQ-008: a PhpFloat gives back the float it holds, bit for bit.
+#[test]
+fn a_php_float_keeps_its_float() {
+    for value in [1.0, -0.0, 0.5, f64::INFINITY, f64::NEG_INFINITY, f64::NAN] {
+        assert_eq!(PhpFloat::new(value).value().to_bits(), value.to_bits());
+    }
+}
+
 /// RQ-010: the kind and the offset of each failure of unserialize.
 #[test]
 fn offsets_of_errors() {
     let deep = [
-        b"a:1:{i:0;".repeat(DEPTH_LIMIT + 1),
+        b"a:1:{i:0;".repeat(LIMIT + 1),
         b"N;".to_vec(),
-        b"}".repeat(DEPTH_LIMIT + 1),
+        b"}".repeat(LIMIT + 1),
     ]
     .concat();
     let cases: [(&[u8], &str, u64); 15] = [
@@ -44,7 +64,7 @@ fn offsets_of_errors() {
         ),
         (b"a:1:{i:0;R:1;}", "top_array_reference", 9),
         (b"i:9223372036854775808;", "int_range", 0),
-        (&deep, "depth", 9 * DEPTH_LIMIT as u64),
+        (&deep, "depth", 9 * DEPTH_LIMIT),
     ];
     for (bytes, kind, offset) in cases {
         assert_eq!(
@@ -195,11 +215,7 @@ fn float_texts() -> Outcome {
 /// RQ-006, RQ-007: a value deeper than the limit is refused when written, and neither a deep value nor its drop recurses.
 #[test]
 fn deep_values() -> Outcome {
-    for (depth, refused) in [
-        (DEPTH_LIMIT, false),
-        (DEPTH_LIMIT + 1, true),
-        (1_000_000, true),
-    ] {
+    for (depth, refused) in [(LIMIT, false), (LIMIT + 1, true), (1_000_000, true)] {
         let mut value = PhpValue::new();
         let mut inner = Node::Null;
         for _ in 0..depth {

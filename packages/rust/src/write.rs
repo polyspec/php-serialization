@@ -3,10 +3,10 @@
 
 use std::collections::HashMap;
 
+use crate::at_depth_limit;
 use crate::error::Error;
 use crate::float::write_float;
 use crate::value::{Key, Node, ObjectId, PhpValue, ReferenceId};
-use crate::DEPTH_LIMIT;
 
 #[derive(Clone, Copy)]
 enum Open {
@@ -97,7 +97,7 @@ impl Writer<'_> {
     /// holds elements (RQ-006, RQ-007).
     fn open(&mut self, open: Open, size: usize) -> Result<(), Error> {
         let is_object = matches!(open, Open::Object(_));
-        if (size > 0 || is_object) && self.stack.len() >= DEPTH_LIMIT {
+        if (size > 0 || is_object) && at_depth_limit(self.stack.len()) {
             return Err(Error::Depth { offset: None });
         }
         if size == 0 {

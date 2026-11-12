@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: d57ba4fb319757bde0ca84e59bfd9d150f54e44b6aedab4b0a73366dfa19b1e6 -->
+<!-- source-sha256: 9d659430e97766a53c30994fc4d1820c1f45f49d8f0b77f10d290ff7c2d720e0 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -12,6 +12,7 @@
 - `packages/rust`의 Rust crate `polyspec-php-serialize`는 PHP 값의 자기 타입 위에서 RQ-010의 kind로 형식을 읽고 쓰며 contract를 통과한다(`make test-rust`, `make lint-rust`). `make fuzz`는 입력과 무작위 PHP 값의 bytes를 crate에도 주고, CI는 Rust job을 실행한다(T2.1).
 - `contracts/interface.json`은 바인딩의 인터페이스 계약 초안이다: 함수, offset을 가진 오류 class, `php_value`의 값 표, Node.js와 Python 패키지에서 바뀌는 점. 형식이 아직 담지 못하는 곳은 `todo`로 둔다(T2.1).
 - 인터페이스 계약을 `packages/rust/interface.json`으로 옮기고 crate의 `include`에 넣는다. `php_value`를 받거나 내는 라이브러리가 Cargo가 해석한 패키지에서 값 표를 읽게 하기 위해서다. 계약은 bindgen 스키마를 따른다: category 오류 클래스는 모든 언어에서 `PhpSerialize<Category>Error`(`PhpSerializeValueError` 등)이고, `php_value`는 alias이며 그 값 표는 PHP 배열을 int와 bytes key의 map으로 만들고 `stdClass`와 참조는 PHP 객체와 참조 그대로 두며 각 언어의 내장 타입은 bindgen이 직접 읽는다. 형식이나 코어가 아직 담지 못하는 곳은 `todo`로 남는다(T2.1).
+- crate의 `DEPTH_LIMIT`는 인터페이스 계약의 `uint` 타입인 `u64`이고, crate는 Node.js class `PhpFloat`의 생성자, `value`, `valueOf`가 부르는 `PhpFloat`를 가진다(RQ-008) (T2.1).
 
 ## 0.0.6
 

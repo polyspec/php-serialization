@@ -10,11 +10,23 @@ mod write;
 
 pub use error::Error;
 pub use read::unserialize;
-pub use value::{ArrayId, Key, Node, ObjectId, PhpArray, PhpValue, ReferenceId, StdClass};
+pub use value::{
+    ArrayId, Key, Node, ObjectId, PhpArray, PhpFloat, PhpValue, ReferenceId, StdClass,
+};
 pub use write::serialize;
 
-/// The depth that unserialize reads and serialize writes, as `unserialize_max_depth` of PHP (RQ-006).
-pub const DEPTH_LIMIT: usize = 4096;
+/// The depth that unserialize reads and serialize writes, as `unserialize_max_depth` of PHP (RQ-006). It is a `u64`, the
+/// type of `uint` in the interface contract.
+pub const DEPTH_LIMIT: u64 = 4096;
+
+/// Whether a stack of `depth` open containers has reached [`DEPTH_LIMIT`] (RQ-006). A depth that `u64` cannot hold is past
+/// the limit.
+pub(crate) fn at_depth_limit(depth: usize) -> bool {
+    match u64::try_from(depth) {
+        Ok(depth) => depth >= DEPTH_LIMIT,
+        Err(_) => true,
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -27,5 +39,6 @@ mod tests {
     // B-5b: the types of the core are Send and Sync.
     const fn send_sync<T: Send + Sync>() {}
     const _: () = send_sync::<PhpValue>();
+    const _: () = send_sync::<super::PhpFloat>();
     const _: () = send_sync::<super::Error>();
 }
