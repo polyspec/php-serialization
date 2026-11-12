@@ -1,12 +1,12 @@
 //! from_host: a value of a language to a value of PHP (RQ-012). The binding describes the value one level at a time as
 //! a [`HostValue`] and answers the questions of the core about the children of a handle through [`HostValues`] of
-//! bindgen_core; every
+//! binding_core; every
 //! rule of what a value of a language is in PHP is here, once (P-1). The walk keeps its own stack, so it never recurses
 //! (RQ-006).
 
 use std::collections::{HashMap, HashSet};
 
-use bindgen_core::{Failure, Handle, HostText, HostValue, HostValues, KeyedMap, ValueKind};
+use binding_core::{Failure, Handle, HostText, HostValue, HostValues, KeyedMap, ValueKind};
 
 use crate::at_depth_limit;
 use crate::error::Error;
@@ -46,9 +46,9 @@ pub fn check_std_class(
         .map_err(Failure::Kind)?;
     for (key, value) in properties {
         let name = match key {
-            bindgen_core::Key::Text(text) => text.into_bytes(),
-            bindgen_core::Key::Bytes(bytes) => bytes,
-            bindgen_core::Key::Int(_) => return Err(Failure::Kind(Error::UnsupportedValue)),
+            binding_core::Key::Text(text) => text.into_bytes(),
+            binding_core::Key::Bytes(bytes) => bytes,
+            binding_core::Key::Int(_) => return Err(Failure::Kind(Error::UnsupportedValue)),
         };
         walk.place(value, Slot::Property(object, name))?;
         walk.drain()?;

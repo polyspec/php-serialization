@@ -192,7 +192,7 @@
         "packages/ts/**",
         "packages/php-ext/**",
         "packages/rust/interface.json",
-        "scripts/bindgen.mts",
+        "scripts/binding.mts",
         "Cargo.lock"
       ],
       "targets": [

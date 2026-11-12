@@ -26,9 +26,9 @@
       "kind": "policy",
       "reason": "compares the ports with real PHP on corrupted and generated input, the proof of this repository; it needs PHP as the oracle and the typed tree of the contract"
     },
-    "scripts/bindgen.mts": {
+    "scripts/binding.mts": {
       "kind": "policy",
-      "reason": "runs bindgen at the commit of polyspec-bindgen-core that Cargo.lock pins, from the checkout that Cargo made of it, because no registry holds the tool before its release (bindgen design L-2)"
+      "reason": "runs binding at the commit of polyspec-binding-core that Cargo.lock pins, from the checkout that Cargo made of it, because no registry holds the tool before its release (binding design L-2)"
     }
   }
 }

@@ -21,7 +21,7 @@
 
 - Own: 이행 기간의 S6 예외: `legacy/packages/js`와 `legacy/packages/python`은 생성된 바인딩이 대체하는 Node.js와 Python 패키지를 담습니다. 배포 대상이 아니며, 그 언어의 바인딩이 contract, 패키지 시험, fuzz를 통과하면 각각 그것만의 변경으로 없앱니다([이행](docs/spec/php-serialize.ko.md#transition), 계획 V-6 (5)).
   Enforced by: `make layout-check`, `make release-coverage`
-- Own: 바인딩 패키지 `packages/python`, `packages/ts`, `packages/php-ext`는 `bindgen scaffold`가 `packages/rust/interface.json`에서 쓰는 그대로이며, 그 `generated/`는 추적하지 않습니다. 루트 Cargo workspace가 코어 crate와 함께 그것들을 담고, 코어의 Rust 레시피는 코어 package를 이름으로 지정합니다.
+- Own: 바인딩 패키지 `packages/python`, `packages/ts`, `packages/php-ext`는 `binding scaffold`가 `packages/rust/interface.json`에서 쓰는 그대로이며, 그 `generated/`는 추적하지 않습니다. 루트 Cargo workspace가 코어 crate와 함께 그것들을 담고, 코어의 Rust 레시피는 코어 package를 이름으로 지정합니다.
   Enforced by: `make bindings-check`
 
 <a id="tools"></a>

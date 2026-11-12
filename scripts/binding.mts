@@ -1,11 +1,11 @@
-// Runs bindgen at the commit that Cargo.lock pins: node scripts/bindgen.mts <check|scaffold|generate> [arguments]
+// Runs binding at the commit that Cargo.lock pins: node scripts/binding.mts <check|scaffold|generate> [arguments]
 //
-// Before its first release bindgen is a Git dependency (bindgen design L-2), and only its crate polyspec-bindgen-core
+// Before its first release binding is a Git dependency (binding design L-2), and only its crate polyspec-binding-core
 // is a Cargo package; the command-line tool is the TypeScript package packages/ts of the same repository, which no
 // package registry holds yet. So the tool comes from the checkout that Cargo made of the pinned commit: its
-// packages/ts, without node_modules, is copied into var/bindgen/<commit>, where npm installs the dependencies that the
-// tool's package-lock.json pins. The commit is that of Cargo.lock, so the generator and bindgen_core are one version
-// (G-6). This is not the usual way to install a tool (AGENTS.md, "Bindings"); it ends when bindgen is released.
+// packages/ts, without node_modules, is copied into var/binding/<commit>, where npm installs the dependencies that the
+// tool's package-lock.json pins. The commit is that of Cargo.lock, so the generator and binding_core are one version
+// (G-6). This is not the usual way to install a tool (AGENTS.md, "Bindings"); it ends when binding is released.
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, rmSync } from 'node:fs';
@@ -18,14 +18,14 @@ const metadata = JSON.parse(
     stdio: ['ignore', 'pipe', 'inherit'],
   }),
 ) as { packages: { name: string; source: string | null; manifest_path: string }[] };
-const core = metadata.packages.find((p) => p.name === 'polyspec-bindgen-core');
-if (core === undefined || core.source === null) throw new Error('Cargo.lock has no Git dependency polyspec-bindgen-core');
+const core = metadata.packages.find((p) => p.name === 'polyspec-binding-core');
+if (core === undefined || core.source === null) throw new Error('Cargo.lock has no Git dependency polyspec-binding-core');
 const commit = /#([0-9a-f]{40})$/.exec(core.source)?.[1];
-if (commit === undefined) throw new Error(`polyspec-bindgen-core has no pinned commit: ${core.source}`);
+if (commit === undefined) throw new Error(`polyspec-binding-core has no pinned commit: ${core.source}`);
 
-// The crate is packages/core/rust of the bindgen repository; the tool is packages/ts beside it.
+// The crate is packages/core/rust of the binding repository; the tool is packages/ts beside it.
 const checkout = resolve(dirname(core.manifest_path), '../../..');
-const tool = join(root, 'var/bindgen', commit);
+const tool = join(root, 'var/binding', commit);
 if (!existsSync(join(tool, 'node_modules'))) {
   rmSync(tool, { recursive: true, force: true });
   cpSync(join(checkout, 'packages/ts'), tool, { recursive: true, filter: (from) => !from.includes('/node_modules') });

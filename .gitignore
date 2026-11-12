@@ -5,7 +5,7 @@ __pycache__/
 .DS_Store
 .cache/
 /var/
-# The sources that make bindings writes from the interface contract (bindgen design L-1); they are not tracked.
+# The sources that make bindings writes from the interface contract (binding design L-1); they are not tracked.
 /packages/*/generated/
 .venv/
 *.egg-info/

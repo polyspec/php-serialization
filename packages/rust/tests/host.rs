@@ -1,8 +1,8 @@
 //! Requirements: RQ-003, RQ-004, RQ-006, RQ-008, RQ-009, RQ-012. from_host and the constructors of the language classes,
 //! over a language that a table of values stands for: a handle is the index of a value in the table.
 
-use bindgen_core::HostValues;
-use bindgen_core::{Failure, Handle, HostText, HostValue, Key, KeyedMap, Raised, ValueKind};
+use binding_core::HostValues;
+use binding_core::{Failure, Handle, HostText, HostValue, Key, KeyedMap, Raised, ValueKind};
 use polyspec_php_serialization::{check_reference, check_std_class, from_host, serialize, Error};
 
 /// Whether the stand-in language has a float type apart from its integer type (PHP, Python) or one number type

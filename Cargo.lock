@@ -1128,9 +1128,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
-name = "polyspec-bindgen-core"
+name = "polyspec-binding-core"
 version = "0.0.1"
-source = "git+https://github.com/polyspec/bindgen.git?branch=v1%2Frust-core#3b49afd0b72dbafe917bced9adaae41f89fb48e6"
+source = "git+https://github.com/polyspec/binding.git?branch=v1%2Frust-core#06e9bc4a52c520ca7847e1f25b1f9e62fb44f9df"
 dependencies = [
  "indexmap",
  "tokio-util",
@@ -1142,7 +1142,7 @@ version = "0.0.6"
 dependencies = [
  "base64 0.22.1",
  "libtest-mimic",
- "polyspec-bindgen-core",
+ "polyspec-binding-core",
  "ryu",
  "serde_json",
 ]
@@ -1154,7 +1154,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "polyspec-bindgen-core",
+ "polyspec-binding-core",
  "polyspec-php-serialization",
 ]
 
@@ -1163,7 +1163,7 @@ name = "polyspec-php-serialization-php-ext"
 version = "0.0.6"
 dependencies = [
  "ext-php-rs",
- "polyspec-bindgen-core",
+ "polyspec-binding-core",
  "polyspec-php-serialization",
 ]
 
@@ -1171,7 +1171,7 @@ dependencies = [
 name = "polyspec-php-serialization-python"
 version = "0.0.6"
 dependencies = [
- "polyspec-bindgen-core",
+ "polyspec-binding-core",
  "polyspec-php-serialization",
  "pyo3",
 ]

@@ -117,7 +117,7 @@ build-python: ## Build the Python package with uv build; offline
 	$(NODE) $(KIT)/runtime-targets.mjs build --roots legacy/packages/python -- $(UV) build
 
 # The Rust recipes of the core name its package (-p): the binding crates of the workspace include the sources that make
-# bindings generates, so they build only after it (bindgen design L-2).
+# bindings generates, so they build only after it (binding design L-2).
 CORE := polyspec-php-serialization
 
 build-rust: ## Build the Rust crate with cargo; offline
@@ -146,14 +146,14 @@ lint-rust: ## Lint the Rust crate with cargo clippy ([workspace.lints] of Cargo.
 	cargo fmt -p $(CORE) --check
 
 # ---- Bindings -----------------------------------------------------------------------------------------------------------------
-# bindgen runs at the commit of polyspec-bindgen-core that Cargo.lock pins (scripts/bindgen.mts).
-BINDGEN := $(NODE) scripts/bindgen.mts
+# binding runs at the commit of polyspec-binding-core that Cargo.lock pins (scripts/binding.mts).
+BINDING := $(NODE) scripts/binding.mts
 
-bindings: ## Write the generated sources of packages/{php-ext,python,ts}/generated, which are not tracked, with bindgen; offline
-	$(BINDGEN) generate --root .
+bindings: ## Write the generated sources of packages/{php-ext,python,ts}/generated, which are not tracked, with binding; offline
+	$(BINDING) generate --root .
 
-bindings-check: ## Check the interface contract and that the binding packages are what bindgen scaffold writes; offline
-	$(BINDGEN) check packages/rust/interface.json
+bindings-check: ## Check the interface contract and that the binding packages are what binding scaffold writes; offline
+	$(BINDING) check packages/rust/interface.json
 
 typecheck: ## Check the TypeScript of scripts/ with tsc; offline
 	$(NODE) node_modules/typescript/bin/tsc -p tsconfig.json

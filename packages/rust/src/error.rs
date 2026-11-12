@@ -106,8 +106,8 @@ impl Error {
     }
 }
 
-/// The kind interface that the generated bindings read (bindgen design E-1, I-2 (3)).
-impl bindgen_core::Kinds for Error {
+/// The kind interface that the generated bindings read (binding design E-1, I-2 (3)).
+impl binding_core::Kinds for Error {
     fn kind(&self) -> &'static str {
         Error::kind(self)
     }

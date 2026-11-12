@@ -12,7 +12,7 @@
 | [Python](legacy/packages/python/README.ko.md) (legacy, 배포하지 않음) | `polyspec-php-serialize` | `polyspec.php_serialize` |
 | [Rust](packages/rust/README.ko.md) | `polyspec-php-serialization` (crate, 배포하지 않음) | `polyspec_php_serialization` |
 
-Node.js와 Python 패키지는 [이행](docs/spec/php-serialize.ko.md#transition)의 legacy 패키지이며, bindgen이 `packages/python`, `packages/ts`, `packages/php-ext`에 생성하는 바인딩이 그것을 대체합니다.
+Node.js와 Python 패키지는 [이행](docs/spec/php-serialize.ko.md#transition)의 legacy 패키지이며, binding이 `packages/python`, `packages/ts`, `packages/php-ext`에 생성하는 바인딩이 그것을 대체합니다.
 
 <a id="proof"></a>
 ## 검증
