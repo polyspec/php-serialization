@@ -1,0 +1,835 @@
+{
+  "schema": "polyspec/interface@1",
+  "library": "php-serialize",
+  "core": {
+    "crate": "polyspec-php-serialize",
+    "path": "packages/rust"
+  },
+  "targets": [
+    "php",
+    "python",
+    "node"
+  ],
+  "packages": {
+    "php": {
+      "composer": "polyspec/php-serialize",
+      "namespace": "Polyspec\\PhpSerialize",
+      "extension": "polyspec_php_serialize"
+    },
+    "python": {
+      "pypi": "polyspec-php-serialize",
+      "module": "polyspec.php_serialize",
+      "native": "polyspec.php_serialize._native"
+    },
+    "node": {
+      "npm": "@polyspec/php-serialize",
+      "addon": "php-serialize.<target>.node",
+      "entries": {
+        ".": {
+          "formats": [
+            "import"
+          ]
+        }
+      }
+    },
+    "rust": {
+      "crate": "polyspec-php-serialize"
+    }
+  },
+  "naming": {
+    "exceptions": []
+  },
+  "types": {},
+  "errors": {
+    "classes": {
+      "value": {
+        "php": "\\ValueError",
+        "python": "ValueError",
+        "node": "Error",
+        "go": "todo"
+      },
+      "type": {
+        "php": "\\TypeError",
+        "python": "TypeError",
+        "node": "TypeError",
+        "go": "todo"
+      },
+      "io": "todo",
+      "store": "todo",
+      "busy": "todo",
+      "internal": {
+        "php": "\\Error",
+        "python": "RuntimeError",
+        "node": "Error",
+        "go": "todo"
+      }
+    },
+    "kinds": [
+      {
+        "variant": "polyspec_php_serialize::Error::Syntax",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::Depth",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::Reference",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::IntRange",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::TrailingData",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::Class",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::TopArrayReference",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::PropertyName",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::ArrayHeld",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::NestedReference",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::TopReference",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::UnknownId",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::Internal",
+        "category": "internal"
+      }
+    ]
+  },
+  "units": [
+    {
+      "id": "format_error",
+      "name": [
+        "format",
+        "error"
+      ],
+      "module": "",
+      "kind": "error",
+      "visibility": "public",
+      "origin": "generated",
+      "category": "value",
+      "final": true,
+      "members": [
+        {
+          "id": "format_error.offset",
+          "name": [
+            "offset"
+          ],
+          "kind": "property",
+          "visibility": "public",
+          "parameters": [],
+          "returns": "optional<uint>",
+          "optional_reason": "RQ-010",
+          "raises": [],
+          "wait": "none",
+          "core": {
+            "path": "polyspec_php_serialize::Error::offset",
+            "receiver": "&self"
+          }
+        }
+      ]
+    },
+    {
+      "id": "functions",
+      "name": [
+        "php",
+        "serialize"
+      ],
+      "module": "",
+      "kind": "functions",
+      "visibility": "public",
+      "origin": "generated",
+      "members": [
+        {
+          "id": "unserialize",
+          "name": [
+            "unserialize"
+          ],
+          "kind": "function",
+          "visibility": "public",
+          "parameters": [
+            {
+              "name": [
+                "data"
+              ],
+              "type": "bytes",
+              "required": true
+            }
+          ],
+          "returns": "php_value",
+          "raises": [
+            "polyspec_php_serialize::Error::Syntax",
+            "polyspec_php_serialize::Error::Depth",
+            "polyspec_php_serialize::Error::Reference",
+            "polyspec_php_serialize::Error::IntRange",
+            "polyspec_php_serialize::Error::TrailingData",
+            "polyspec_php_serialize::Error::Class",
+            "polyspec_php_serialize::Error::TopArrayReference",
+            "polyspec_php_serialize::Error::PropertyName",
+            "polyspec_php_serialize::Error::Internal"
+          ],
+          "wait": "none",
+          "core": {
+            "path": "polyspec_php_serialize::unserialize"
+          }
+        },
+        {
+          "id": "serialize",
+          "name": [
+            "serialize"
+          ],
+          "kind": "function",
+          "visibility": "public",
+          "parameters": [
+            {
+              "name": [
+                "value"
+              ],
+              "type": "php_value",
+              "required": true
+            }
+          ],
+          "returns": "bytes",
+          "raises": [
+            "polyspec_php_serialize::Error::Depth",
+            "polyspec_php_serialize::Error::PropertyName",
+            "polyspec_php_serialize::Error::ArrayHeld",
+            "polyspec_php_serialize::Error::NestedReference",
+            "polyspec_php_serialize::Error::TopReference",
+            "polyspec_php_serialize::Error::UnknownId",
+            "polyspec_php_serialize::Error::Internal"
+          ],
+          "wait": "none",
+          "core": {
+            "path": "polyspec_php_serialize::serialize"
+          }
+        },
+        {
+          "id": "depth_limit",
+          "name": [
+            "depth",
+            "limit"
+          ],
+          "kind": "constant",
+          "type": "uint",
+          "value": 4096,
+          "core": "polyspec_php_serialize::DEPTH_LIMIT",
+          "todo": "core: DEPTH_LIMIT is a usize and uint is u64 (T-1); the const assertion of U-5 needs one type"
+        }
+      ]
+    },
+    {
+      "id": "php_float",
+      "name": [
+        "php",
+        "float"
+      ],
+      "module": "",
+      "kind": "class",
+      "visibility": "public",
+      "origin": "value",
+      "only": [
+        "node"
+      ],
+      "members": [
+        {
+          "id": "php_float.constructor",
+          "name": [
+            "constructor"
+          ],
+          "kind": "constructor",
+          "visibility": "public",
+          "parameters": [
+            {
+              "name": [
+                "value"
+              ],
+              "type": "float",
+              "required": true
+            }
+          ],
+          "returns": "self",
+          "raises": [],
+          "wait": "none",
+          "core": "todo"
+        },
+        {
+          "id": "php_float.value",
+          "name": [
+            "value"
+          ],
+          "kind": "property",
+          "visibility": "public",
+          "parameters": [],
+          "returns": "float",
+          "raises": [],
+          "wait": "none",
+          "writable": false,
+          "core": "todo"
+        }
+      ]
+    },
+    {
+      "id": "std_class",
+      "name": [
+        "std",
+        "class"
+      ],
+      "module": "",
+      "kind": "class",
+      "visibility": "public",
+      "origin": "value",
+      "only": [
+        "node",
+        "python"
+      ],
+      "members": [
+        {
+          "id": "std_class.constructor",
+          "name": [
+            "constructor"
+          ],
+          "kind": "constructor",
+          "visibility": "public",
+          "parameters": [
+            {
+              "name": [
+                "properties"
+              ],
+              "type": "todo",
+              "default": {
+                "empty": "map"
+              }
+            }
+          ],
+          "returns": "self",
+          "raises": [],
+          "wait": "none",
+          "core": "todo"
+        },
+        {
+          "id": "std_class.properties",
+          "name": [
+            "properties"
+          ],
+          "kind": "property",
+          "visibility": "public",
+          "parameters": [],
+          "returns": "todo",
+          "raises": [],
+          "wait": "none",
+          "writable": true
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "name": [
+        "reference"
+      ],
+      "module": "",
+      "kind": "class",
+      "visibility": "public",
+      "origin": "value",
+      "only": [
+        "node",
+        "python"
+      ],
+      "members": [
+        {
+          "id": "reference.constructor",
+          "name": [
+            "constructor"
+          ],
+          "kind": "constructor",
+          "visibility": "public",
+          "parameters": [
+            {
+              "name": [
+                "value"
+              ],
+              "type": "php_value",
+              "default": {
+                "literal": null
+              }
+            }
+          ],
+          "returns": "self",
+          "raises": [],
+          "wait": "none",
+          "core": "todo"
+        },
+        {
+          "id": "reference.value",
+          "name": [
+            "value"
+          ],
+          "kind": "property",
+          "visibility": "public",
+          "parameters": [],
+          "returns": "php_value",
+          "raises": [],
+          "wait": "none",
+          "writable": true
+        }
+      ]
+    },
+    {
+      "id": "php_value",
+      "name": [
+        "value"
+      ],
+      "module": "",
+      "kind": "todo",
+      "visibility": "public",
+      "origin": "value",
+      "todo": "format: U-1 has no unit kind for the type alias of a value type (the union of null, bool, int, float, PhpFloat, text, bytes, list, map, StdClass and Reference)",
+      "core_type": "polyspec_php_serialize::PhpValue",
+      "out": [
+        {
+          "kind": "null",
+          "make": {
+            "php": "null",
+            "python": "null",
+            "node": "null"
+          }
+        },
+        {
+          "kind": "bool",
+          "make": {
+            "php": "bool",
+            "python": "bool",
+            "node": "bool"
+          }
+        },
+        {
+          "kind": "int",
+          "make": {
+            "php": "int",
+            "python": "int"
+          }
+        },
+        {
+          "kind": "int",
+          "when": "safe_integer",
+          "make": {
+            "node": "int"
+          }
+        },
+        {
+          "kind": "int",
+          "when": {
+            "todo": "format: the complement of safe_integer; when names one predicate and no negation"
+          },
+          "make": {
+            "node": "bigint"
+          }
+        },
+        {
+          "kind": "float",
+          "make": {
+            "php": "float",
+            "python": "float"
+          }
+        },
+        {
+          "kind": "float",
+          "when": "integral_float",
+          "make": {
+            "node": "php_float.constructor"
+          }
+        },
+        {
+          "kind": "float",
+          "when": {
+            "todo": "format: the complement of integral_float"
+          },
+          "make": {
+            "node": "float"
+          }
+        },
+        {
+          "kind": "string",
+          "make": {
+            "php": "bytes"
+          }
+        },
+        {
+          "kind": "string",
+          "when": "utf8",
+          "make": {
+            "python": "text",
+            "node": "text"
+          }
+        },
+        {
+          "kind": "string",
+          "when": {
+            "todo": "format: the complement of utf8"
+          },
+          "make": {
+            "python": "bytes",
+            "node": "bytes"
+          }
+        },
+        {
+          "kind": "array",
+          "make": {
+            "php": {
+              "todo": "format: the built-in list and map are text-keyed (T-2 map<T>); a PHP array has keys of int and bytes and may hold references"
+            }
+          }
+        },
+        {
+          "kind": "array",
+          "when": "sequence_keys",
+          "make": {
+            "python": "list",
+            "node": "list"
+          }
+        },
+        {
+          "kind": "array",
+          "when": {
+            "todo": "format: the complement of sequence_keys"
+          },
+          "make": {
+            "python": {
+              "todo": "format: a dict whose keys are int, str or bytes"
+            },
+            "node": {
+              "todo": "format: a Map whose keys are number, bigint, string or Uint8Array"
+            }
+          }
+        },
+        {
+          "kind": "object",
+          "make": {
+            "php": {
+              "todo": "format: stdClass is a class of the language, neither a built-in form nor a member of this contract"
+            },
+            "python": "std_class.constructor",
+            "node": "std_class.constructor"
+          },
+          "todo": "format: positions that share an object must get one language object (identity of the OutValue handle), and an object that holds itself needs the object before its properties"
+        },
+        {
+          "kind": "reference",
+          "make": {
+            "php": {
+              "todo": "format: a PHP reference (&) shared by positions has no built-in form"
+            },
+            "python": "reference.constructor",
+            "node": "reference.constructor"
+          },
+          "todo": "format: as for object, the identity of the handle and the order of a cycle"
+        }
+      ],
+      "in": [
+        {
+          "node": "null",
+          "cases": [
+            {
+              "kind": "null",
+              "read": {
+                "todo": "format: a built-in language type has no member to read"
+              }
+            }
+          ]
+        },
+        {
+          "node": "boolean",
+          "cases": [
+            {
+              "kind": "bool",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "node": "number",
+          "cases": [
+            {
+              "kind": "number",
+              "read": "todo"
+            }
+          ],
+          "todo": "the core decides int or float of a JS number (safe integer and not -0 is int, RQ-008); HostValue needs a kind for a number of JS apart from float"
+        },
+        {
+          "node": "bigint",
+          "cases": [
+            {
+              "kind": "int",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "node": "string",
+          "cases": [
+            {
+              "kind": "text",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "node": "Uint8Array",
+          "cases": [
+            {
+              "kind": "bytes",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "node": "Array",
+          "cases": [
+            {
+              "kind": "list",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "node": "Map",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "node": "PhpFloat",
+          "cases": [
+            {
+              "kind": "float",
+              "read": "php_float.value"
+            }
+          ]
+        },
+        {
+          "node": "StdClass",
+          "cases": [
+            {
+              "kind": "object",
+              "read": "std_class.properties"
+            }
+          ]
+        },
+        {
+          "node": "Reference",
+          "cases": [
+            {
+              "kind": "reference",
+              "read": "reference.value"
+            }
+          ]
+        },
+        {
+          "python": "None",
+          "cases": [
+            {
+              "kind": "null",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "bool",
+          "cases": [
+            {
+              "kind": "bool",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "int",
+          "cases": [
+            {
+              "kind": "int",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "float",
+          "cases": [
+            {
+              "kind": "float",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "str",
+          "cases": [
+            {
+              "kind": "text",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "bytes",
+          "cases": [
+            {
+              "kind": "bytes",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "list",
+          "cases": [
+            {
+              "kind": "list",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "dict",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "todo"
+            }
+          ]
+        },
+        {
+          "python": "StdClass",
+          "cases": [
+            {
+              "kind": "object",
+              "read": "std_class.properties"
+            }
+          ]
+        },
+        {
+          "python": "Reference",
+          "cases": [
+            {
+              "kind": "reference",
+              "read": "reference.value"
+            }
+          ]
+        },
+        {
+          "php": "mixed",
+          "cases": [
+            {
+              "kind": "todo",
+              "read": "todo"
+            }
+          ],
+          "todo": "format: the PHP binding takes the native value of PHP; HostValue needs the reference of an array element with its identity, and stdClass apart from other classes"
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "id": "change-errors-node",
+      "rule": "RQ-010",
+      "reason": "RQ-010: every failure has a kind; P-5: a class without a kind does not tell a refusal on purpose from a corrupt record",
+      "symbol": "UnserializeError, serialize",
+      "from": {
+        "node": "class UnserializeError extends Error { readonly offset: number }; serialize throws TypeError or RangeError"
+      },
+      "to": "format_error"
+    },
+    {
+      "id": "change-errors-python",
+      "rule": "RQ-010",
+      "reason": "RQ-010, as change-errors-node",
+      "symbol": "UnserializeError, serialize",
+      "from": {
+        "python": "class UnserializeError(ValueError) with offset; serialize raises TypeError, OverflowError or ValueError"
+      },
+      "to": "format_error"
+    },
+    {
+      "id": "change-top-reference",
+      "rule": "RQ-008",
+      "reason": "RQ-008: PHP has no top reference; writing its value turns a value that PHP cannot hold into another (P-3)",
+      "symbol": "serialize",
+      "from": {
+        "node": "serialize(new Reference(v)) writes v",
+        "python": "serialize(Reference(v)) writes v"
+      },
+      "to": "serialize"
+    },
+    {
+      "id": "change-php-package",
+      "rule": "RQ-011",
+      "reason": "RQ-011: the PHP extension is a new package of the crate; PHP's own serialize stays the oracle",
+      "symbol": "Polyspec\\PhpSerialize",
+      "from": {
+        "php": "none"
+      },
+      "to": "functions"
+    }
+  ],
+  "cases": [
+    {
+      "member": "unserialize",
+      "file": "contracts/php-serialize.json",
+      "groups": [
+        "cases",
+        "forms",
+        "deep",
+        "rejected",
+        "stricter"
+      ]
+    },
+    {
+      "member": "serialize",
+      "file": "contracts/php-serialize.json",
+      "groups": [
+        "cases",
+        "forms",
+        "deep",
+        "refused_values"
+      ]
+    }
+  ]
+}
