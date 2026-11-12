@@ -1,0 +1,297 @@
+{
+ "comment": "The values of a language that the format refuses or takes (RQ-008, RQ-009, RQ-012), and the classes of php_value, which no PHP writes: one group per member of packages/rust/interface.json in the case convention of binding (G-5). A value of php_value is {\"kind\", \"value\"}: bytes are {\"hex\"}, a map and an object are [key, value] pairs, a key is a text, {\"int\"} or {\"hex\"}, and a reference is {\"id\", \"value\"}. A failure is raises: its kind and category (RQ-010).",
+ "serialize": [
+  {
+   "id": "a_top_reference_is_refused",
+   "rule": "RQ-008",
+   "value": {
+    "kind": "reference",
+    "value": {
+     "id": 0,
+     "value": {
+      "kind": "int",
+      "value": 1
+     }
+    }
+   },
+   "raises": {
+    "kind": "top_reference",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  },
+  {
+   "id": "a_reference_in_a_reference_is_refused",
+   "rule": "RQ-008",
+   "value": {
+    "kind": "map",
+    "value": [
+     [
+      {
+       "int": 0
+      },
+      {
+       "kind": "reference",
+       "value": {
+        "id": 0,
+        "value": {
+         "kind": "reference",
+         "value": {
+          "id": 1,
+          "value": {
+           "kind": "null"
+          }
+         }
+        }
+       }
+      }
+     ]
+    ]
+   },
+   "raises": {
+    "kind": "nested_reference",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  },
+  {
+   "id": "a_property_name_with_nul_is_refused",
+   "rule": "RQ-009",
+   "value": {
+    "kind": "object",
+    "value": [
+     [
+      {
+       "hex": "0061"
+      },
+      {
+       "kind": "int",
+       "value": 1
+      }
+     ]
+    ]
+   },
+   "raises": {
+    "kind": "property_name",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  },
+  {
+   "id": "a_shared_reference_is_one_reference",
+   "rule": "RQ-008",
+   "value": {
+    "kind": "map",
+    "value": [
+     [
+      {
+       "int": 0
+      },
+      {
+       "kind": "reference",
+       "value": {
+        "id": 0,
+        "value": {
+         "kind": "int",
+         "value": 1
+        }
+       }
+      }
+     ],
+     [
+      {
+       "int": 1
+      },
+      {
+       "kind": "reference",
+       "value": {
+        "id": 0,
+        "value": {
+         "kind": "int",
+         "value": 1
+        }
+       }
+      }
+     ]
+    ]
+   }
+  }
+ ],
+ "php_float.constructor": [
+  {
+   "id": "one_half",
+   "rule": "RQ-008",
+   "value": 0.5
+  }
+ ],
+ "php_float.value": [
+  {
+   "id": "one",
+   "rule": "RQ-008",
+   "value": 1.0
+  }
+ ],
+ "php_float.value_of": [
+  {
+   "id": "negative_zero",
+   "rule": "RQ-008",
+   "value": -0.0
+  }
+ ],
+ "std_class.constructor": [
+  {
+   "id": "properties_of_text_and_bytes",
+   "rule": "RQ-012",
+   "properties": [
+    [
+     "a",
+     {
+      "kind": "int",
+      "value": 1
+     }
+    ],
+    [
+     {
+      "hex": "ff"
+     },
+     {
+      "kind": "null"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "a_property_name_with_nul_is_refused",
+   "rule": "RQ-009",
+   "properties": [
+    [
+     {
+      "hex": "0061"
+     },
+     {
+      "kind": "int",
+      "value": 1
+     }
+    ]
+   ],
+   "raises": {
+    "kind": "property_name",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  },
+  {
+   "id": "a_reference_in_a_reference_is_refused",
+   "rule": "RQ-008",
+   "properties": [
+    [
+     "a",
+     {
+      "kind": "reference",
+      "value": {
+       "id": 0,
+       "value": {
+        "kind": "reference",
+        "value": {
+         "id": 1,
+         "value": {
+          "kind": "null"
+         }
+        }
+       }
+      }
+     }
+    ]
+   ],
+   "raises": {
+    "kind": "nested_reference",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  }
+ ],
+ "std_class.properties": [
+  {
+   "id": "properties_are_kept",
+   "rule": "RQ-012",
+   "properties": [
+    [
+     "a",
+     {
+      "kind": "int",
+      "value": 1
+     }
+    ]
+   ]
+  }
+ ],
+ "reference.constructor": [
+  {
+   "id": "a_reference_of_an_int",
+   "rule": "RQ-008",
+   "value": {
+    "kind": "int",
+    "value": 1
+   }
+  },
+  {
+   "id": "a_reference_is_no_value_of_a_reference",
+   "rule": "RQ-008",
+   "value": {
+    "kind": "reference",
+    "value": {
+     "id": 0,
+     "value": {
+      "kind": "int",
+      "value": 1
+     }
+    }
+   },
+   "raises": {
+    "kind": "nested_reference",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  },
+  {
+   "id": "a_property_name_with_nul_is_refused",
+   "rule": "RQ-009",
+   "value": {
+    "kind": "object",
+    "value": [
+     [
+      {
+       "hex": "00"
+      },
+      {
+       "kind": "int",
+       "value": 1
+      }
+     ]
+    ]
+   },
+   "raises": {
+    "kind": "property_name",
+    "status": null,
+    "category": "value",
+    "message": null
+   }
+  }
+ ],
+ "reference.value": [
+  {
+   "id": "the_value_is_kept",
+   "rule": "RQ-008",
+   "value": {
+    "kind": "int",
+    "value": 1
+   }
+  }
+ ]
+}

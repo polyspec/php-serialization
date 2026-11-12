@@ -179,7 +179,8 @@
         "clippy.toml",
         "rust-toolchain.toml",
         "Cargo.toml",
-        "Cargo.lock"
+        "Cargo.lock",
+        "contracts/host-values.json"
       ],
       "targets": [
         "lint-rust",

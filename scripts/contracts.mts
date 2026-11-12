@@ -1,5 +1,6 @@
 // Writes contracts/php-serialize.json from the PHP of .php-version, the reference of the format: the bytes that PHP
-// serializes for each case with the typed tree that PHP holds for them, and the bytes that PHP refuses. --check compares
+// serializes for each case with the typed tree that PHP holds for them, and the bytes that PHP refuses. Each case also
+// gives the argument of unserialize (data) and of serialize (value) in the case convention of binding (G-5). --check compares
 // the result with the committed file, so CI proves the contract against real PHP. The random cases come from a fixed seed.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -13,15 +14,55 @@ ini_set('unserialize_max_depth', '4096');
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
 
 ${PHP_TREE}
+// The case convention of binding (G-5): bytes are {"hex"}, and a value of php_value is {"kind", "value"} with the kinds of
+// its value table; a tree that holds an object or a reference a second time has no such form, so it gives none.
+function g5(array $tree): ?array {
+    switch ($tree[0]) {
+        case 'null': return ['kind' => 'null'];
+        case 'bool': return ['kind' => 'bool', 'value' => $tree[1]];
+        case 'int': return ['kind' => 'int', 'value' => (int) $tree[1]];
+        case 'float':
+            if ($tree[1] === 'nan') return ['kind' => 'float', 'value' => ['float' => 'nan']];
+            $number = unpack('E', hex2bin($tree[1]))[1];
+            if (is_infinite($number)) return ['kind' => 'float', 'value' => ['float' => $number > 0 ? 'inf' : '-inf']];
+            return ['kind' => 'float', 'value' => $number];
+        case 'string': return ['kind' => 'bytes', 'value' => ['hex' => bin2hex(base64_decode($tree[1]))]];
+        case 'array':
+            $pairs = [];
+            foreach ($tree[1] as [$key, $item]) {
+                $value = g5($item);
+                if ($value === null) return null;
+                $pairs[] = [$key[0] === 'int' ? ['int' => (int) $key[1]] : ['hex' => bin2hex(base64_decode($key[1]))], $value];
+            }
+            return ['kind' => 'map', 'value' => $pairs];
+        case 'object':
+            if (count($tree) === 2) return null;
+            $pairs = [];
+            foreach ($tree[3] as [$name, $item]) {
+                $value = g5($item);
+                if ($value === null) return null;
+                $pairs[] = [['hex' => bin2hex(base64_decode($name))], $value];
+            }
+            return ['kind' => 'object', 'value' => $pairs];
+        case 'ref':
+            if (count($tree) === 2) return null;
+            $value = g5($tree[2]);
+            return $value === null ? null : ['kind' => 'reference', 'value' => ['id' => $tree[1], 'value' => $value]];
+    }
+    throw new RuntimeException('no form of the tree ' . $tree[0]);
+}
+
 function record(string $id, string $bytes, bool $withTree = true): array {
     $value = unserialize($bytes, ['allowed_classes' => ['stdClass']]);
     if ($value === false && $bytes !== 'b:0;') throw new RuntimeException("PHP refuses the bytes of $id");
     if (serialize($value) !== $bytes) throw new RuntimeException("PHP does not round-trip the bytes of $id");
-    $case = ['id' => $id, 'bytes' => base64_encode($bytes)];
+    $case = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)]];
     if ($withTree) {
         $state = ['objects' => [], 'references' => []];
         $holder = [$value];
         $case['tree'] = tree($holder[0], $state);
+        $form = g5($case['tree']);
+        if ($form !== null) $case['value'] = $form;
     }
     return $case;
 }
@@ -90,7 +131,11 @@ foreach ($forms as $id => $bytes) {
     if ($value === false) throw new RuntimeException("PHP refuses the form $id");
     $state = ['objects' => [], 'references' => []];
     $holder = [$value];
-    $normal[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'tree' => tree($holder[0], $state), 'written' => base64_encode(serialize($value))];
+    $tree = tree($holder[0], $state);
+    $form = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)], 'tree' => $tree];
+    $argument = g5($tree);
+    if ($argument !== null) $form['value'] = $argument;
+    $normal[] = $form + ['written' => base64_encode(serialize($value))];
 }
 
 // Random data with a fixed seed: every bit pattern of a double, then values nested from every kind.
@@ -167,7 +212,7 @@ function raises(string $kind): array {
 $rejected = [];
 foreach ($refused as $id => $bytes) {
     if (unserialize($bytes, ['allowed_classes' => ['stdClass']]) !== false) throw new RuntimeException("PHP reads the refused bytes of $id");
-    $rejected[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'raises' => raises($kinds[$id] ?? 'syntax')];
+    $rejected[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)], 'raises' => raises($kinds[$id] ?? 'syntax')];
 }
 
 // Bytes that PHP reads but this package refuses on purpose, each with its reason.
@@ -192,7 +237,7 @@ $stricter = [];
 foreach ($strict as [$id, $bytes, $kind, $reason]) {
     // RQ-009 rests on PHP reading these names.
     if ($kind === 'property_name' && unserialize($bytes, ['allowed_classes' => ['stdClass']]) === false) throw new RuntimeException("PHP refuses the stricter bytes of $id");
-    $stricter[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'reason' => $reason, 'raises' => raises($kind)];
+    $stricter[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)], 'reason' => $reason, 'raises' => raises($kind)];
 }
 
 // Values that PHP holds and a value of the format refuses when it is built (RQ-009), with the bytes that PHP writes for them.
@@ -204,7 +249,8 @@ $refusedValues = [];
 foreach ($unholdable as $id => $value) {
     $state = ['objects' => [], 'references' => []];
     $holder = [$value];
-    $refusedValues[] = ['id' => $id, 'tree' => tree($holder[0], $state), 'written' => base64_encode(serialize($value)), 'raises' => raises('property_name')];
+    $tree = tree($holder[0], $state);
+    $refusedValues[] = ['id' => $id, 'tree' => $tree, 'value' => g5($tree), 'written' => base64_encode(serialize($value)), 'raises' => raises('property_name')];
 }
 
 $php = ['version' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, 'serialize_precision' => -1];

@@ -1041,6 +1041,46 @@
       "member": "serialize",
       "file": "contracts/php-serialize.json",
       "group": "refused_values"
+    },
+    {
+      "member": "serialize",
+      "file": "contracts/host-values.json",
+      "group": "serialize"
+    },
+    {
+      "member": "php_float.constructor",
+      "file": "contracts/host-values.json",
+      "group": "php_float.constructor"
+    },
+    {
+      "member": "php_float.value",
+      "file": "contracts/host-values.json",
+      "group": "php_float.value"
+    },
+    {
+      "member": "php_float.value_of",
+      "file": "contracts/host-values.json",
+      "group": "php_float.value_of"
+    },
+    {
+      "member": "std_class.constructor",
+      "file": "contracts/host-values.json",
+      "group": "std_class.constructor"
+    },
+    {
+      "member": "std_class.properties",
+      "file": "contracts/host-values.json",
+      "group": "std_class.properties"
+    },
+    {
+      "member": "reference.constructor",
+      "file": "contracts/host-values.json",
+      "group": "reference.constructor"
+    },
+    {
+      "member": "reference.value",
+      "file": "contracts/host-values.json",
+      "group": "reference.value"
     }
   ]
 }

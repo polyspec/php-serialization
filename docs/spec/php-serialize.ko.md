@@ -4,7 +4,7 @@
 
 [English](php-serialize.md)
 
-이 명세는 모든 패키지의 동작을 정의합니다. 실행 케이스는 [`contracts/php-serialize.json`](../../contracts/php-serialize.json)에 있으며, 실제 PHP가 `serialize_precision=-1`과 `unserialize_max_depth=4096`으로 씁니다. `cases`, `forms`, `deep`은 PHP가 읽는 bytes와 그 값의 typed tree를, `rejected`는 PHP가 거부하는 bytes를, `stricter`는 PHP는 읽지만 모든 패키지가 거부하는 bytes를([일부러 거부하는 입력](#refused)), `refused_values`는 PHP는 담지만 이 형식의 값이 거부하는 값(RQ-008, RQ-009)을 PHP가 그 값에 대해 쓰는 bytes와 함께 담습니다. `rejected`, `stricter`, `refused_values`의 각 항목은 `raises`에 오류를 적습니다(RQ-010).
+이 명세는 모든 패키지의 동작을 정의합니다. 실행 케이스는 [`contracts/php-serialize.json`](../../contracts/php-serialize.json)에 있으며, 실제 PHP가 `serialize_precision=-1`과 `unserialize_max_depth=4096`으로 씁니다. `cases`, `forms`, `deep`은 PHP가 읽는 bytes와 그 값의 typed tree를, `rejected`는 PHP가 거부하는 bytes를, `stricter`는 PHP는 읽지만 모든 패키지가 거부하는 bytes를([일부러 거부하는 입력](#refused)), `refused_values`는 PHP는 담지만 이 형식의 값이 거부하는 값(RQ-008, RQ-009)을 PHP가 그 값에 대해 쓰는 bytes와 함께 담습니다. `rejected`, `stricter`, `refused_values`의 각 항목은 `raises`에 오류를 적습니다(RQ-010). 각 항목은 binding의 case 규약(G-5)으로 `unserialize`의 인자(`data`)와 `serialize`의 인자(`value`, 값이 객체나 참조를 두 번 담으면 없음)도 주며, 바인딩의 생성된 시험이 이것을 읽습니다. [`contracts/host-values.json`](../../contracts/host-values.json)은 PHP가 쓰지 않는 언어의 값을 담습니다: 이 형식의 값이 언어에서 거부하거나 받는 값(RQ-008, RQ-009, RQ-012)과 `php_value` 클래스들의 case이며, member마다 group 하나입니다.
 
 <a id="requirements"></a>
 ## 요구사항
