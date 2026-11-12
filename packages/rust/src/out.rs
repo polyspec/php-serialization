@@ -1,8 +1,12 @@
 //! to_host: a value of PHP for a language (RQ-013). The value is described one level at a time as an [`OutValue`] of
 //! binding_core, and the binding asks for the children of a handle through [`OutValues`], which borrow the value; every
-//! rule of what a value of PHP is in a language is here and in from_host, once (P-1). A handle names a part that the
-//! value holds; [`OutValues`] has no failure, so a question about a part that the value does not hold, which no binding
-//! asks, has the answer null.
+//! rule of what a value of PHP is in a language is here and in from_host, once (P-1).
+//!
+//! A handle names a part that the value holds, and a binding asks only for an index below the length that the handle
+//! came with. Any other question is a defect of the binding or of this crate, and [`OutValues`] has no failure to give
+//! back, so it panics with RQ-013 and the handle that it was given instead of answering with a value (P-4); a binding
+//! turns the panic into the kind `internal` (B-7). An identity of a part that the value made always names that part, and
+//! a count of a value's parts fits in `u64`, so a failure of either is a defect too.
 
 use binding_core::{BytesOut, FloatOut, Handle, IntOut, MapOut, OutValue, OutValues};
 
@@ -25,31 +29,34 @@ pub struct Children<'a> {
     value: &'a PhpValue,
 }
 
-fn handle(kind: u64, index: usize) -> Handle {
-    // An index of a part fits in the 62 bits above the kind: a value holds fewer parts than the memory of a process.
-    match u64::try_from(index) {
-        Ok(index) => Handle::new((index << 2) | kind),
-        Err(_) => Handle::new(u64::MAX),
-    }
+#[allow(
+    clippy::expect_used,
+    reason = "RQ-013: a count of the parts of a value fits in u64; a failure is a defect, which B-7 makes internal"
+)]
+fn count(len: usize) -> u64 {
+    u64::try_from(len).expect("RQ-013: a count of the parts of a value fits in u64")
 }
 
 #[allow(
-    clippy::manual_unwrap_or,
-    reason = "RQ-013: a length of a part fits in u64 on every target of the crate; OutValues has no failure"
+    clippy::expect_used,
+    reason = "RQ-013: an index of a part fits in the 62 bits of a handle; a failure is a defect, which B-7 makes internal"
 )]
-fn length(len: usize) -> u64 {
-    match u64::try_from(len) {
-        Ok(len) => len,
-        Err(_) => u64::MAX,
-    }
+fn handle(kind: u64, index: usize) -> Handle {
+    let index = count(index)
+        .checked_mul(4)
+        .expect("RQ-013: an index of a part fits in the 62 bits above the kind of a handle");
+    Handle::new(index | kind)
 }
 
-/// The part that a handle names: its kind and its index.
-fn part(handle: Handle) -> Option<(u64, usize)> {
-    let raw = handle.raw();
-    match usize::try_from(raw >> 2) {
-        Ok(index) => Some((raw & 3, index)),
-        Err(_) => None,
+/// A question about a part that the value does not hold (see the module): a defect, never an answer.
+#[allow(
+    clippy::panic,
+    reason = "RQ-013, P-4: OutValues has no failure, and a defect is no value; B-7 makes the panic the kind internal"
+)]
+fn defect(what: &str, handle: Handle, index: Option<u64>) -> ! {
+    match index {
+        Some(index) => panic!("RQ-013: {what}: handle {}, index {index}", handle.raw()),
+        None => panic!("RQ-013: {what}: handle {}", handle.raw()),
     }
 }
 
@@ -63,45 +70,46 @@ impl Children<'_> {
             Node::Float(number) => OutValue::Float(FloatOut::new(*number)),
             Node::String(bytes) => OutValue::Bytes(BytesOut::new(bytes.clone())),
             Node::Array(id) => self.array(*id),
-            Node::Object(id) => OutValue::Object {
-                handle: handle(OBJECT, id.0),
-                len: match self.value.object(*id) {
-                    Ok(object) => length(object.len()),
-                    Err(_) => 0,
-                },
-            },
+            Node::Object(id) => {
+                let at = handle(OBJECT, id.0);
+                match self.value.object(*id) {
+                    Ok(object) => OutValue::Object {
+                        handle: at,
+                        len: count(object.len()),
+                    },
+                    Err(_) => defect("the value holds no such object", at, None),
+                }
+            }
             Node::Reference(id) => self.reference(*id),
         }
     }
 
     fn array(&self, id: ArrayId) -> OutValue {
+        let at = handle(ARRAY, id.0);
         let Ok(array) = self.value.array(id) else {
-            return OutValue::Null;
+            defect("the value holds no such array", at, None)
         };
         // RQ-013: the map says whether its keys are 0 to n-1 in order, so a language with lists makes a list of it.
-        let sequence =
-            array
-                .iter()
-                .enumerate()
-                .all(|(at, (key, _))| match (key, i64::try_from(at)) {
-                    (Key::Int(number), Ok(at)) => *number == at,
-                    _ => false,
-                });
-        OutValue::Map(MapOut::new(
-            handle(ARRAY, id.0),
-            length(array.len()),
-            sequence,
-        ))
+        let sequence = array
+            .iter()
+            .enumerate()
+            .all(|(position, (key, _))| match key {
+                Key::Int(number) => u64::try_from(*number) == Ok(count(position)),
+                Key::String(_) => false,
+            });
+        OutValue::Map(MapOut::new(at, count(array.len()), sequence))
     }
 
     fn reference(&self, id: ReferenceId) -> OutValue {
+        let at = handle(REFERENCE, id.0);
         // RQ-008: a reference holds no reference, so the value it holds is described at once.
         let held = match self.value.reference(id) {
-            Ok(Node::Reference(_)) | Err(_) => OutValue::Null,
+            Ok(Node::Reference(_)) => defect("a reference holds a reference", at, None),
             Ok(node) => self.describe(node),
+            Err(_) => defect("the value holds no such reference", at, None),
         };
         OutValue::Reference {
-            handle: handle(REFERENCE, id.0),
+            handle: at,
             value: Box::new(held),
         }
     }
@@ -115,38 +123,47 @@ impl Children<'_> {
 }
 
 impl OutValues for Children<'_> {
-    /// A value of PHP has no list: an array is a map (RQ-013), so no binding asks for an item.
-    fn item(&mut self, _list: Handle, _index: u64) -> OutValue {
-        OutValue::Null
+    /// A value of PHP has no list: an array is a map (RQ-013), so a question about an item is a defect.
+    fn item(&mut self, list: Handle, index: u64) -> OutValue {
+        defect("a value of PHP has no list", list, Some(index))
     }
 
-    /// The key and the value of an entry of an array, or the name and the value of a property of an object. A binding
-    /// asks only for an index below the length that the handle came with; another question has the answer null.
+    /// The key and the value of an entry of an array, or the name and the value of a property of an object.
     fn entry(&mut self, map: Handle, index: u64) -> (OutValue, OutValue) {
-        let (Some((kind, id)), Ok(index)) = (part(map), usize::try_from(index)) else {
-            return (OutValue::Null, OutValue::Null);
+        let raw = map.raw();
+        let (Ok(id), Ok(position)) = (usize::try_from(raw >> 2), usize::try_from(index)) else {
+            defect(
+                "no part of the value has this handle and index",
+                map,
+                Some(index),
+            )
         };
-        match kind {
-            ARRAY => match self
-                .value
-                .array(ArrayId(id))
-                .map(|array| array.iter().nth(index))
-            {
-                Ok(Some((key, node))) => (Self::key(key), self.describe(node)),
-                _ => (OutValue::Null, OutValue::Null),
+        let found = match raw & 3 {
+            ARRAY => match self.value.array(ArrayId(id)) {
+                Ok(array) => array
+                    .iter()
+                    .nth(position)
+                    .map(|(key, node)| (Self::key(key), self.describe(node))),
+                Err(_) => None,
             },
-            OBJECT => match self
-                .value
-                .object(ObjectId(id))
-                .map(|object| object.iter().nth(index))
-            {
-                Ok(Some((name, node))) => (
-                    OutValue::Bytes(BytesOut::new(name.to_vec())),
-                    self.describe(node),
-                ),
-                _ => (OutValue::Null, OutValue::Null),
+            OBJECT => match self.value.object(ObjectId(id)) {
+                Ok(object) => object.iter().nth(position).map(|(name, node)| {
+                    (
+                        OutValue::Bytes(BytesOut::new(name.to_vec())),
+                        self.describe(node),
+                    )
+                }),
+                Err(_) => None,
             },
-            _ => (OutValue::Null, OutValue::Null),
+            _ => None,
+        };
+        match found {
+            Some(entry) => entry,
+            None => defect(
+                "no entry of the value has this handle and index",
+                map,
+                Some(index),
+            ),
         }
     }
 }
