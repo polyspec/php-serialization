@@ -79,6 +79,11 @@ function propertyName(key) {
   return key instanceof Uint8Array ? (decoded(key) ?? key) : key;
 }
 
+// Tells whether a property name, a string or bytes, starts with U+0000 (RQ-009).
+function startsWithNul(name) {
+  return typeof name === 'string' ? name.startsWith('\0') : name instanceof Uint8Array && name[0] === 0;
+}
+
 function floatText(value) {
   if (Number.isNaN(value)) return 'NAN';
   if (!Number.isFinite(value)) return value > 0 ? 'INF' : '-INF';
@@ -200,7 +205,12 @@ class Writer {
       this.push(normal.map, normal.size);
     } else if (value instanceof StdClass) {
       const normal = new KeyedMap();
-      for (const [key, item] of value.properties) normal.set(propertyName(key), item);
+      for (const [key, item] of value.properties) {
+        const name = propertyName(key);
+        // RQ-009: a property name that starts with U+0000 is never written.
+        if (startsWithNul(name)) throw new TypeError('a property name starts with U+0000');
+        normal.set(name, item);
+      }
       this.text(`O:8:"stdClass":${normal.size}:{`);
       this.push(normal.map, normal.size, true);
     } else throw new TypeError(`${typeof value} has no serialized form`);
@@ -478,7 +488,10 @@ class Reader {
         continue;
       }
       frame.remaining--;
+      const keyAt = this.at;
       const key = this.key();
+      // RQ-009: a property name that starts with U+0000 is refused, also when a repeated key overwrites the object later.
+      if (frame.isObject && startsWithNul(key)) throw this.fail('a property name starts with U+0000', keyAt);
       // A property name is always a string: PHP converts an integer key of an object.
       const normal = frame.isObject ? (typeof key === 'number' || typeof key === 'bigint' ? String(key) : key) : arrayKey(key);
       frame.key = frame.items.resolve(normal);

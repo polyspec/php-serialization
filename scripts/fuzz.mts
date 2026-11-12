@@ -156,6 +156,46 @@ function refusedOnPurpose(string $bytes, bool $topArray): ?string {
     }
     return null;
 }
+// Walks bytes that PHP read, one token at a time, and tells whether a key of an object starts with U+0000 (RQ-009), also
+// when a repeated key has overwritten the object. Each frame counts the keys and the values that it still holds.
+function nulProperty(string $bytes): bool {
+    $at = 0;
+    $length = strlen($bytes);
+    $frames = [];
+    while ($at < $length) {
+        $top = count($frames) - 1;
+        if ($top >= 0 && $frames[$top]['left'] === 0) {
+            array_pop($frames);
+            $at++;
+            continue;
+        }
+        $isKey = $top >= 0 && $frames[$top]['left'] % 2 === 0;
+        $isProperty = $isKey && $frames[$top]['object'];
+        if ($top >= 0) $frames[$top]['left']--;
+        if (preg_match('/\Gs:(\d+):"/', $bytes, $match, 0, $at)) {
+            if ($isProperty && ($bytes[$at + strlen($match[0])] ?? '') === "\0") return true;
+            $at += strlen($match[0]) + wrappedLength($match[1]) + 2;
+        } elseif (preg_match('/\GS:(\d+):"/', $bytes, $match, 0, $at)) {
+            $at += strlen($match[0]);
+            if ($isProperty && (($bytes[$at] ?? '') === "\0" || strtolower(substr($bytes, $at, 3)) === '\\00')) return true;
+            for ($count = wrappedLength($match[1]); $count > 0 && $at < $length; $count--) $at += $bytes[$at] === '\\' ? 3 : 1;
+            $at += 2;
+        } elseif (preg_match('/\Ga:(\d+):\{/', $bytes, $match, 0, $at)) {
+            $at += strlen($match[0]);
+            $frames[] = ['object' => false, 'left' => 2 * (int) ltrim($match[1], '0')];
+        } elseif (preg_match('/\GO:(\d+):"/', $bytes, $match, 0, $at)) {
+            $at += strlen($match[0]) + wrappedLength($match[1]) + 2;
+            preg_match('/\G([+-]?\d*):\{/', $bytes, $count, 0, $at);
+            $at += strlen($count[0] ?? '');
+            $frames[] = ['object' => true, 'left' => 2 * abs((int) ($count[1] ?? '0'))];
+        } elseif ($bytes[$at] === 'N') $at += 2;
+        else {
+            $end = strpos($bytes, ';', $at);
+            $at = $end === false ? $length : $end + 1;
+        }
+    }
+    return false;
+}
 $warnings = [];
 set_error_handler(function (int $level, string $message) use (&$warnings) { $warnings[] = $message; return true; });
 $out = fopen($argv[2], 'w');
@@ -168,6 +208,7 @@ foreach (explode("\n", rtrim(file_get_contents($argv[1]), "\n")) as $line) {
         if ($value === false && $bytes !== 'b:0;' && !preg_match('/^b:0;./s', $bytes)) $reply['refused'] = true;
         elseif (array_filter($warnings, fn ($w) => str_contains($w, 'Extra data'))) $reply['deliberate'] = 'extra data';
         elseif (($reason = refusedOnPurpose($bytes, is_array($value))) !== null) $reply['deliberate'] = $reason;
+        elseif (nulProperty($bytes)) $reply['deliberate'] = 'property name';
         elseif (array_filter($warnings, fn ($w) => str_contains($w, 'out of range'))) $reply['deliberate'] = 'integer out of range';
         else {
             $state = ['objects' => [], 'references' => [], 'limit' => 20000];

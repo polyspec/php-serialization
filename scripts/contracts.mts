@@ -66,6 +66,7 @@ $values = [
     'reference_array' => [&$reference, &$reference, 'x'],
     'reference_scalar' => [&$scalar, 'x', &$scalar],
     'reference_cycle' => $cycle,
+    'array_nul_key' => ["\0a" => 1, "\0" => 2], 'object_empty_name' => (object) ['' => 1],
     'session_like' => ['user' => ['id' => 1, 'name' => '홍길동', 'score' => 1.0, 'tags' => ['a', 'b'], 'meta' => new stdClass()], 'csrf' => str_repeat('a', 64), 'at' => 1793653509],
 ];
 
@@ -123,7 +124,9 @@ function randomValue(int $depth): mixed {
             for ($count = mt_rand(0, 4); $count > 0; $count--) {
                 $map[mt_rand(0, 1) ? randomString() : mt_rand(-5, 5)] = randomValue($depth - 1);
             }
-            return mt_rand(0, 3) === 0 ? (object) $map : $map;
+            // A property name that starts with U+0000 is refused (RQ-009): refused_values and stricter hold such names.
+            if (mt_rand(0, 3) !== 0) return $map;
+            return (object) array_filter($map, fn ($key) => !str_starts_with((string) $key, "\0"), ARRAY_FILTER_USE_KEY);
     }
 }
 
@@ -153,25 +156,59 @@ $refused = [
     'reference_zero' => 'a:1:{i:0;R:0;}', 'reference_missing' => 'R:1;', 'reference_past' => 'a:1:{i:0;R:9;}', 'object_ref_missing' => 'r:1;',
     'object_no_close' => 'O:8:"stdClass":1:{s:1:"a";i:1;', 'object_bad_name' => 'O:3:"std":0:{', 'object_too_deep' => str_repeat('a:1:{i:0;', $depth) . 'O:8:"stdClass":0:{}' . str_repeat('}', $depth), 'too_deep' => str_repeat('a:1:{i:0;', $depth + 1) . 'N;' . str_repeat('}', $depth + 1),
 ];
+// The kind of each refusal (RQ-010): the first failure that a reader meets, reading from the start; the other ids are syntax.
+$kinds = [
+    'reference_zero' => 'reference', 'reference_missing' => 'reference', 'reference_past' => 'reference', 'object_ref_missing' => 'reference',
+    'object_bad_name' => 'class', 'object_too_deep' => 'depth', 'too_deep' => 'depth',
+];
+function raises(string $kind): array {
+    return ['kind' => $kind, 'status' => null, 'category' => 'value', 'message' => null];
+}
 $rejected = [];
 foreach ($refused as $id => $bytes) {
     if (unserialize($bytes, ['allowed_classes' => ['stdClass']]) !== false) throw new RuntimeException("PHP reads the refused bytes of $id");
-    $rejected[] = ['id' => $id, 'bytes' => base64_encode($bytes)];
+    $rejected[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'raises' => raises($kinds[$id] ?? 'syntax')];
 }
 
 // Bytes that PHP reads but this package refuses on purpose, each with its reason.
-$stricter = [
-    ['id' => 'trailing_data', 'bytes' => base64_encode('i:1;i:2;'), 'reason' => 'extra bytes mean a corrupt record; PHP only warns'],
-    ['id' => 'class_object', 'bytes' => base64_encode('O:3:"Foo":0:{}'), 'reason' => 'only stdClass is read, as unserialize with allowed_classes gives no other class; no other language holds the class'],
-    ['id' => 'enum', 'bytes' => base64_encode('E:7:"Foo:Bar";'), 'reason' => 'a case of an enum needs its class'],
-    ['id' => 'custom_object', 'bytes' => base64_encode('C:3:"Foo":0:{}'), 'reason' => 'the C: format needs its class'],
-    ['id' => 'reference_top_array', 'bytes' => base64_encode('a:1:{i:0;R:1;}'), 'reason' => 'no serialize of PHP writes it, and what PHP writes back is not these bytes'],
-    ['id' => 'int_overflow_long', 'bytes' => base64_encode('i:' . str_repeat('1', 5000) . ';'), 'reason' => 'PHP wraps the integer and changes the value; PHP never writes it'],
-    ['id' => 'int_overflow', 'bytes' => base64_encode('i:9223372036854775808;'), 'reason' => 'PHP wraps the integer and changes the value; PHP never writes it'],
+$overflow = 'PHP wraps the integer and changes the value; PHP never writes it';
+$hidden = 'PHP reads it without a warning into a property that no code outside the object reads and no other language holds (RQ-009)';
+$strict = [
+    ['trailing_data', 'i:1;i:2;', 'trailing_data', 'extra bytes mean a corrupt record; PHP only warns'],
+    ['class_object', 'O:3:"Foo":0:{}', 'class', 'only stdClass is read, as unserialize with allowed_classes gives no other class; no other language holds the class'],
+    ['enum', 'E:7:"Foo:Bar";', 'class', 'a case of an enum needs its class'],
+    ['custom_object', 'C:3:"Foo":0:{}', 'class', 'the C: format needs its class'],
+    ['reference_top_array', 'a:1:{i:0;R:1;}', 'top_array_reference', 'no serialize of PHP writes it, and what PHP writes back is not these bytes'],
+    ['int_overflow_long', 'i:' . str_repeat('1', 5000) . ';', 'int_range', $overflow],
+    ['int_overflow', 'i:9223372036854775808;', 'int_range', $overflow],
+    ['property_nul', 'O:8:"stdClass":1:{s:2:"' . "\0a" . '";i:1;}', 'property_name', $hidden],
+    ['property_nul_only', 'O:8:"stdClass":1:{s:1:"' . "\0" . '";i:1;}', 'property_name', $hidden],
+    ['property_protected', 'O:8:"stdClass":1:{s:4:"' . "\0*\0c" . '";i:1;}', 'property_name', $hidden],
+    ['property_private', 'O:8:"stdClass":1:{s:6:"' . "\0Foo\0d" . '";i:1;}', 'property_name', $hidden],
+    ['property_escaped_nul', 'O:8:"stdClass":1:{S:2:"\\00a";i:1;}', 'property_name', $hidden],
+    ['property_nul_overwritten', 'a:2:{i:0;O:8:"stdClass":1:{s:2:"' . "\0a" . '";N;}i:0;i:1;}', 'property_name', $hidden],
 ];
+$stricter = [];
+foreach ($strict as [$id, $bytes, $kind, $reason]) {
+    // RQ-009 rests on PHP reading these names.
+    if ($kind === 'property_name' && unserialize($bytes, ['allowed_classes' => ['stdClass']]) === false) throw new RuntimeException("PHP refuses the stricter bytes of $id");
+    $stricter[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'reason' => $reason, 'raises' => raises($kind)];
+}
+
+// Values that PHP holds and a value of the format refuses when it is built (RQ-009), with the bytes that PHP writes for them.
+$unholdable = [
+    'property_nul' => (object) ["\0a" => 1], 'property_protected' => (object) ["\0*\0c" => 1],
+    'property_nul_nested' => ['x' => (object) ['a' => 1, "\0" => null]],
+];
+$refusedValues = [];
+foreach ($unholdable as $id => $value) {
+    $state = ['objects' => [], 'references' => []];
+    $holder = [$value];
+    $refusedValues[] = ['id' => $id, 'tree' => tree($holder[0], $state), 'written' => base64_encode(serialize($value)), 'raises' => raises('property_name')];
+}
 
 $php = ['version' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, 'serialize_precision' => -1];
-echo json_encode(['php' => $php, 'cases' => $cases, 'deep' => $deep, 'forms' => $normal, 'rejected' => $rejected, 'stricter' => $stricter],
+echo json_encode(['php' => $php, 'cases' => $cases, 'deep' => $deep, 'forms' => $normal, 'rejected' => $rejected, 'stricter' => $stricter, 'refused_values' => $refusedValues],
     JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION, 4096), "\n";
 `;
 

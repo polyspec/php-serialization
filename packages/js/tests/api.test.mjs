@@ -1,4 +1,4 @@
-// Requirements: RQ-001, RQ-002, RQ-003, RQ-004, RQ-006, RQ-007.
+// Requirements: RQ-001, RQ-002, RQ-003, RQ-004, RQ-006, RQ-007, RQ-009.
 // The forms, the depth and the refusals of the contract, built values and large input.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -28,6 +28,13 @@ test('refused', { timeout: 10_000 }, () => {
   for (const entry of [...contract.rejected, ...contract.stricter]) {
     assert.throws(() => unserialize(bytesOf(entry.bytes)), UnserializeError, entry.id);
   }
+});
+
+test('refused_property_names', { timeout: 10_000 }, () => {
+  for (const name of ['\0a', '\0*\0c', new Uint8Array([0, 0xff])]) {
+    assert.throws(() => serialize(new StdClass(new Map([[name, 1]]))), TypeError);
+  }
+  assert.equal(Buffer.from(serialize(new StdClass(new Map([['', 1]])))).toString('latin1'), 'O:8:"stdClass":1:{s:0:"";i:1;}');
 });
 
 test('built_values', { timeout: 10_000 }, () => {

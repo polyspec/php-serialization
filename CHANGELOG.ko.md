@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 6139c12e89aa798fe3165970b3f34b0a7f7daae0d52e0dd314ae873e9d585738 -->
+<!-- source-sha256: 3086c41439a5faf579a86176bc893e48cd89a5a531734dc0124be814e9645f35 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -8,6 +8,7 @@
 ## Unreleased
 
 - 명세는 형식의 값을 정하고(RQ-008), U+0000으로 시작하는 속성 이름을 읽을 때와 값을 만들 때 거부하며(RQ-009), 모든 실패의 kind와 offset을 정하고(RQ-010), 규칙을 Rust crate `polyspec-php-serialize`에 두고 Node.js와 Python 패키지의 차이를 판정한다(RQ-011) (T2.1).
+- contract는 모든 거부의 kind를 `raises`에 적고, U+0000으로 시작하는 속성 이름을 `stricter`와 새 group `refused_values`에 담으며, Node.js와 Python 패키지는 그런 이름을 읽을 때와 쓸 때 거부한다(RQ-009) (T2.1).
 
 ## 0.0.6
 

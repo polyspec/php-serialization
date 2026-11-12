@@ -1,4 +1,4 @@
-"""For RQ-001, RQ-002, RQ-003, RQ-004, RQ-006 and RQ-007: the forms, the depth and
+"""For RQ-001, RQ-002, RQ-003, RQ-004, RQ-006, RQ-007 and RQ-009: the forms, the depth and
 the refusals of the contract, built values and large input."""
 
 from __future__ import annotations
@@ -39,6 +39,14 @@ class ApiTest(unittest.TestCase):
         for entry in CONTRACT["rejected"] + CONTRACT["stricter"]:
             with self.subTest(entry["id"]), self.assertRaises(UnserializeError):
                 unserialize(base64.b64decode(entry["bytes"]))
+
+    def test_refused_property_names(self) -> None:
+        for name in ("\0a", "\0*\0c", b"\0\xff"):
+            with self.subTest(repr(name)), self.assertRaises(ValueError):
+                serialize(StdClass({name: 1}))
+        self.assertEqual(
+            serialize(StdClass({"": 1})), b'O:8:"stdClass":1:{s:0:"";i:1;}'
+        )
 
     def test_built_values(self) -> None:
         self.assertEqual(serialize(1), b"i:1;")

@@ -79,11 +79,20 @@ def _array_key(key: Union[int, str, bytes]) -> Union[int, str, bytes]:
     return key
 
 
+def _starts_with_nul(name: Any) -> bool:
+    """Tells whether a property name, a str or bytes, starts with U+0000 (RQ-009)."""
+    return isinstance(name, (str, bytes)) and name[:1] in ("\0", b"\0")
+
+
 def _property_name(key: Any) -> Union[str, bytes]:
-    """Returns the name of an object property, which is always a string in PHP."""
+    """Returns the name of an object property, which is always a string in PHP; RQ-009 refuses a name that starts with
+    U+0000."""
     if isinstance(key, bool):
         raise TypeError("a property name is an int, a str or bytes, not bool")
-    return str(key) if isinstance(key, int) else _decoded(key)
+    name = str(key) if isinstance(key, int) else _decoded(key)
+    if _starts_with_nul(name):
+        raise ValueError("a property name starts with U+0000")
+    return name
 
 
 def _float_text(value: float) -> str:
@@ -443,7 +452,11 @@ class _Reader:
                 self.stack.pop()
                 continue
             frame.remaining -= 1
+            key_at = self.at
             key = self.key()
+            # RQ-009: a property name that starts with U+0000 is refused, also when a repeated key overwrites the object later.
+            if frame.is_object and _starts_with_nul(key):
+                raise UnserializeError("a property name starts with U+0000", key_at)
             if frame.is_object:
                 # A property name is always a string: PHP converts an integer key of an object.
                 frame.key = str(key) if isinstance(key, int) else key
