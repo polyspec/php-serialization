@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 4c77aa62d472f8b51b7b8b81c514592532b9ff3a60f5df3204ec472de97860d6 -->
+<!-- source-sha256: 278701a8b1bc3aaddc9757c3699671ba61c3e882be2d49bdece464c74566c1af -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -14,6 +14,7 @@
 - 인터페이스 계약을 `packages/rust/interface.json`으로 옮기고 crate의 `include`에 넣는다. `php_value`를 받거나 내는 라이브러리가 Cargo가 해석한 패키지에서 값 표를 읽게 하기 위해서다. 계약은 bindgen 스키마를 따른다: category 오류 클래스는 모든 언어에서 `PhpSerialize<Category>Error`(`PhpSerializeValueError` 등)이고, `php_value`는 alias이며 그 값 표는 PHP 배열을 int와 bytes key의 map으로 만들고 `stdClass`와 참조는 PHP 객체와 참조 그대로 두며 각 언어의 내장 타입은 bindgen이 직접 읽는다. 형식이나 코어가 아직 담지 못하는 곳은 `todo`로 남는다(T2.1).
 - crate의 `DEPTH_LIMIT`는 인터페이스 계약의 `uint` 타입인 `u64`이고, crate는 Node.js class `PhpFloat`의 생성자, `value`, `valueOf`가 부르는 `PhpFloat`를 가진다(RQ-008) (T2.1).
 - `php_value`의 값 표를 채운다: alias만 `out`·`in` 행을 가지고 `PhpFloat`, `StdClass`, `Reference`를 모으며, `StdClass`의 속성은 text와 bytes key의 keyed map이고, JavaScript number는 정수가 아니면 float, 안전 정수면 int, 그 밖에는 float로 다시 읽힌다. 언어에서 `php_value`를 받는 코어가 생길 때까지 `StdClass`와 `Reference` 생성자의 코어만 `todo`로 남는다(T2.1).
+- crate는 언어의 값을 `from_host`로 읽는다(RQ-012): 바인딩은 값을 한 단계씩 설명하고 handle의 자식에 답하며(`HostValues`), JavaScript number는 안전 정수이고 `-0`이 아니면 int이고, 객체와 참조는 정체성을 지키며, PHP에 없는 값은 새 kind `unsupported_value`, `invalid_text`나 이제 언어 값의 정수도 가리키는 `int_range`로 거부한다. `StdClass`와 `Reference` 생성자는 같은 규칙으로 받는 것을 판정하는 `check_std_class`와 `check_reference`를 부르므로 인터페이스 계약에 `todo`가 남지 않는다(T2.1).
 
 ## 0.0.6
 

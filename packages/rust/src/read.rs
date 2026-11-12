@@ -207,13 +207,13 @@ impl Reader<'_> {
             // 19 digits hold every 64-bit integer; a longer number is out of range.
             if count >= 19 {
                 return Err(Error::IntRange {
-                    offset: offset(start),
+                    offset: Some(offset(start)),
                 });
             }
             magnitude = magnitude * 10 + u64::from(digit - b'0');
         }
         integer_of(negative, magnitude).ok_or(Error::IntRange {
-            offset: offset(start),
+            offset: Some(offset(start)),
         })
     }
 

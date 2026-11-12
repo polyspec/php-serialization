@@ -152,6 +152,16 @@
         "class": "format_error"
       },
       {
+        "variant": "polyspec_php_serialize::Error::UnsupportedValue",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
+        "variant": "polyspec_php_serialize::Error::InvalidText",
+        "category": "value",
+        "class": "format_error"
+      },
+      {
         "variant": "polyspec_php_serialize::Error::Internal",
         "category": "internal"
       }
@@ -262,7 +272,10 @@
             "polyspec_php_serialize::Error::NestedReference",
             "polyspec_php_serialize::Error::TopReference",
             "polyspec_php_serialize::Error::UnknownId",
-            "polyspec_php_serialize::Error::Internal"
+            "polyspec_php_serialize::Error::Internal",
+            "polyspec_php_serialize::Error::UnsupportedValue",
+            "polyspec_php_serialize::Error::InvalidText",
+            "polyspec_php_serialize::Error::IntRange"
           ],
           "wait": "none",
           "core": {
@@ -396,11 +409,17 @@
               }
             }
           ],
-          "raises": [],
+          "raises": [
+            "polyspec_php_serialize::Error::UnsupportedValue",
+            "polyspec_php_serialize::Error::InvalidText",
+            "polyspec_php_serialize::Error::IntRange",
+            "polyspec_php_serialize::Error::Depth",
+            "polyspec_php_serialize::Error::PropertyName",
+            "polyspec_php_serialize::Error::NestedReference",
+            "polyspec_php_serialize::Error::Internal"
+          ],
           "wait": "none",
-          "core": {
-            "todo": "core: the constructor takes a php_value from the language, and the core has no boundary type of a php_value parameter until from_host (plan 9c)"
-          }
+          "core": "polyspec_php_serialize::check_std_class"
         },
         {
           "id": "std_class.properties",
@@ -457,11 +476,17 @@
               }
             }
           ],
-          "raises": [],
+          "raises": [
+            "polyspec_php_serialize::Error::UnsupportedValue",
+            "polyspec_php_serialize::Error::InvalidText",
+            "polyspec_php_serialize::Error::IntRange",
+            "polyspec_php_serialize::Error::Depth",
+            "polyspec_php_serialize::Error::PropertyName",
+            "polyspec_php_serialize::Error::NestedReference",
+            "polyspec_php_serialize::Error::Internal"
+          ],
           "wait": "none",
-          "core": {
-            "todo": "core: the constructor takes a php_value from the language, and the core has no boundary type of a php_value parameter until from_host (plan 9c)"
-          }
+          "core": "polyspec_php_serialize::check_reference"
         },
         {
           "id": "reference.value",
@@ -645,8 +670,7 @@
           "php": "null",
           "cases": [
             {
-              "kind": "null",
-              "read": "builtin"
+              "kind": "null"
             }
           ]
         },
@@ -717,8 +741,7 @@
           "python": "None",
           "cases": [
             {
-              "kind": "null",
-              "read": "builtin"
+              "kind": "null"
             }
           ]
         },
@@ -807,8 +830,7 @@
           "node": "null",
           "cases": [
             {
-              "kind": "null",
-              "read": "builtin"
+              "kind": "null"
             }
           ]
         },

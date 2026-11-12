@@ -4,11 +4,13 @@
 
 mod error;
 mod float;
+mod host;
 mod read;
 mod value;
 mod write;
 
 pub use error::Error;
+pub use host::{check_reference, check_std_class, from_host, HostValues, Numbers};
 pub use read::unserialize;
 pub use value::{
     ArrayId, Key, Node, ObjectId, PhpArray, PhpFloat, PhpValue, ReferenceId, StdClass,

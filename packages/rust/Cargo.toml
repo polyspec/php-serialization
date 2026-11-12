@@ -18,8 +18,15 @@ path = "src/lib.rs"
 
 [dependencies]
 ryu = "=1.0.23"
+# The description of language values (HostValue, Handle, KeyedMap), the callback exception (Raised, Failure) and the
+# kind interface that the generated bindings read (bindgen design T-3, E-1, E-1c). The git source is the bindgen
+# repository on the branch that every repository uses; Cargo.lock pins its commit, so the generated binding crates and
+# this crate share one bindgen_core.
+polyspec-bindgen-core = { git = "https://github.com/polyspec/bindgen.git", branch = "v1/rust-core" }
 
 [dev-dependencies]
+# The tests raise a callback exception as a binding does, which only the feature construct allows.
+polyspec-bindgen-core = { git = "https://github.com/polyspec/bindgen.git", branch = "v1/rust-core", features = ["construct"] }
 base64 = "=0.22.1"
 libtest-mimic = "=0.8.2"
 serde_json = "=1.0.151"

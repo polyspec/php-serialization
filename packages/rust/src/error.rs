@@ -25,8 +25,9 @@ pub enum Error {
     Depth { offset: Option<u64> },
     /// `R:` or `r:` names no slot, `R:` names its own position, or `r:` names no object (RQ-005).
     Reference { offset: u64 },
-    /// An integer of the input is outside 64 bits (refused on purpose).
-    IntRange { offset: u64 },
+    /// An integer is outside 64 bits: in the input (with its offset, refused on purpose) or in a value of a language
+    /// (RQ-012).
+    IntRange { offset: Option<u64> },
     /// Bytes follow the value (refused on purpose).
     TrailingData { offset: u64 },
     /// An object of a class other than `stdClass`, or `C:` or `E:` (refused on purpose).
@@ -43,6 +44,11 @@ pub enum Error {
     TopReference,
     /// A value being built is given the identity of an array, an object or a reference that it does not hold (RQ-008).
     UnknownId,
+    /// A value of a language is no value of PHP: one that the value table does not name, a key that is neither an
+    /// integer nor a string, a property name that is no string, or an array that holds itself (RQ-012).
+    UnsupportedValue,
+    /// A text of a language has an unpaired surrogate, which UTF-8 cannot hold (RQ-003, RQ-012).
+    InvalidText,
     /// An invariant of the implementation fails; it is a defect (RQ-010).
     Internal { what: &'static str },
 }
@@ -64,6 +70,8 @@ impl Error {
             Self::NestedReference => "nested_reference",
             Self::TopReference => "top_reference",
             Self::UnknownId => "unknown_id",
+            Self::UnsupportedValue => "unsupported_value",
+            Self::InvalidText => "invalid_text",
             Self::Internal { .. } => "internal",
         }
     }
@@ -75,15 +83,18 @@ impl Error {
         match self {
             Self::Syntax { offset, .. }
             | Self::Reference { offset }
-            | Self::IntRange { offset }
             | Self::TrailingData { offset }
             | Self::Class { offset }
             | Self::TopArrayReference { offset } => Some(*offset),
-            Self::Depth { offset } | Self::PropertyName { offset } => *offset,
+            Self::Depth { offset } | Self::PropertyName { offset } | Self::IntRange { offset } => {
+                *offset
+            }
             Self::ArrayHeld
             | Self::NestedReference
             | Self::TopReference
             | Self::UnknownId
+            | Self::UnsupportedValue
+            | Self::InvalidText
             | Self::Internal { .. } => None,
         }
     }
@@ -91,6 +102,21 @@ impl Error {
     /// The HTTP status: none, as the format is no protocol (RQ-010).
     #[must_use]
     pub const fn status(&self) -> Option<u16> {
+        None
+    }
+}
+
+/// The kind interface that the generated bindings read (bindgen design E-1, I-2 (3)).
+impl bindgen_core::Kinds for Error {
+    fn kind(&self) -> &'static str {
+        Error::kind(self)
+    }
+
+    fn status(&self) -> Option<u16> {
+        Error::status(self)
+    }
+
+    fn errno(&self) -> Option<i32> {
         None
     }
 }
@@ -116,6 +142,8 @@ impl fmt::Display for Error {
             Self::NestedReference => "a reference holds no reference",
             Self::TopReference => "the top value is no reference",
             Self::UnknownId => "the value holds no such array, object or reference",
+            Self::UnsupportedValue => "the value of the language is no value of PHP",
+            Self::InvalidText => "the text has an unpaired surrogate",
             Self::Internal { what } => return write!(formatter, "internal error: {what}"),
         };
         write!(formatter, "{text}{}", At(self.offset()))
