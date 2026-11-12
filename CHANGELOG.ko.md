@@ -24,6 +24,7 @@
 - K-1, G-5: `contracts/php-serialize.json`의 모든 항목은 `unserialize`의 인자를 `data`(`{"hex"}`)로, `serialize`의 인자를 `value`(`{"kind", "value"}`)로 주며, `make contracts`가 같은 PHP에서 쓴다. `contracts/host-values.json`은 serialize와 `StdClass`·`Reference` 생성자가 거부하거나(`top_reference`, `nested_reference`, `property_name`) 받는 언어의 값과 `PhpFloat`, `StdClass`, `Reference`의 모든 member의 case를 담는다. contract 시험은 두 형식을 `from_host`로 읽는다. 그 member들의 `depth`, `unsupported_value`, `invalid_text`, `int_range`는 case가 없다: 앞의 것은 4097단계로 중첩된 값이, 나머지는 일부 언어에만 있는 값이 필요하다. `internal`은 binding의 실패 주입 지점을 기다린다.
 - RQ-013: crate는 값 alias `php_value`의 `out`인 `to_host`로 PHP 값을 언어에 준다: 값을 빌리는 `OutValues`로 handle의 자식을 묻는 `OutValue`다. contract 시험은 `to_host`가 모든 항목의 bytes의 값을 그 `value`로 기술하는지, `from_host`가 받은 값이 바뀌지 않고 돌아오는지 확인한다.
 - RQ-013: 값에 없는 부분에 대한 `to_host`의 질문(바인딩은 묻지 않는다)은 null을 답하지 않고 RQ-013과 handle을 담아 panic하며, `u64`에 들지 않는 수도 `u64` 최댓값으로 바뀌지 않고 panic한다. 바인딩이 panic을 kind `internal`로 바꾼다(B-7).
+- `Cargo.lock`은 같은 라이브러리 묶음의 모든 레포가 고정하는 binding 9de9d03을 고정한다(CK-20). 그 scaffold는 같은 바인딩 package를 쓴다.
 
 ## 0.0.6
 
