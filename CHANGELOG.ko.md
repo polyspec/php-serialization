@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 7d82f9b8c18851fe50a0e9eb6ea6945b8d4595319cfa6951ddc1e72f40864961 -->
+<!-- source-sha256: 6139c12e89aa798fe3165970b3f34b0a7f7daae0d52e0dd314ae873e9d585738 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- 명세는 형식의 값을 정하고(RQ-008), U+0000으로 시작하는 속성 이름을 읽을 때와 값을 만들 때 거부하며(RQ-009), 모든 실패의 kind와 offset을 정하고(RQ-010), 규칙을 Rust crate `polyspec-php-serialize`에 두고 Node.js와 Python 패키지의 차이를 판정한다(RQ-011) (T2.1).
 
 ## 0.0.6
 

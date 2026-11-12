@@ -8,7 +8,7 @@ The working principles of every polyspec repository are in [PRINCIPLES.md](https
 <a id="reference"></a>
 ## Reference
 
-- Own: PHP is the reference of the format. A difference from PHP is a defect of the package; a deliberate refusal is listed in [the specification](docs/spec/php-serialize.md#refused) and in the entries `stricter` of the contract.
+- Own: PHP is the reference of the format. A difference from PHP is a defect of the package; a deliberate refusal is listed in [the specification](docs/spec/php-serialize.md#refused) and in the entries `stricter` and `refused_values` of the contract.
   Enforced by: `make contracts-check`, `make fuzz`
 - Own: Records name PHP as the only source of the format and describe this repository only.
   Enforced by: none, the wording of records is a judgement.

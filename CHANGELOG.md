@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- The specification defines the value of the format (RQ-008), refuses a property name that starts with U+0000 when it reads and when a value is built (RQ-009), names the kind and the offset of every failure (RQ-010) and places the rules in the Rust crate `polyspec-php-serialize`, with the differences of the Node.js and Python packages judged (RQ-011) (T2.1).
+
 ## 0.0.6
 
 - The repository adopts kit 0.0.105, which removed the time limits of run-tests (kit K1175), and passes no `--timeout` to run-tests (T1.14).

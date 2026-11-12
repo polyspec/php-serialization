@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: db2047addb6ff3c971440e4b55575df9457023d41d48fdcb186061ce0c303d84 -->
+<!-- source-sha256: 993d9ad72964b4a24e08305b9a7545ee24583ade9b595ab7ea98fa6f8018e4b0 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -9,7 +9,7 @@
 <a id="reference"></a>
 ## 기준
 
-- Own: 형식의 기준은 PHP입니다. PHP와 다르면 패키지의 결함입니다. 일부러 거부하는 입력은 [명세](docs/spec/php-serialize.ko.md#refused)와 contract의 `stricter` 항목에 적습니다.
+- Own: 형식의 기준은 PHP입니다. PHP와 다르면 패키지의 결함입니다. 일부러 거부하는 입력은 [명세](docs/spec/php-serialize.ko.md#refused)와 contract의 `stricter`, `refused_values` 항목에 적습니다.
   Enforced by: `make contracts-check`, `make fuzz`
 - Own: 기록은 형식의 출처로 PHP만 적고 이 repository만 설명합니다.
   Enforced by: none, 기록의 표현은 판단입니다.
