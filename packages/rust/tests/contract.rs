@@ -8,7 +8,7 @@ mod common;
 use binding_core::Failure;
 use binding_core::{OutValue, OutValues};
 use common::build::build;
-use common::g5::{hex, Host};
+use common::g5::{hex, Host, MAX_SAFE_INTEGER};
 use common::tree::{base64, bytes_of, tree};
 use libtest_mimic::{Arguments, Failed, Trial};
 use polyspec_php_serialization::{
@@ -142,7 +142,15 @@ fn g5_of(
     match out {
         OutValue::Null => json!({"kind": "null"}),
         OutValue::Bool(flag) => json!({"kind": "bool", "value": flag}),
-        OutValue::Int(number) => json!({"kind": "int", "value": number.value()}),
+        OutValue::Int(number) => {
+            let value = number.value();
+            // G-5: an integer outside the safe integers of JavaScript is its decimal text.
+            if value.unsigned_abs() > MAX_SAFE_INTEGER.unsigned_abs() {
+                json!({"kind": "int", "value": value.to_string()})
+            } else {
+                json!({"kind": "int", "value": value})
+            }
+        }
         OutValue::Float(number) => {
             let value = number.value();
             let form = if value.is_nan() {

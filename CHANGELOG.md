@@ -26,6 +26,7 @@
 - `Cargo.lock` pins binding at 9de9d03, the commit that every repository of the library family pins (CK-20); its scaffold writes the same binding packages.
 - RQ-012: the specification states that `unsupported_value`, `invalid_text` and `int_range` of a value of a language are kinds of the value `php_value`, which reach every member that takes one, and that the `raises` of a member names the kinds that its function of the crate returns; `depth` arises in both places.
 - RQ-012: the `raises` of `serialize` and of the constructors of `StdClass` and `Reference` in `packages/rust/interface.json` no longer name `unsupported_value`, `invalid_text` and `int_range`, the kinds of the value `php_value`; `depth` stays. `make bindings-check` reports 7 findings instead of 16: no case raises `depth` for the three members, and no case raises `internal` for the four members that name it.
+- G-5: an integer of a `value` of `contracts/php-serialize.json` outside the safe integers of JavaScript (-(2^53 - 1) to 2^53 - 1) is its decimal text, which `make contracts` writes for 51 values of 48 cases; a JSON reader of a language may round such a number. The Rust contract test reads the text and refuses a number outside the range and a text within it. An integer key `{"int"}` stays a number.
 
 ## 0.0.6
 

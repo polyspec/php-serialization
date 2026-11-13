@@ -36,6 +36,43 @@ fn float(value: &Value) -> Result<f64, String> {
     }
 }
 
+/// The largest safe integer of JavaScript, 2^53 - 1: an integer of a case outside it is a decimal text (G-5).
+pub const MAX_SAFE_INTEGER: i64 = 9_007_199_254_740_991;
+
+/// An integer of a value of G-5: a JSON number within the safe integers, or the decimal text of an integer outside them,
+/// which a language with integers of any size describes as a number of 64 bits or as one outside 64 bits.
+fn integer(value: &Value) -> Result<HostValue, String> {
+    if let Some(number) = value.as_i64() {
+        if number.unsigned_abs() > MAX_SAFE_INTEGER.unsigned_abs() {
+            return Err(format!(
+                "the integer {number} is outside the safe integers and no text"
+            ));
+        }
+        return Ok(HostValue::Int(number));
+    }
+    let text = value
+        .as_str()
+        .ok_or_else(|| format!("{value} is no integer"))?;
+    let digits = match text.strip_prefix('-') {
+        Some(rest) => rest,
+        None => text,
+    };
+    if digits.is_empty()
+        || !digits.bytes().all(|byte| byte.is_ascii_digit())
+        || (digits.len() > 1 && digits.starts_with('0'))
+        || text == "-0"
+    {
+        return Err(format!("{text} is no decimal text of an integer"));
+    }
+    match text.parse::<i64>() {
+        Ok(number) if number.unsigned_abs() <= MAX_SAFE_INTEGER.unsigned_abs() => Err(format!(
+            "the integer {number} is within the safe integers and no number"
+        )),
+        Ok(number) => Ok(HostValue::Int(number)),
+        Err(_) => Ok(HostValue::Number(text.to_owned())),
+    }
+}
+
 /// The key of a pair of a map or an object: a text, `{"int": n}` or `{"hex": ...}`.
 pub fn key(value: &Value) -> Result<Key, String> {
     if let Some(text) = value.as_str() {
@@ -91,13 +128,7 @@ impl Host {
         Ok(match value.get("kind").and_then(Value::as_str) {
             Some("null") => HostValue::Null,
             Some("bool") => HostValue::Bool(content()?.as_bool().ok_or("a bool is no boolean")?),
-            Some("int") => {
-                let number = content()?;
-                match number.as_i64() {
-                    Some(integer) => HostValue::Int(integer),
-                    None => HostValue::Number(number.to_string()),
-                }
-            }
+            Some("int") => integer(content()?)?,
             Some("float") => HostValue::Float(float(content()?)?),
             Some("bytes") => HostValue::Bytes(hex(content()?)?),
             Some(kind @ ("map" | "object")) => {

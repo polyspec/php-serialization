@@ -27,6 +27,7 @@
 - `Cargo.lock`은 같은 라이브러리 묶음의 모든 레포가 고정하는 binding 9de9d03을 고정한다(CK-20). 그 scaffold는 같은 바인딩 package를 쓴다.
 - RQ-012: 명세가 언어 값의 `unsupported_value`, `invalid_text`, `int_range`를 값 `php_value`의 kind로 적습니다. 이 kind는 `php_value`를 받는 모든 member에 닿고, member의 `raises`는 그 crate 함수가 돌려주는 kind를 적습니다. `depth`는 양쪽에서 납니다.
 - RQ-012: `packages/rust/interface.json`에서 `serialize`와 `StdClass`·`Reference` 생성자의 `raises`가 값 `php_value`의 kind인 `unsupported_value`, `invalid_text`, `int_range`를 더는 적지 않습니다. `depth`는 남습니다. `make bindings-check`의 지적은 16건에서 7건이 됩니다. 세 member에 `depth`를 내는 case가 없고, `internal`을 적은 네 member에 그것을 내는 case가 없습니다.
+- G-5: `contracts/php-serialize.json`의 `value`에서 JavaScript의 안전 정수(-(2^53 - 1)부터 2^53 - 1) 밖의 정수는 그 10진 텍스트이며, `make contracts`가 case 48개의 값 51개를 그렇게 씁니다. 언어의 JSON reader가 그런 수를 반올림할 수 있기 때문입니다. Rust contract 시험은 그 텍스트를 읽고, 범위 밖의 수와 범위 안의 텍스트를 거부합니다. 정수 key `{"int"}`는 수로 남습니다.
 
 ## 0.0.6
 

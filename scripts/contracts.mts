@@ -15,12 +15,15 @@ error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
 
 ${PHP_TREE}
 // The case convention of binding (G-5): bytes are {"hex"}, and a value of php_value is {"kind", "value"} with the kinds of
-// its value table; a tree that holds an object or a reference a second time has no such form, so it gives none.
+// its value table; a tree that holds an object or a reference a second time has no such form, so it gives none. An integer
+// of a value outside the safe integers of JavaScript is its decimal text, which no JSON reader rounds.
 function g5(array $tree): ?array {
     switch ($tree[0]) {
         case 'null': return ['kind' => 'null'];
         case 'bool': return ['kind' => 'bool', 'value' => $tree[1]];
-        case 'int': return ['kind' => 'int', 'value' => (int) $tree[1]];
+        case 'int':
+            $number = (int) $tree[1];
+            return ['kind' => 'int', 'value' => $number >= -9007199254740991 && $number <= 9007199254740991 ? $number : (string) $number];
         case 'float':
             if ($tree[1] === 'nan') return ['kind' => 'float', 'value' => ['float' => 'nan']];
             $number = unpack('E', hex2bin($tree[1]))[1];
