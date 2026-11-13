@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 393382fc1c22ccad9e8fbedbc7835da15cafdbbc141895e8d782a5a94091ab01 -->
+<!-- source-sha256: 00cf597d31db4459120de788a367173b29376bfe917ba122bb08a26be781adec -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -12,3 +12,4 @@
 | T2.5 | 명세가 group `php_value`의 `int_range` case 둘이 손으로 쓴 PHP runner에서 실패하며 건너뛰지 않는다는 것과, PHP의 생성 시험이 정수를 십진 토큰으로 `case-test` 진입점에 넘긴다는 것을 이유와 함께 적는다(RQ-015) | `docs/spec/php-serialize.md` | `make docs-check` | [o] |
 | T2.6 | `make bindings-check`가 통과한다. `packages/php-ext/Cargo.toml`은 feature `case-test`를 갖는데, `Cargo.lock`이 고정한 binding의 scaffold는 그것을 쓰지 않아서 검사가 그 파일에 CK-19를 보고한다. `Cargo.lock`이 그 feature를 쓰는 scaffold의 binding을 고정하고, 그 binding의 `binding scaffold`가 바인딩 package를 다시 쓰고, 검사가 아무것도 보고하지 않으면 끝난다 | `Cargo.lock`, `packages/php-ext`, `packages/python`, `packages/ts`, `packages/go` | `make bindings-check` | [ ] |
 | T2.7 | release가 바인딩 package를 담는다. `config/release.json`이 PHP 확장의 Composer package `polyspec/php-serialization`(PIE), wheel `polyspec-php-serialization`, npm package `@polyspec/php-serialization`와 그 플랫폼 package, Rust crate `polyspec-php-serialization`의 tag, Go module `github.com/polyspec/php-serialization/packages/go`(`goModules`)를 적고, 어떤 바인딩 manifest도 `notReleased`에 남지 않는다. 플랫폼 자산을 만드는 kit 0.0.111과 Go module의 tag 형태, 곧 release commit과 `packages/go/vX.Y.Z`를 기다린다. package 없는 release는 Rust core로의 이동을 끝내지 않는다 | `config/release.json`, `packages/php-ext/composer.json`, `packages/python/pyproject.toml`, `packages/ts/package.json`, `packages/rust/Cargo.toml`, `packages/go/go.mod` | `make release-coverage` | [ ] |
+| T2.8 | GitHub workflow가 polyspec 저장소의 규칙을 지키고, 스크립트 시험이 그것을 검사한다. 모든 job은 `ubuntu-26.04-arm`에서 실행하고, 모든 action은 local action이거나 릴리스를 적은 주석과 함께 전체 commit으로 고정하고, 어떤 job도 `timeout-minutes`를 두지 않고, 모든 `run` step은 `Makefile`이 정의하는 make target 하나이고, workflow `ci`는 `main`의 push와 `workflow_dispatch`에서만 시작하고, 그 마지막 job `ci-passed`는 다른 모든 job을 needs에 두고 각 job이 성공했을 때만 통과한다. 미확인: `ubuntu-26.04-arm`에서 job을 실행한 CI run이 아직 없다 | `scripts/workflows.test.mts`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.github/actions/bootstrap`, `Makefile`, `AGENTS.md` | `make workflows-test` | [ ] |
