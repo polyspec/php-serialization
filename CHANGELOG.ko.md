@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e8b38140551350837b88fb8288305bf159bffd6b5cc0086136d5e4b044d74a22 -->
+<!-- source-sha256: dda9893b6d9a6d64ee4fc18a2661527d55a1c0ac8aca721fbdf135188f839261 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- checklist에 열린 행 T2.4-1이 있다. `scripts/check-commit-names.mts`는 php-serialization, fsm, session-store가 각각 가진 commit 이름 검사의 복사본이고, kit이 이 검사를 `make commit-names-check`가 실행하는 utility로 릴리스하면 지운다.
 - checklist에 열린 행 둘이 있습니다. T2.6: `make bindings-check`가 `packages/php-ext/Cargo.toml`에 CK-19를 보고합니다. 그 파일의 feature `case-test`를 `Cargo.lock`이 고정한 binding의 scaffold가 쓰지 않기 때문입니다. 그것을 쓰는 scaffold의 binding을 고정하고 package를 다시 scaffold하면 끝납니다. T2.7: release가 바인딩 package(PIE 확장, wheel, npm package와 그 플랫폼 package, Rust crate의 tag, Go module)를 담으며, kit 0.0.111과 Go module의 tag 형태를 기다립니다. `config/release.json`의 `notReleased`에 있는 각 바인딩 manifest의 사유가 그 행과 조건을 적습니다. `make release-coverage`와 `make docs-check`로 확인했습니다.
 - 명세가 RQ-015를 적습니다. group `php_value`의 `int_range` case 둘, 곧 64-bit 위의 정수와 아래의 정수는 손으로 쓴 PHP runner `packages/php-ext/tests/CasesTest.php`에서 실패하며 건너뛰지 않습니다. PHP에는 그런 정수가 없고, 건너뛴 case는 실행된 case로 읽히기 때문입니다. binding이 PHP용으로 생성하는 시험은 정수를 십진 토큰으로 feature `case-test` 진입점에 넘깁니다. 전에는 runner의 주석과 이 변경 기록의 한 항목만 이 결정을 담고 있었습니다(T2.5).
 - 추적되는 파일은 Git commit을 적지 않습니다(T2.4). `AGENTS.md`가 규칙과 이유를 적고, `make commit-names-check`(`scripts/check-commit-names.mts`, 공유 CI group의 target)가 추적되는 `*.md` 파일에서 숫자와 글자를 가진 16진수 7~40자리 낱말을 실패시킵니다. `make commit-names-test`가 그 검사기를 시험합니다. 전에는 이 변경 기록의 열 곳과 영어 원본의 열 곳이 binding의 commit을 적었습니다. 이제 그 항목은 사실을 남기고 binding을 `Cargo.lock`이 고정한 것으로 부릅니다. `make commit-names-test`(3개 통과, 0개 실패)와 `make commit-names-check`로 확인했습니다.
