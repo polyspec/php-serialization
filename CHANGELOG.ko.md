@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 13942ef6a07ad768e5bdb1aa149173e2c1da0aab25895abc857ab4bf702a18e1 -->
+<!-- source-sha256: 7cd9f2c577f3c42675adc458e94c7a636b23ffdb349585ccd141919dc7a5bf21 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 실패하지 않는 `serialize`의 각 case는 `serialize`가 쓰는 bytes를 `serialized`(`{"hex"}`)로 주고, `packages/rust/interface.json`의 `cases` 행 가운데 `contracts/php-serialize.json`의 group `cases`, `forms`, `deep`과 `contracts/host-values.json`의 `serialize`의 행은 그것을 `result`로 적는다. 그래서 바인딩의 생성 시험이 bytes를 비교한다(binding GN-13e). 전에는 생성 시험이 `serialize`를 부르기만 하고 아무것도 비교하지 않았고, 손으로 쓴 case runner만 bytes를 비교했다. Rust 계약 시험은 `serialized`가 값이 쓰는 bytes이기를 요구한다. `make test-rust`(contract case 679개)와 `make contracts-check`로 확인했다.
 - `contracts/php-serialize.json`의 `cases`, `forms`, `deep`의 모든 case가 binding의 case 규약(G-5)으로 `value`를 준다. `object_repeated`, `reference_cycle`, `deepest_object`도 그렇다. 참조는 첫 자리에서 `{"id", "value"}`, 뒤의 모든 자리에서(자기 값 안에서도) `{"id"}`이고, 값이 다시 담는 객체는 id를 가지며 뒤의 모든 자리에서 `{"kind": "object", "id"}`이며, 가장 깊은 객체는 `{"kind": "object", "repeat": 4096, "key": {"hex": "61"}, "value": {"kind": "null"}}`이다. `contracts/host-values.json`의 case `a_shared_reference_is_one_reference`는 뒤 자리를 id로 부른다. Rust 계약 시험은 id를 가진 객체를 모든 자리에서 handle 하나로, 참조의 뒤 자리를 그 id로, 되풀이되는 객체를 한 단계씩 기술하며, 모든 case에 값을 요구한다. 전에는 case 규약에 객체의 동일성, 자기 값 안의 참조, 되풀이되는 객체가 없어 세 case가 값을 주지 않았다. `make test-rust`(contract case 679개)와 `make contracts-check`로 확인했다.
 - `make bootstrap`은 `package.json`의 `devEngines`가 적은 npm을 checkout 밖에서 `--prefix`로 실행해 `@polyspec/kit`을 포함한 `package-lock.json`을 설치한다. 그래서 새 checkout은 `make bootstrap` 다음에 `make install`을 실행한다. 전에는 `make install`이 설치된 kit의 bootstrap을 실행하는 `make install-tools TOOLS=npm`으로 시작했으므로, `node_modules`가 없는 checkout에서 `MODULE_NOT_FOUND`로 실패했다. `make layout-check`가 그 target을 확인한다(`makefile-bootstraps`). 새 worktree의 `make bootstrap`과 `make layout-check`로 확인했다.
 - `contracts/php-serialize.json`의 case 다섯이 binding의 case 규약(G-5)으로 `serialize`의 인자를 준다. 전에는 주지 않았다. 값이 참조를 다시 담는 `reference_array`, `reference_scalar`, `form_empty_array_slot`은 같은 id가 같은 참조이므로 그 id와 값을 되풀이하고, `deepest_array`와 `deepest_with_empty`는 list를 `{"kind": "list", "repeat": 4096, "value": ...}`로 준다. 전에는 `scripts/contracts.mts`가 참조를 두 번 담는 tree와 깊은 case에 값을 주지 않았으므로, `serialize`의 생성 시험은 그 다섯을 `has no value`로 실패시켰다. G-5의 형식이 없는 것은 `object_repeated`, `reference_cycle`, `deepest_object`뿐이고(객체에는 동일성이 없고, 자기 값 안의 참조와 되풀이되는 객체에는 형식이 없다), Rust 계약 시험은 `cases`, `forms`, `deep`의 다른 모든 case에 값을 요구한다. 시험은 `to_host`가 주는 것을 값과 한 단계씩 비교하며, G-5의 list는 key가 0부터 n-1인 배열이므로 4096단계 깊이의 값에도 깊은 stack이 필요 없다. `make test-rust`(contract case 679개)와 `make contracts-check`로 확인했다.

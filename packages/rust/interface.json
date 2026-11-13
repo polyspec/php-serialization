@@ -1313,17 +1313,20 @@
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
-      "group": "cases"
+      "group": "cases",
+      "result": "serialized"
     },
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
-      "group": "forms"
+      "group": "forms",
+      "result": "serialized"
     },
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
-      "group": "deep"
+      "group": "deep",
+      "result": "serialized"
     },
     {
       "member": "serialize",
@@ -1333,7 +1336,8 @@
     {
       "member": "serialize",
       "file": "contracts/host-values.json",
-      "group": "serialize"
+      "group": "serialize",
+      "result": "serialized"
     },
     {
       "member": "php_float.constructor",

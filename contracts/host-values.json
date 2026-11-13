@@ -83,6 +83,9 @@
   {
    "id": "a_shared_reference_is_one_reference",
    "rule": "RQ-008",
+   "serialized": {
+    "hex": "613a323a7b693a303b693a313b693a313b523a323b7d"
+   },
    "value": {
     "kind": "map",
     "value": [

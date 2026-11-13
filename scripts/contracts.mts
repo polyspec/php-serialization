@@ -74,6 +74,8 @@ function record(string $id, string $bytes, bool $withTree = true): array {
         $case['tree'] = tree($holder[0], $state);
         $case['value'] = g5($case['tree']);
     }
+    // The result of serialize that the generated tests compare (binding GN-13e).
+    $case['serialized'] = ['hex' => bin2hex(serialize($value))];
     return $case;
 }
 
@@ -144,7 +146,7 @@ foreach ($forms as $id => $bytes) {
     $tree = tree($holder[0], $state);
     $form = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)], 'tree' => $tree];
     $form['value'] = g5($tree);
-    $normal[] = $form + ['written' => base64_encode(serialize($value))];
+    $normal[] = $form + ['written' => base64_encode(serialize($value)), 'serialized' => ['hex' => bin2hex(serialize($value))]];
 }
 
 // Random data with a fixed seed: every bit pattern of a double, then values nested from every kind.
