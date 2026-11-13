@@ -66,6 +66,69 @@ fn linked() -> Result<(), Failed> {
     }
 }
 
+/// Every row of unserialize and serialize whose group has a case that does not raise names the key of the result,
+/// which every such case gives, so that the generated tests compare the result (binding GN-13e).
+fn results_named() -> Result<(), Failed> {
+    let interface = read(INTERFACE)?;
+    let rows = interface
+        .get("cases")
+        .and_then(Value::as_array)
+        .ok_or("the interface has no cases")?;
+    let mut unnamed = Vec::new();
+    for row in rows {
+        let Some(member @ ("unserialize" | "serialize")) =
+            row.get("member").and_then(Value::as_str)
+        else {
+            continue;
+        };
+        let file = row
+            .get("file")
+            .and_then(Value::as_str)
+            .ok_or("a row names no file")?;
+        let group = row
+            .get("group")
+            .and_then(Value::as_str)
+            .ok_or("a row names no group")?;
+        let path = if file == "contracts/host-values.json" {
+            HOST_VALUES
+        } else {
+            CONTRACT
+        };
+        let contract = read(path)?;
+        let entries = contract
+            .get(group)
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{file} has no group {group}"))?;
+        let result = row.get("result").and_then(Value::as_str);
+        for entry in entries.iter().filter(|entry| entry.get("raises").is_none()) {
+            if result.is_none_or(|key| entry.get(key).is_none()) {
+                unnamed.push(format!(
+                    "{member} {group} {}",
+                    entry
+                        .get("id")
+                        .map(Value::to_string)
+                        .ok_or("a case has no id")?
+                ));
+            }
+        }
+    }
+    if unnamed.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{} cases give no result that a row names: {}",
+            unnamed.len(),
+            unnamed
+                .iter()
+                .take(5)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+        .into())
+    }
+}
+
 fn field<'a>(entry: &'a Value, name: &str) -> Result<&'a str, Failed> {
     entry
         .get(name)
@@ -526,7 +589,10 @@ fn trials_of(
 
 fn main() -> std::process::ExitCode {
     let arguments = Arguments::from_args();
-    let mut trials = vec![Trial::test("interface::links_every_group", linked)];
+    let mut trials = vec![
+        Trial::test("interface::links_every_group", linked),
+        Trial::test("interface::rows_name_the_result", results_named),
+    ];
     match read(CONTRACT) {
         Ok(contract) => trials.extend(trials_of(
             &contract,
