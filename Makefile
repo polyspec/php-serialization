@@ -34,7 +34,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check link-check release-coverage typecheck contracts-check
+CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check link-check release-coverage typecheck contracts-check binding-features-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -44,7 +44,7 @@ CI_REPORT ?= var/report/ci-targets
 .PHONY: bootstrap install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
-	contracts contracts-check fuzz fuzz-temp-test \
+	contracts contracts-check fuzz fuzz-temp-test binding-features-test \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust \
@@ -207,6 +207,11 @@ TEST_FEATURES = $(subst $(space),$(comma),$(sort $(subst $(comma),$(space),$(PYT
 # test-bindings runs every binding test of the five targets; none of them is a target of make check, since each needs
 # the generated sources of the binding of Cargo.lock.
 test-bindings: lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go ## Run the lint and the tests of the bindings of the five targets; offline
+
+# binding-features-test reads the dry run of the recipes of the bindings: each crate is built with every feature of its
+# manifest, and the workspace linted with their union.
+binding-features-test: ## Run the test of the features of the binding recipes; offline
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/binding-features.test.mts
 
 lint-bindings: bindings ## Run clippy on the binding crates with every warning an error, after make bindings; offline
 	cargo clippy --workspace --locked --offline --all-targets --features $(TEST_FEATURES) -- -D warnings
