@@ -222,6 +222,33 @@ fn check_failure(result: Result<(), Failure<Error>>, entry: &Value) -> Result<()
     }
 }
 
+/// A case of serialize that arms fault injection points (RQ-014): it arms them for the member as a generated binding
+/// test does (G-5), serializes the value under the arming, and fails a fault that did not fire. Only the kind
+/// `internal`, of the category `internal`, comes from a point of the crate.
+fn faulted_serialize(entry: &Value) -> Result<(), Failed> {
+    let value = value_of(entry.get("value").ok_or("the entry has no value")?)?;
+    let faults = entry.get("faults").ok_or("the entry has no faults")?;
+    let raises = entry
+        .get("raises")
+        .ok_or("a case with faults names no raises")?;
+    if raises.get("status") != Some(&Value::Null)
+        || raises.get("category").and_then(Value::as_str) != Some("internal")
+    {
+        return Err("raises of a fault names a status or a category other than internal".into());
+    }
+    let id = binding_core::fault::arm("serialize", &faults.to_string())
+        .map_err(|error| Failed::from(error.to_string()))?;
+    let outcome = binding_core::fault::take("serialize").run(|| serialize(&value));
+    let left = binding_core::fault::left(id).map_err(|error| Failed::from(error.to_string()))?;
+    if !left.is_empty() {
+        return Err(format!("the faults of {} did not fire", left.join(", ")).into());
+    }
+    match outcome {
+        Ok(_) => Err("wrote the value under the fault".into()),
+        Err(error) => check_error(&error, field(raises, "kind")?),
+    }
+}
+
 /// The groups of contracts/host-values.json: one group per member (G-5).
 fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
     let mut host = Host::default();
@@ -231,6 +258,7 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
             .ok_or_else(|| Failed::from(format!("the entry has no {name}")))
     };
     match group {
+        "serialize" if entry.get("faults").is_some() => faulted_serialize(entry),
         "serialize" => {
             let top = host.describe(given("value")?)?;
             match from_host(&mut host, top) {

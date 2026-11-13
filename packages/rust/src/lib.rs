@@ -19,6 +19,15 @@ pub use value::{
 };
 pub use write::serialize;
 
+/// The fault injection points of the crate (binding design G-5, X-1; RQ-014), which the interface contract names in
+/// `faults`. A point does nothing unless the feature `fault-test` is on.
+pub mod fault {
+    /// The open array or object of `serialize`, treated as naming no part of the value: the kind `internal`, which no
+    /// input reaches.
+    #[doc(hidden)]
+    pub const INTERNAL: &str = "php_serialization.internal";
+}
+
 /// The depth that unserialize reads and serialize writes, as `unserialize_max_depth` of PHP (RQ-006). It is a `u64`, the
 /// type of `uint` in the interface contract.
 pub const DEPTH_LIMIT: u64 = 4096;

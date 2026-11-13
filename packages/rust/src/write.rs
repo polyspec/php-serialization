@@ -45,6 +45,10 @@ pub fn serialize(value: &PhpValue) -> Result<Vec<u8>, Error> {
         let missing = || Error::Internal {
             what: "an open array or object names no part of the value",
         };
+        // RQ-014: the fault injection point imitates an open array or object that names no part of the value.
+        if binding_core::fault::point(crate::fault::INTERNAL).is_some() {
+            return Err(missing());
+        }
         match open {
             Open::Array(id) => {
                 let array = &value.arrays.get(id).ok_or_else(missing)?.array;

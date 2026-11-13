@@ -16,6 +16,11 @@ include = ["/src/**/*.rs", "/interface.json", "/README.md"]
 name = "polyspec_php_serialization"
 path = "src/lib.rs"
 
+[features]
+# G-5, X-1: compiles the arming of the fault injection points of `fault`; a generated binding crate turns it on for its
+# tests only, and a release build never does (binding design 3.6).
+fault-test = ["polyspec-binding-core/fault-test"]
+
 [dependencies]
 ryu = "=1.0.23"
 # The description of language values (HostValue, Handle, KeyedMap), the callback exception (Raised, Failure) and the
@@ -25,12 +30,13 @@ ryu = "=1.0.23"
 polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", branch = "v1/rust-core" }
 
 [dev-dependencies]
-# The tests raise a callback exception as a binding does, which only the feature construct allows.
-polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", branch = "v1/rust-core", features = ["construct"] }
+# The tests raise a callback exception as a binding does, which only the feature construct allows, and arm the fault
+# injection points of a case as a generated binding test does (fault-test).
+polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", branch = "v1/rust-core", features = ["construct", "fault-test"] }
 base64 = "=0.22.1"
 libtest-mimic = "=0.8.2"
 # float_roundtrip: a float of a case reads back as the float that PHP wrote (G-5).
-serde_json = { version = "=1.0.151", features = ["float_roundtrip"] }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
 
 # One trial per case of contracts/php-serialize.json, so the harness of the test is libtest-mimic.
 [[test]]

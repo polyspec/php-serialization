@@ -118,6 +118,36 @@
      ]
     ]
    }
+  },
+  {
+   "id": "a_broken_invariant_is_internal",
+   "rule": "RQ-014",
+   "value": {
+    "kind": "map",
+    "value": [
+     [
+      {
+       "int": 0
+      },
+      {
+       "kind": "int",
+       "value": 1
+      }
+     ]
+    ]
+   },
+   "faults": [
+    {
+     "point": "php_serialization.internal",
+     "kind": "broken"
+    }
+   ],
+   "raises": {
+    "kind": "internal",
+    "status": null,
+    "category": "internal",
+    "message": null
+   }
   }
  ],
  "php_float.constructor": [

@@ -188,6 +188,20 @@
     "binding": [],
     "wrapped": []
   },
+  "faults": [
+    {
+      "id": "internal",
+      "core": "polyspec_php_serialization::fault::INTERNAL",
+      "inject": [
+        "broken"
+      ],
+      "fills": [
+        "internal"
+      ],
+      "reason": "RQ-014",
+      "place": "polyspec_php_serialization::serialize"
+    }
+  ],
   "units": [
     {
       "id": "format_error",
