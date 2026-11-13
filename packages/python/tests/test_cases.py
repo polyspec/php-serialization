@@ -4,8 +4,9 @@ PHP_SERIALIZATION_CONTRACTS is the path of contracts/, which make test-python-bi
 {"kind", "value"} (binding G-5, docs/spec/php-serialize.md). The runner compares a value in one canonical form on both
 sides: a key is ("int", <decimal>) or ("hex", <bytes>), an integer its decimal text, a float its repr with -0.0 kept,
 bytes and texts their hex, and a reference (id, value) numbered by its first place. A case that arms fault injection
-points runs in the generated tests (binding GN-13, B-4), which hold the arming entry points; this runner counts it and
-runs the others.
+points runs armed: the runner makes the value first, arms the faults for the member with _arm_faults of the native
+module, the entry point of the feature fault-test (binding GN-5, GN-8a), calls the member at once and requires
+_fault_left to be empty after the expected failure.
 """
 
 import base64
@@ -17,6 +18,7 @@ import unittest
 from pathlib import Path
 
 import polyspec.php_serialization as lib
+from polyspec.php_serialization import _native
 
 CONTRACTS = Path(os.environ["PHP_SERIALIZATION_CONTRACTS"])
 
@@ -241,7 +243,6 @@ class ContractCaseTest(unittest.TestCase):
 
     def test_serialize(self) -> None:
         count = 0
-        armed = 0
         group = (
             self.php["cases"]
             + self.php["forms"]
@@ -252,11 +253,14 @@ class ContractCaseTest(unittest.TestCase):
         for case in group:
             if "value" not in case:
                 continue
-            if "faults" in case:
-                armed += 1
-                continue
             count += 1
             with self.subTest(case=case["id"]):
+                if "faults" in case:
+                    value = from_case(case["value"])
+                    armed = _native._arm_faults("serialize", json.dumps(case["faults"]))
+                    self.check_raises(case, lambda value=value: lib.serialize(value))
+                    self.assertEqual(_native._fault_left(armed), [])
+                    continue
                 if "raises" in case:
                     self.check_raises(
                         case, lambda case=case: lib.serialize(from_case(case["value"]))
@@ -271,9 +275,6 @@ class ContractCaseTest(unittest.TestCase):
                     canonical_case(case["value"]),
                 )
         self.assertGreater(count, 0)
-        self.assertEqual(
-            armed, len([case for case in self.host["serialize"] if "faults" in case])
-        )
 
     def test_std_class(self) -> None:
         group = self.host["std_class.constructor"] + self.host["std_class.properties"]

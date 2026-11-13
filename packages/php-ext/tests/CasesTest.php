@@ -14,8 +14,10 @@ use Polyspec\PhpSerialization as P;
  * runner compares the result of the extension with PHP: the bytes that PHP writes for it, and those that the
  * extension writes. A reference of the cases is a PHP reference at each place of its id. A top value that is a
  * reference has no PHP form, since PHP passes a value and not a reference, and neither has a reference that holds a
- * reference or an integer outside 64 bits; the runner fails on such a case. A case that arms fault injection points runs in the generated tests (binding
- * GN-13, B-4), which hold the arming entry points; this runner counts it and runs the others.
+ * reference or an integer outside 64 bits; the runner fails on such a case. A case that arms fault injection points
+ * runs armed: the runner makes the value first, arms the faults for the member with Internal\armFaults, the entry point
+ * of the feature fault-test (binding GN-5, GN-8a), calls the member at once and requires Internal\faultLeft to be
+ * empty after the expected failure.
  */
 final class CasesTest extends TestCase
 {
@@ -163,18 +165,19 @@ final class CasesTest extends TestCase
         $php = self::read('php-serialize.json');
         $host = self::read('host-values.json');
         $count = 0;
-        $armed = 0;
         foreach ([...$php['cases'], ...$php['forms'], ...$php['refused_values'], ...$host['serialize'], ...$host['php_value']] as $case) {
             if (!isset($case['value'])) {
-                continue;
-            }
-            if (isset($case['faults'])) {
-                $armed++;
                 continue;
             }
             $count++;
             $cells = [];
             $value = self::fromCase($case['value'], $cells);
+            if (isset($case['faults'])) {
+                $armed = P\Internal\armFaults('serialize', json_encode($case['faults'], JSON_THROW_ON_ERROR));
+                self::raises($case, static fn (): string => P\serialize($value));
+                self::assertSame([], P\Internal\faultLeft($armed), $case['id']);
+                continue;
+            }
             if (isset($case['raises'])) {
                 self::raises($case, static fn (): string => P\serialize($value));
                 continue;
@@ -187,6 +190,5 @@ final class CasesTest extends TestCase
             self::assertSame(\serialize($value), $written, $case['id']);
         }
         self::assertGreaterThan(0, $count);
-        self::assertSame(count(array_filter($host['serialize'], static fn (array $case): bool => isset($case['faults']))), $armed);
     }
 }

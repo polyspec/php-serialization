@@ -6,8 +6,9 @@
 // A value of the cases is {"kind", "value"} (binding G-5, docs/spec/php-serialize.md). The runner compares a value in
 // one canonical form on both sides: a key is {"int": <decimal>} or {"hex": <bytes>}, an integer its decimal text, a
 // float its text with -0 kept, bytes and texts their hex, and a reference {"id", "value"} numbered by its first place.
-// A case that arms fault injection points runs in the generated tests (binding GN-13, B-4), which hold the arming
-// entry points; this runner counts it and runs the others.
+// A case that arms fault injection points runs armed: the runner makes the value first, arms the faults for the
+// member with the entry point __armFaults of the feature fault-test (binding GN-5, GN-8a), calls the member at once
+// and requires __faultLeft to be empty after the expected failure.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -147,8 +148,9 @@ function raises(lib, kase, call) {
     (kase.raises.message === null || error.message === kase.raises.message), kase.id);
 }
 
-// Runs every group of the cases that packages/rust/interface.json links, against the binding lib.
-export function run(lib) {
+// Runs every group of the cases that packages/rust/interface.json links, against the binding lib; faults gives the
+// object that holds __armFaults and __faultLeft of the binding (binding GN-5).
+export function run(lib, faults) {
   const php = read('php-serialize.json');
   const host = read('host-values.json');
 
@@ -171,16 +173,19 @@ export function run(lib) {
     assert.ok(count > 0);
   });
 
-  test('serialize', () => {
+  test('serialize', async () => {
     let count = 0;
-    let armed = 0;
     for (const kase of [...php.cases, ...php.forms, ...php.refused_values, ...host.serialize, ...host.php_value]) {
       if (kase.value === undefined) continue;
+      count += 1;
       if (kase.faults !== undefined) {
-        armed += 1;
+        const entries = await faults();
+        const value = fromCase(lib, kase.value);
+        const armed = entries.__armFaults('serialize', JSON.stringify(kase.faults));
+        raises(lib, kase, () => lib.serialize(value));
+        assert.deepEqual(entries.__faultLeft(armed), [], kase.id);
         continue;
       }
-      count += 1;
       const call = () => lib.serialize(fromCase(lib, kase.value));
       if (kase.raises !== undefined) {
         raises(lib, kase, call);
@@ -191,7 +196,6 @@ export function run(lib) {
       assert.deepEqual(canonicalHost(lib, lib.unserialize(written)), canonicalCase(kase.value), kase.id);
     }
     assert.ok(count > 0);
-    assert.equal(armed, host.serialize.filter((kase) => kase.faults !== undefined).length);
   });
 
   test('PhpFloat', () => {
