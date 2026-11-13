@@ -108,11 +108,7 @@
       {
        "kind": "reference",
        "value": {
-        "id": 0,
-        "value": {
-         "kind": "int",
-         "value": 1
-        }
+        "id": 0
        }
       }
      ]

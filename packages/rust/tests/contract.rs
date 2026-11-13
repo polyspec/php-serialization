@@ -112,11 +112,13 @@ fn assert_out<T, F: for<'a> OutFn<'a, T>>(_: F) {}
 
 /// Compares what to_host gives for a value with a value of G-5, one level at a time, so that a value as deep as the
 /// format reads needs no deep stack. A list of G-5 is an array whose keys are 0 to n-1, and a repeated list is its n
-/// lists; a reference is numbered by its first position, as the case numbers it.
+/// lists, and a repeated object its n objects. A reference, and an object that the value holds again, gives its id
+/// and its value at its first place and its id alone at every later one.
 fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed> {
     assert_out::<PhpValue, _>(to_host);
     let (top, mut children) = to_host(value);
     let mut references: HashMap<u64, u64> = HashMap::new();
+    let mut objects: HashMap<u64, Option<u64>> = HashMap::new();
     let mut pending = vec![(top, expected.clone())];
     while let Some((out, want)) = pending.pop() {
         let differ = |actual: &str| -> Failed {
@@ -139,6 +141,14 @@ fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed
                 pending.extend(level.into_iter().rev());
             }
             OutValue::Object { handle, len } => {
+                let id = want.get("id").and_then(Value::as_u64);
+                if let Some(first) = objects.get(&handle.raw()) {
+                    if first.is_none() || *first != id || want.get("value").is_some() {
+                        return Err(differ(&format!("the object {first:?} again")));
+                    }
+                    continue;
+                }
+                objects.insert(handle.raw(), id);
                 let pairs = pairs_of(&want, &["object"]).ok_or_else(|| differ("an object"))?;
                 if u64::try_from(pairs.len()).map_err(|error| error.to_string())? != len {
                     return Err(differ(&format!("an object of {len} properties")));
@@ -154,16 +164,24 @@ fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed
                 pending.extend(level.into_iter().rev());
             }
             OutValue::Reference { handle, value } => {
-                let next = u64::try_from(references.len()).map_err(|error| error.to_string())?;
-                let id = *references.entry(handle.raw()).or_insert(next);
                 let held = (want.get("kind").and_then(Value::as_str) == Some("reference"))
                     .then(|| want.get("value"))
                     .flatten()
-                    .filter(|held| held.get("id").and_then(Value::as_u64) == Some(id))
-                    .and_then(|held| held.get("value"))
+                    .ok_or_else(|| differ("a reference"))?;
+                let id = held.get("id").and_then(Value::as_u64);
+                if let Some(first) = references.get(&handle.raw()) {
+                    if Some(*first) != id || held.get("value").is_some() {
+                        return Err(differ(&format!("the reference {first} again")));
+                    }
+                    continue;
+                }
+                let id = id.ok_or_else(|| differ("a reference without an id"))?;
+                references.insert(handle.raw(), id);
+                let target = held
+                    .get("value")
                     .cloned()
-                    .ok_or_else(|| differ(&format!("the reference {id}")))?;
-                pending.push((*value, held));
+                    .ok_or_else(|| differ(&format!("the first place of the reference {id}")))?;
+                pending.push((*value, target));
             }
             other => {
                 let actual = scalar_of(other);
@@ -177,13 +195,25 @@ fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed
 }
 
 /// The entries that a value of G-5 of one of the kinds gives, as pairs of a key of G-5 and a value: the pairs of a map
-/// or an object, the items of a list under the keys 0 to n-1, and the one list inside a repeated list.
+/// or an object, the items of a list under the keys 0 to n-1, and the one list or object inside a repeated one.
 fn pairs_of(value: &Value, kinds: &[&str]) -> Option<Vec<(Value, Value)>> {
     let kind = value.get("kind").and_then(Value::as_str)?;
     if !kinds.contains(&kind) {
         return None;
     }
     let content = value.get("value")?;
+    if kind == "object" {
+        if let Some(repeat) = value.get("repeat") {
+            let repeat = repeat.as_u64()?;
+            let key = value.get("key")?.clone();
+            let item = if repeat > 1 {
+                serde_json::json!({"kind": "object", "repeat": repeat - 1, "key": key, "value": content})
+            } else {
+                content.clone()
+            };
+            return Some(vec![(key, item)]);
+        }
+    }
     if kind == "list" {
         if let Some(repeat) = value.get("repeat") {
             let repeat = repeat.as_u64()?;
@@ -266,7 +296,7 @@ fn data(entry: &Value) -> Result<Vec<u8>, Failed> {
 /// The value of PHP of a value of G-5 that a language gives.
 fn value_of(argument: &Value) -> Result<polyspec_php_serialization::PhpValue, Failed> {
     let mut host = Host::default();
-    let top = host.describe(argument)?;
+    let top = host.take(argument)?;
     from_host(&mut host, top).map_err(|failure| Failed::from(describe(&failure)))
 }
 
@@ -326,7 +356,7 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
     match group {
         "serialize" if entry.get("faults").is_some() => faulted_serialize(entry),
         "serialize" => {
-            let top = host.describe(given("value")?)?;
+            let top = host.take(given("value")?)?;
             match from_host(&mut host, top) {
                 Ok(value) => {
                     check_failure(Ok(()), entry)?;
@@ -341,7 +371,7 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
             if entry.get("raises").is_none() {
                 return Err("a case of the value names no raises".into());
             }
-            let top = host.describe(given("value")?)?;
+            let top = host.take(given("value")?)?;
             check_failure(from_host(&mut host, top).map(drop), entry)
         }
         "php_float.constructor" | "php_float.value" | "php_float.value_of" => {
@@ -357,7 +387,7 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
             check_failure(check_std_class(&mut host, Some(properties)), entry)
         }
         "reference.constructor" | "reference.value" => {
-            let value = host.describe(given("value")?)?;
+            let value = host.take(given("value")?)?;
             check_failure(check_reference(&mut host, Some(value)), entry)
         }
         other => Err(format!("unknown group {other}").into()),
@@ -394,7 +424,7 @@ fn trial(group: &str, entry: &Value) -> Result<(), Failed> {
             }
             // The same value given by a language is refused the same way (RQ-012).
             let mut host = Host::default();
-            let top = host.describe(entry.get("value").ok_or("the entry has no value")?)?;
+            let top = host.take(entry.get("value").ok_or("the entry has no value")?)?;
             check_failure(from_host(&mut host, top).map(drop), entry)
         }
         other => Err(format!("unknown group {other}").into()),
