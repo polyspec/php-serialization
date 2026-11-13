@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e6349dbcd9336839dd1f6f73ceb6447021775266eae4f1638a3c437891f204dc -->
+<!-- source-sha256: e8b38140551350837b88fb8288305bf159bffd6b5cc0086136d5e4b044d74a22 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- checklist에 열린 행 둘이 있습니다. T2.6: `make bindings-check`가 `packages/php-ext/Cargo.toml`에 CK-19를 보고합니다. 그 파일의 feature `case-test`를 `Cargo.lock`이 고정한 binding의 scaffold가 쓰지 않기 때문입니다. 그것을 쓰는 scaffold의 binding을 고정하고 package를 다시 scaffold하면 끝납니다. T2.7: release가 바인딩 package(PIE 확장, wheel, npm package와 그 플랫폼 package, Rust crate의 tag, Go module)를 담으며, kit 0.0.111과 Go module의 tag 형태를 기다립니다. `config/release.json`의 `notReleased`에 있는 각 바인딩 manifest의 사유가 그 행과 조건을 적습니다. `make release-coverage`와 `make docs-check`로 확인했습니다.
 - 명세가 RQ-015를 적습니다. group `php_value`의 `int_range` case 둘, 곧 64-bit 위의 정수와 아래의 정수는 손으로 쓴 PHP runner `packages/php-ext/tests/CasesTest.php`에서 실패하며 건너뛰지 않습니다. PHP에는 그런 정수가 없고, 건너뛴 case는 실행된 case로 읽히기 때문입니다. binding이 PHP용으로 생성하는 시험은 정수를 십진 토큰으로 feature `case-test` 진입점에 넘깁니다. 전에는 runner의 주석과 이 변경 기록의 한 항목만 이 결정을 담고 있었습니다(T2.5).
 - 추적되는 파일은 Git commit을 적지 않습니다(T2.4). `AGENTS.md`가 규칙과 이유를 적고, `make commit-names-check`(`scripts/check-commit-names.mts`, 공유 CI group의 target)가 추적되는 `*.md` 파일에서 숫자와 글자를 가진 16진수 7~40자리 낱말을 실패시킵니다. `make commit-names-test`가 그 검사기를 시험합니다. 전에는 이 변경 기록의 열 곳과 영어 원본의 열 곳이 binding의 commit을 적었습니다. 이제 그 항목은 사실을 남기고 binding을 `Cargo.lock`이 고정한 것으로 부릅니다. `make commit-names-test`(3개 통과, 0개 실패)와 `make commit-names-check`로 확인했습니다.
 - `contracts/php-serialize.json`은 문법의 form에 대해 PHP가 다시 쓰는 bytes를, 어떤 case나 form이 이미 그 bytes를 갖고 있지 않으면 `cases`의 case로 갖는다. 또 값 `reference_shared_int`(`[&$one, &$one]`, `a:2:{i:0;i:1;i:1;R:2;}`)를 갖는데, 이것은 `contracts/host-values.json`의 case `a_shared_reference_is_one_reference`의 bytes다. case는 열 개다: `form_escaped_string_written`, `form_escaped_key_written`, `form_plus_int_written`(`form_long_zero_int`의 bytes이기도 하다), `form_float_exp_written`, `form_float_upper_written`, `form_duplicate_key_written`, `form_numeric_string_key_written`, `form_object_case_written`, `form_object_int_key_written`, `reference_shared_int`. 그래서 바인딩의 생성 시험은 case가 주는 `serialize`의 결과를 모두 `unserialize`로 읽고 case의 값과 비교한다. 전에는 손으로 쓴 runner만 이 bytes를 다시 읽었다. `make contracts-check`와 binding의 생성으로 확인했다. Python, Node, WASM, PHP의 생성 시험은 각각 이 열 case를 `unserialize`와 `serialize`에 대해 갖는다. Go는 아직 생성되지 않고, 빌드한 시험은 여기서 실행하지 않았다.
