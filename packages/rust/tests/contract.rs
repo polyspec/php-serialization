@@ -75,21 +75,42 @@ fn read_case(entry: &Value, written: &str) -> Result<(), Failed> {
     if base64(&bytes) != written {
         return Err(format!("the built value wrote {}", String::from_utf8_lossy(&bytes)).into());
     }
-    // The argument of serialize in the form of G-5, which a language gives, writes the same bytes (RQ-012). A value
-    // that holds an object or a reference twice has no such form.
-    if let Some(argument) = entry.get("value") {
-        let taken = value_of(argument)?;
-        let bytes = serialize(&taken).map_err(|error| error.to_string())?;
-        if base64(&bytes) != written {
-            return Err(
-                format!("the value of G-5 wrote {}", String::from_utf8_lossy(&bytes)).into(),
-            );
-        }
-        // RQ-013, U-1: to_host describes the value of the bytes as the case does, and a value that from_host took goes
-        // back to the language unchanged.
-        same_out(&value, argument, "the value of the bytes")?;
-        same_out(&taken, argument, "the value that from_host took")?;
+    given_value(entry, &value, written)
+}
+
+/// The cases whose value the case convention of binding (G-5) has no form of, with the reason.
+const WITHOUT_FORM: [(&str, &str); 3] = [
+    ("object_repeated", "G-5 gives an object no identity"),
+    (
+        "reference_cycle",
+        "G-5 has no form of a reference inside its own value",
+    ),
+    ("deepest_object", "G-5 has no repeated form of an object"),
+];
+
+/// The argument of serialize in the form of G-5, which a language gives, writes the same bytes (RQ-012); every case
+/// gives it but those of `WITHOUT_FORM`.
+fn given_value(entry: &Value, value: &PhpValue, written: &str) -> Result<(), Failed> {
+    let id = field(entry, "id")?;
+    let without = WITHOUT_FORM.iter().find(|(name, _)| *name == id);
+    let Some(argument) = entry.get("value") else {
+        return match without {
+            Some(_) => Ok(()),
+            None => Err("the case gives no value of G-5".into()),
+        };
+    };
+    if let Some((_, reason)) = without {
+        return Err(format!("the case gives a value, but {reason}").into());
     }
+    let taken = value_of(argument)?;
+    let bytes = serialize(&taken).map_err(|error| error.to_string())?;
+    if base64(&bytes) != written {
+        return Err(format!("the value of G-5 wrote {}", String::from_utf8_lossy(&bytes)).into());
+    }
+    // RQ-013, U-1: to_host describes the value of the bytes as the case does, and a value that from_host took goes
+    // back to the language unchanged.
+    same_out(value, argument, "the value of the bytes")?;
+    same_out(&taken, argument, "the value that from_host took")?;
     Ok(())
 }
 
@@ -309,7 +330,7 @@ fn trial(group: &str, entry: &Value) -> Result<(), Failed> {
             if serialize(&value).map_err(|error| error.to_string())? != bytes {
                 return Err("wrote other bytes".into());
             }
-            Ok(())
+            given_value(entry, &value, field(entry, "bytes")?)
         }
         "rejected" | "stricter" => match unserialize(&data(entry)?) {
             Ok(_) => Err("read the refused bytes".into()),
