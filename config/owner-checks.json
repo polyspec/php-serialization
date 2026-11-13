@@ -127,7 +127,8 @@
       "paths": [
         "config/layout.yml",
         "config/layout.kit.yml",
-        "config/composer.schema.json"
+        "config/composer.schema.json",
+        "config/cargo.schema.json"
       ],
       "targets": [
         "layout-check"
