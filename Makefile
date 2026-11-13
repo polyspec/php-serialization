@@ -230,15 +230,15 @@ node-package: bindings-node bindings-wasm ## Build the WASM module and the Node 
 
 # The generated tests and the contract cases of the Node binding on node --test, against the installed package.
 test-node: node-package ## Run the generated tests and the contract cases of the Node binding on node --test; offline
-	cp packages/ts/generated/tests/generated.test.mjs packages/ts/tests/cases.mjs packages/ts/tests/cases.test.mjs $(BINDINGS_VAR)/node/
-	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --test generated.test.mjs cases.test.mjs
+	cp packages/ts/generated/tests/generated.test.mjs packages/ts/tests/cases.mjs packages/ts/tests/cases.test.mjs packages/ts/tests/api.mjs packages/ts/tests/api.test.mjs $(BINDINGS_VAR)/node/
+	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --test generated.test.mjs cases.test.mjs api.test.mjs
 
 # The generated tests and the contract cases of the WASM binding through the subpath ./wasm of the installed package
 # (binding P-5); --expose-gc serves the generated tests that collect instances (binding GN-18a).
 test-wasm: node-package ## Run the generated tests and the contract cases of the WASM binding on node --test; offline
 	cp packages/ts/wasm/generated/tests/generated.test.mjs $(BINDINGS_VAR)/node/generated.wasm.test.mjs
-	cp packages/ts/tests/cases.mjs packages/ts/tests/cases.wasm.test.mjs $(BINDINGS_VAR)/node/
-	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --expose-gc --test generated.wasm.test.mjs cases.wasm.test.mjs
+	cp packages/ts/tests/cases.mjs packages/ts/tests/cases.wasm.test.mjs packages/ts/tests/api.mjs packages/ts/tests/api.wasm.test.mjs $(BINDINGS_VAR)/node/
+	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --expose-gc --test generated.wasm.test.mjs cases.wasm.test.mjs api.wasm.test.mjs
 
 # The extension built against PHP_CONFIG and loaded into PHP; the stub is linted, then the generated tests and the
 # contract cases run on PHPUnit. ext-php-rs reads PHP and PHP_CONFIG when it builds the extension.
