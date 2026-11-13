@@ -15,9 +15,10 @@ error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
 
 ${PHP_TREE}
 // The case convention of binding (G-5): bytes are {"hex"}, and a value of php_value is {"kind", "value"} with the kinds of
-// its value table; a tree that holds an object or a reference a second time has no such form, so it gives none. An integer
-// of a value outside the safe integers of JavaScript is its decimal text, which no JSON reader rounds.
-function g5(array $tree): ?array {
+// its value table; a reference held again repeats its id and its value, since the same id is the same reference. A tree
+// that holds an object a second time, or a reference inside its own value, has no such form, so it gives none. An
+// integer of a value outside the safe integers of JavaScript is its decimal text, which no JSON reader rounds.
+function g5(array $tree, array &$references = []): ?array {
     switch ($tree[0]) {
         case 'null': return ['kind' => 'null'];
         case 'bool': return ['kind' => 'bool', 'value' => $tree[1]];
@@ -33,7 +34,7 @@ function g5(array $tree): ?array {
         case 'array':
             $pairs = [];
             foreach ($tree[1] as [$key, $item]) {
-                $value = g5($item);
+                $value = g5($item, $references);
                 if ($value === null) return null;
                 $pairs[] = [$key[0] === 'int' ? ['int' => (int) $key[1]] : ['hex' => bin2hex(base64_decode($key[1]))], $value];
             }
@@ -42,15 +43,17 @@ function g5(array $tree): ?array {
             if (count($tree) === 2) return null;
             $pairs = [];
             foreach ($tree[3] as [$name, $item]) {
-                $value = g5($item);
+                $value = g5($item, $references);
                 if ($value === null) return null;
                 $pairs[] = [['hex' => bin2hex(base64_decode($name))], $value];
             }
             return ['kind' => 'object', 'value' => $pairs];
         case 'ref':
-            if (count($tree) === 2) return null;
-            $value = g5($tree[2]);
-            return $value === null ? null : ['kind' => 'reference', 'value' => ['id' => $tree[1], 'value' => $value]];
+            // A reference inside its own value has no form yet: its value is made after it.
+            if (count($tree) === 2) return $references[$tree[1]] ?? null;
+            $value = g5($tree[2], $references);
+            if ($value === null) return null;
+            return $references[$tree[1]] = ['kind' => 'reference', 'value' => ['id' => $tree[1], 'value' => $value]];
     }
     throw new RuntimeException('no form of the tree ' . $tree[0]);
 }
@@ -192,7 +195,12 @@ $depth = 4096;
 $deepest = str_repeat('a:1:{i:0;', $depth) . 'N;' . str_repeat('}', $depth);
 $deepestObject = str_repeat('O:8:"stdClass":1:{s:1:"a";', $depth) . 'N;' . str_repeat('}', $depth);
 $deepestEmpty = str_repeat('a:1:{i:0;', $depth) . 'a:0:{}' . str_repeat('}', $depth);
-$deep = [record('deepest_array', $deepest, false), record('deepest_object', $deepestObject, false), record('deepest_with_empty', $deepestEmpty, false)];
+// The deepest arrays are lists, which G-5 gives as a repeated list; G-5 has no repeated form of an object.
+$deep = [
+    record('deepest_array', $deepest, false) + ['value' => ['kind' => 'list', 'repeat' => $depth, 'value' => ['kind' => 'null']]],
+    record('deepest_object', $deepestObject, false),
+    record('deepest_with_empty', $deepestEmpty, false) + ['value' => ['kind' => 'list', 'repeat' => $depth, 'value' => ['kind' => 'list', 'value' => []]]],
+];
 
 $refused = [
     'empty' => '', 'garbage' => 'x', 'truncated_int' => 'i:1', 'no_semicolon' => 'i:1', 'empty_int' => 'i:;', 'space_int' => 'i: 1;',

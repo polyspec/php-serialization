@@ -129,15 +129,104 @@ where
 
 fn assert_out<T, F: for<'a> OutFn<'a, T>>(_: F) {}
 
-/// Compares what to_host gives for a value with a value of G-5.
+/// Compares what to_host gives for a value with a value of G-5, one level at a time, so that a value as deep as the
+/// format reads needs no deep stack. A list of G-5 is an array whose keys are 0 to n-1, and a repeated list is its n
+/// lists; a reference is numbered by its first position, as the case numbers it.
 fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed> {
     assert_out::<PhpValue, _>(to_host);
     let (top, mut children) = to_host(value);
-    let actual = g5_of(top, &mut children, &mut HashMap::new());
-    if &actual != expected {
-        return Err(format!("{what}: to_host gives {actual}, the case {expected}").into());
+    let mut references: HashMap<u64, u64> = HashMap::new();
+    let mut pending = vec![(top, expected.clone())];
+    while let Some((out, want)) = pending.pop() {
+        let differ = |actual: &str| -> Failed {
+            format!("{what}: to_host gives {actual}, the case {want}").into()
+        };
+        match out {
+            OutValue::Map(map) => {
+                let pairs = pairs_of(&want, &["map", "list"]).ok_or_else(|| differ("an array"))?;
+                if u64::try_from(pairs.len()).map_err(|error| error.to_string())? != map.len() {
+                    return Err(differ(&format!("an array of {} entries", map.len())));
+                }
+                let mut level = Vec::new();
+                for (at, (key, item)) in (0..map.len()).zip(pairs) {
+                    let (actual, child) = children.entry(map.handle(), at);
+                    if key_of(&actual) != key {
+                        return Err(differ(&format!("the key {}", key_of(&actual))));
+                    }
+                    level.push((child, item));
+                }
+                pending.extend(level.into_iter().rev());
+            }
+            OutValue::Object { handle, len } => {
+                let pairs = pairs_of(&want, &["object"]).ok_or_else(|| differ("an object"))?;
+                if u64::try_from(pairs.len()).map_err(|error| error.to_string())? != len {
+                    return Err(differ(&format!("an object of {len} properties")));
+                }
+                let mut level = Vec::new();
+                for (at, (key, item)) in (0..len).zip(pairs) {
+                    let (name, child) = children.entry(handle, at);
+                    if key_of(&name) != key {
+                        return Err(differ(&format!("the property {}", key_of(&name))));
+                    }
+                    level.push((child, item));
+                }
+                pending.extend(level.into_iter().rev());
+            }
+            OutValue::Reference { handle, value } => {
+                let next = u64::try_from(references.len()).map_err(|error| error.to_string())?;
+                let id = *references.entry(handle.raw()).or_insert(next);
+                let held = (want.get("kind").and_then(Value::as_str) == Some("reference"))
+                    .then(|| want.get("value"))
+                    .flatten()
+                    .filter(|held| held.get("id").and_then(Value::as_u64) == Some(id))
+                    .and_then(|held| held.get("value"))
+                    .cloned()
+                    .ok_or_else(|| differ(&format!("the reference {id}")))?;
+                pending.push((*value, held));
+            }
+            other => {
+                let actual = scalar_of(other);
+                if actual != want {
+                    return Err(differ(&actual.to_string()));
+                }
+            }
+        }
     }
     Ok(())
+}
+
+/// The entries that a value of G-5 of one of the kinds gives, as pairs of a key of G-5 and a value: the pairs of a map
+/// or an object, the items of a list under the keys 0 to n-1, and the one list inside a repeated list.
+fn pairs_of(value: &Value, kinds: &[&str]) -> Option<Vec<(Value, Value)>> {
+    let kind = value.get("kind").and_then(Value::as_str)?;
+    if !kinds.contains(&kind) {
+        return None;
+    }
+    let content = value.get("value")?;
+    if kind == "list" {
+        if let Some(repeat) = value.get("repeat") {
+            let repeat = repeat.as_u64()?;
+            let item = if repeat > 1 {
+                serde_json::json!({"kind": "list", "repeat": repeat - 1, "value": content})
+            } else {
+                content.clone()
+            };
+            return Some(vec![(serde_json::json!({"int": 0}), item)]);
+        }
+        let items = content.as_array()?;
+        return Some(
+            items
+                .iter()
+                .enumerate()
+                .map(|(at, item)| (serde_json::json!({"int": at}), item.clone()))
+                .collect(),
+        );
+    }
+    content
+        .as_array()?
+        .iter()
+        .map(|pair| Some((pair.get(0)?.clone(), pair.get(1)?.clone())))
+        .collect()
 }
 
 fn hex_of(bytes: &[u8]) -> String {
@@ -153,12 +242,8 @@ fn key_of(key: &OutValue) -> Value {
     }
 }
 
-/// An OutValue as a value of G-5; a reference is numbered by its first position, as the case numbers it.
-fn g5_of(
-    out: OutValue,
-    children: &mut dyn OutValues,
-    references: &mut HashMap<u64, usize>,
-) -> Value {
+/// A value of to_host that holds no other value, as a value of G-5.
+fn scalar_of(out: OutValue) -> Value {
     use serde_json::json;
     match out {
         OutValue::Null => json!({"kind": "null"}),
@@ -184,27 +269,6 @@ fn g5_of(
             json!({"kind": "float", "value": form})
         }
         OutValue::Bytes(bytes) => json!({"kind": "bytes", "value": {"hex": hex_of(bytes.value())}}),
-        OutValue::Map(map) => {
-            let mut pairs = Vec::new();
-            for at in 0..map.len() {
-                let (key, item) = children.entry(map.handle(), at);
-                pairs.push(json!([key_of(&key), g5_of(item, children, references)]));
-            }
-            json!({"kind": "map", "value": pairs})
-        }
-        OutValue::Object { handle, len } => {
-            let mut pairs = Vec::new();
-            for at in 0..len {
-                let (name, item) = children.entry(handle, at);
-                pairs.push(json!([key_of(&name), g5_of(item, children, references)]));
-            }
-            json!({"kind": "object", "value": pairs})
-        }
-        OutValue::Reference { handle, value } => {
-            let next = references.len();
-            let id = *references.entry(handle.raw()).or_insert(next);
-            json!({"kind": "reference", "value": {"id": id, "value": g5_of(*value, children, references)}})
-        }
         other => json!({"unexpected": format!("{:?}", other.kind())}),
     }
 }
