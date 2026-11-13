@@ -4,8 +4,12 @@
 // PHP_SERIALIZATION_CONTRACTS is the path of contracts/, which make test-node and make test-wasm set.
 //
 // A value of the cases is {"kind", "value"} (binding G-5, docs/spec/php-serialize.md). The runner compares a value in
-// one canonical form on both sides: a key is {"int": <decimal>} or {"hex": <bytes>}, an integer its decimal text, a
-// float its text with -0 kept, bytes and texts their hex, and a reference {"id", "value"} numbered by its first place.
+// one canonical form on both sides, the texts of its places in pre-order: a key is {"int": <decimal>} or {"hex":
+// <bytes>}, an integer its decimal text, a float its text with -0 kept, bytes and texts their hex, a list the map of its
+// items under the keys 0 to n-1, and a reference and an object numbered by their first place, which give their number
+// alone at every later place. A case names a reference or an object again by its id alone, and gives n nested lists or
+// objects as one with repeat (binding G-5). A reference and an object with an id are made empty at their first place
+// and filled after, so that a later place inside their own value names them.
 // A case that arms fault injection points runs armed: the runner makes the value first, arms the faults for the
 // member with the entry point __armFaults of the feature fault-test (binding GN-5, GN-8a), calls the member at once
 // and requires __faultLeft to be empty after the expected failure.
@@ -44,57 +48,140 @@ const caseKey = (key) => {
   return { hex: key.hex };
 };
 
-// The canonical form of a value of the cases.
-function canonicalCase(value, ids = new Map()) {
-  switch (value.kind) {
-    case 'null':
-      return { kind: 'null' };
-    case 'bool':
-      return { kind: 'bool', value: value.value };
-    case 'int':
-      return { kind: 'int', value: String(value.value) };
-    case 'float':
-      return { kind: 'float', value: floatText(value.value) };
-    case 'bytes':
-      return { kind: 'bytes', value: value.value.hex };
-    case 'text':
-      return { kind: 'bytes', value: hex(new TextEncoder().encode(value.value)) };
-    case 'map':
-    case 'object':
-      return { kind: value.kind, value: value.value.map(([key, item]) => [caseKey(key), canonicalCase(item, ids)]) };
-    case 'reference': {
-      const seen = ids.has(value.value.id);
-      if (!seen) ids.set(value.value.id, ids.size);
-      const id = ids.get(value.value.id);
-      return seen ? { kind: 'reference', value: { id } } : { kind: 'reference', value: { id, value: canonicalCase(value.value.value, ids) } };
-    }
-    default:
-      throw new Error(`a value of the kind ${String(value.kind)} has no form in the cases`);
+// The key of a pair on the stack of a canonical form, apart from the values, of which a repeated object has a key.
+class Key {
+  constructor(key) {
+    this.key = key;
   }
 }
 
-// The canonical form of a value that the binding gives.
-function canonicalHost(lib, value, ids = new Map()) {
-  if (value === null) return { kind: 'null' };
-  if (typeof value === 'boolean') return { kind: 'bool', value };
-  if (typeof value === 'bigint') return { kind: 'int', value: String(value) };
-  if (typeof value === 'number') {
-    return Number.isSafeInteger(value) && !Object.is(value, -0) ? { kind: 'int', value: String(value) } : { kind: 'float', value: floatText(value) };
+// The canonical form of a value of the cases: the texts of its places in pre-order, depth first, which a loop writes
+// because the values of deep nest 4096 levels (RQ-006), deeper than the stack of a recursion holds. A map, a list and
+// an object give the number of their pairs, and each pair its key and then its value.
+function canonicalCase(top) {
+  const out = [];
+  const stack = [top];
+  const references = new Map();
+  const objects = new Map();
+  const pairs = (head, entries) => {
+    out.push(`${head} ${entries.length}`);
+    for (let i = entries.length - 1; i >= 0; i -= 1) stack.push(entries[i][1], new Key(entries[i][0]));
+  };
+  while (stack.length > 0) {
+    const value = stack.pop();
+    if (value instanceof Key) {
+      out.push(`key ${JSON.stringify(value.key)}`);
+      continue;
+    }
+    switch (value.kind) {
+      case 'null':
+        out.push('null');
+        break;
+      case 'bool':
+        out.push(`bool ${String(value.value)}`);
+        break;
+      case 'int':
+        out.push(`int ${String(value.value)}`);
+        break;
+      case 'float':
+        out.push(`float ${floatText(value.value)}`);
+        break;
+      case 'bytes':
+        out.push(`bytes ${value.value.hex}`);
+        break;
+      case 'text':
+        out.push(`bytes ${hex(new TextEncoder().encode(value.value))}`);
+        break;
+      case 'list':
+        if (value.repeat !== undefined) pairs('map', [[{ int: '0' }, value.repeat > 1 ? { ...value, repeat: value.repeat - 1 } : value.value]]);
+        else pairs('map', value.value.map((item, i) => [{ int: String(i) }, item]));
+        break;
+      case 'map':
+        pairs('map', value.value.map(([key, item]) => [caseKey(key), item]));
+        break;
+      case 'object': {
+        if (value.value === undefined) {
+          if (!objects.has(value.id)) throw new Error(`the object ${String(value.id)} has no first place`);
+          out.push(`object again ${String(objects.get(value.id))}`);
+          break;
+        }
+        const number = objects.size;
+        objects.set(value.id ?? `place ${String(number)}`, number);
+        if (value.repeat !== undefined) {
+          const inner = value.repeat > 1 ? { kind: 'object', repeat: value.repeat - 1, key: value.key, value: value.value } : value.value;
+          pairs(`object ${String(number)}`, [[caseKey(value.key), inner]]);
+        } else {
+          pairs(`object ${String(number)}`, value.value.map(([key, item]) => [caseKey(key), item]));
+        }
+        break;
+      }
+      case 'reference': {
+        const { id, value: held } = value.value;
+        if (references.has(id)) {
+          if (held !== undefined) throw new Error(`the reference ${String(id)} gives its value again`);
+          out.push(`reference again ${String(references.get(id))}`);
+          break;
+        }
+        references.set(id, references.size);
+        out.push(`reference ${String(references.get(id))}`);
+        stack.push(held);
+        break;
+      }
+      default:
+        throw new Error(`a value of the kind ${String(value.kind)} has no form in the cases`);
+    }
   }
-  if (typeof value === 'string') return { kind: 'bytes', value: hex(new TextEncoder().encode(value)) };
-  if (value instanceof Uint8Array) return { kind: 'bytes', value: hex(value) };
-  if (value instanceof lib.PhpFloat) return { kind: 'float', value: floatText(value.value) };
+  return out;
+}
+
+// The canonical form of a value that the binding gives, as canonicalCase writes it: a reference and an object are
+// numbered by their identity at their first place.
+function canonicalHost(lib, top) {
+  const out = [];
+  const stack = [{ host: top }];
+  const references = new Map();
+  const objects = new Map();
   const hostKey = (key) => (typeof key === 'number' || typeof key === 'bigint' ? { int: String(key) } : caseKey(typeof key === 'string' ? key : { hex: hex(key) }));
-  if (Array.isArray(value)) return { kind: 'map', value: value.map((item, i) => [{ int: String(i) }, canonicalHost(lib, item, ids)]) };
-  if (value instanceof Map) return { kind: 'map', value: [...value].map(([key, item]) => [hostKey(key), canonicalHost(lib, item, ids)]) };
-  if (value instanceof lib.StdClass) return { kind: 'object', value: [...value.properties].map(([key, item]) => [hostKey(key), canonicalHost(lib, item, ids)]) };
-  if (value instanceof lib.Reference) {
-    const seen = ids.has(value);
-    if (!seen) ids.set(value, ids.size);
-    const id = ids.get(value);
-    return seen ? { kind: 'reference', value: { id } } : { kind: 'reference', value: { id, value: canonicalHost(lib, value.value, ids) } };
+  const pairs = (head, entries) => {
+    out.push(`${head} ${entries.length}`);
+    for (let i = entries.length - 1; i >= 0; i -= 1) stack.push({ host: entries[i][1] }, new Key(hostKey(entries[i][0])));
+  };
+  while (stack.length > 0) {
+    const place = stack.pop();
+    if (place instanceof Key) {
+      out.push(`key ${JSON.stringify(place.key)}`);
+      continue;
+    }
+    const value = place.host;
+    if (value === null) out.push('null');
+    else if (typeof value === 'boolean') out.push(`bool ${String(value)}`);
+    else if (typeof value === 'bigint') out.push(`int ${String(value)}`);
+    else if (typeof value === 'number') out.push(Number.isSafeInteger(value) && !Object.is(value, -0) ? `int ${String(value)}` : `float ${floatText(value)}`);
+    else if (typeof value === 'string') out.push(`bytes ${hex(new TextEncoder().encode(value))}`);
+    else if (value instanceof Uint8Array) out.push(`bytes ${hex(value)}`);
+    else if (value instanceof lib.PhpFloat) out.push(`float ${floatText(value.value)}`);
+    else if (Array.isArray(value)) pairs('map', value.map((item, i) => [i, item]));
+    else if (value instanceof Map) pairs('map', [...value]);
+    else if (value instanceof lib.StdClass) {
+      if (objects.has(value)) {
+        out.push(`object again ${String(objects.get(value))}`);
+      } else {
+        objects.set(value, objects.size);
+        pairs(`object ${String(objects.get(value))}`, [...value.properties]);
+      }
+    } else if (value instanceof lib.Reference) {
+      if (references.has(value)) {
+        out.push(`reference again ${String(references.get(value))}`);
+      } else {
+        references.set(value, references.size);
+        out.push(`reference ${String(references.get(value))}`);
+        stack.push({ host: value.value });
+      }
+    } else {
+      throw new Error(`the binding gave a value that is no form of php_value: ${String(value)}`);
+    }
   }
-  throw new Error(`the binding gave a value that is no form of php_value: ${String(value)}`);
+  return out;
 }
 
 // A key of the cases as the binding takes it: an integer, a text, or the bytes that are no text.
@@ -109,7 +196,7 @@ class Other {}
 const others = { callable: () => () => null, date: () => new Date(0), object: () => new Other() };
 
 // The value of the cases as the binding takes it (RQ-012): a float whose value is an integer is a PhpFloat.
-function fromCase(lib, value, references = new Map()) {
+function fromCase(lib, value, references = new Map(), objects = new Map()) {
   if ('host' in value) return others[value.host]();
   switch (value.kind) {
     case 'null':
@@ -128,18 +215,34 @@ function fromCase(lib, value, references = new Map()) {
       return value.value;
     // A list nested deeper than a JSON reader takes is {"kind": "list", "repeat": n, "value"} (binding G-5).
     case 'list': {
-      if (value.repeat === undefined) return value.value.map((item) => fromCase(lib, item, references));
-      let made = fromCase(lib, value.value, references);
+      if (value.repeat === undefined) return value.value.map((item) => fromCase(lib, item, references, objects));
+      let made = fromCase(lib, value.value, references, objects);
       for (let i = 0; i < value.repeat; i += 1) made = [made];
       return made;
     }
     case 'map':
-      return new Map(value.value.map(([key, item]) => [hostKey(key), fromCase(lib, item, references)]));
-    case 'object':
-      return new lib.StdClass(new Map(value.value.map(([key, item]) => [hostKey(key), fromCase(lib, item, references)])));
+      return new Map(value.value.map(([key, item]) => [hostKey(key), fromCase(lib, item, references, objects)]));
+    case 'object': {
+      if (value.value === undefined) {
+        if (!objects.has(value.id)) throw new Error(`the object ${String(value.id)} has no first place`);
+        return objects.get(value.id);
+      }
+      if (value.repeat !== undefined) {
+        let made = fromCase(lib, value.value, references, objects);
+        for (let i = 0; i < value.repeat; i += 1) made = new lib.StdClass(new Map([[hostKey(value.key), made]]));
+        return made;
+      }
+      const object = new lib.StdClass(new Map());
+      if (value.id !== undefined) objects.set(value.id, object);
+      for (const [key, item] of value.value) object.properties.set(hostKey(key), fromCase(lib, item, references, objects));
+      return object;
+    }
     case 'reference': {
-      if (!references.has(value.value.id)) references.set(value.value.id, new lib.Reference(fromCase(lib, value.value.value, references)));
-      return references.get(value.value.id);
+      if (references.has(value.value.id)) return references.get(value.value.id);
+      const reference = new lib.Reference();
+      references.set(value.value.id, reference);
+      reference.value = fromCase(lib, value.value.value, references, objects);
+      return reference;
     }
     default:
       throw new Error(`a value of the kind ${String(value.kind)} has no form in the cases`);

@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 7cd9f2c577f3c42675adc458e94c7a636b23ffdb349585ccd141919dc7a5bf21 -->
+<!-- source-sha256: f781a328131652a5aea971a1a8fde5206f18fe5c42796f4206f3f1bd6b9c5c37 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 손으로 쓴 case runner(`packages/python/tests/test_cases.py`, `packages/ts/tests/cases.mjs`, `packages/php-ext/tests/CasesTest.php`)가 계약 case가 이제 주는 G-5 값을 읽는다. id만으로 다시 이름 붙인 참조나 객체(자기 값 안에서도, `reference_cycle`), 첫 자리에서 id를 가진 객체(`object_repeated`), `repeat`로 준 n개의 중첩 객체(`deepest_object`), 그리고 항목의 map인 list(`repeat`로 준 n개의 중첩 list도, `deepest_array`)이다. 전에는 Python과 JavaScript runner가 비교하는 값의 kind `list`를 거부하고 참조의 모든 자리에서 그 값을 읽었으며, 모든 runner가 id나 `repeat`를 가진 객체를 거부했다. 참조와 id를 가진 객체는 첫 자리에서 빈 것으로 만들고 뒤에 채운다. 정규형은 객체를 첫 자리로 번호 매기므로, 같은 객체 두 개를 담은 값은 한 객체를 두 자리에 담은 값과 다르다. JavaScript 정규형은 반복문으로 쓴다. `deep`의 4096 단계가 재귀의 stack을 넘기 때문이다. Python runner는 그 단계를 위해 재귀 한도를 올린다. scratchpad에서 확인했다. runner가 만든 값의 정규형이 값을 가진 case 604개에서 case의 정규형과 같고(Python과 JavaScript, StdClass와 Reference는 대역 class), `CasesTest.php`가 만든 값을 PHP `serialize`한 bytes가 case 601개에서 case의 bytes와 같다. 빌드한 바인딩에 대한 실행은 end-to-end 검사가 한다.
 - 실패하지 않는 `serialize`의 각 case는 `serialize`가 쓰는 bytes를 `serialized`(`{"hex"}`)로 주고, `packages/rust/interface.json`의 `cases` 행 가운데 `contracts/php-serialize.json`의 group `cases`, `forms`, `deep`과 `contracts/host-values.json`의 `serialize`의 행은 그것을 `result`로 적는다. 그래서 바인딩의 생성 시험이 bytes를 비교한다(binding GN-13e). 전에는 생성 시험이 `serialize`를 부르기만 하고 아무것도 비교하지 않았고, 손으로 쓴 case runner만 bytes를 비교했다. Rust 계약 시험은 `serialized`가 값이 쓰는 bytes이기를 요구한다. `make test-rust`(contract case 679개)와 `make contracts-check`로 확인했다.
 - `contracts/php-serialize.json`의 `cases`, `forms`, `deep`의 모든 case가 binding의 case 규약(G-5)으로 `value`를 준다. `object_repeated`, `reference_cycle`, `deepest_object`도 그렇다. 참조는 첫 자리에서 `{"id", "value"}`, 뒤의 모든 자리에서(자기 값 안에서도) `{"id"}`이고, 값이 다시 담는 객체는 id를 가지며 뒤의 모든 자리에서 `{"kind": "object", "id"}`이며, 가장 깊은 객체는 `{"kind": "object", "repeat": 4096, "key": {"hex": "61"}, "value": {"kind": "null"}}`이다. `contracts/host-values.json`의 case `a_shared_reference_is_one_reference`는 뒤 자리를 id로 부른다. Rust 계약 시험은 id를 가진 객체를 모든 자리에서 handle 하나로, 참조의 뒤 자리를 그 id로, 되풀이되는 객체를 한 단계씩 기술하며, 모든 case에 값을 요구한다. 전에는 case 규약에 객체의 동일성, 자기 값 안의 참조, 되풀이되는 객체가 없어 세 case가 값을 주지 않았다. `make test-rust`(contract case 679개)와 `make contracts-check`로 확인했다.
 - `make bootstrap`은 `package.json`의 `devEngines`가 적은 npm을 checkout 밖에서 `--prefix`로 실행해 `@polyspec/kit`을 포함한 `package-lock.json`을 설치한다. 그래서 새 checkout은 `make bootstrap` 다음에 `make install`을 실행한다. 전에는 `make install`이 설치된 kit의 bootstrap을 실행하는 `make install-tools TOOLS=npm`으로 시작했으므로, `node_modules`가 없는 checkout에서 `MODULE_NOT_FOUND`로 실패했다. `make layout-check`가 그 target을 확인한다(`makefile-bootstraps`). 새 worktree의 `make bootstrap`과 `make layout-check`로 확인했다.

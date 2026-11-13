@@ -3,7 +3,11 @@
 PHP_SERIALIZATION_CONTRACTS is the path of contracts/, which make test-python-binding sets. A value of the cases is
 {"kind", "value"} (binding G-5, docs/spec/php-serialize.md). The runner compares a value in one canonical form on both
 sides: a key is ("int", <decimal>) or ("hex", <bytes>), an integer its decimal text, a float its repr with -0.0 kept,
-bytes and texts their hex, and a reference (id, value) numbered by its first place. A case that arms fault injection
+bytes and texts their hex, a list the map of its items under the keys 0 to n-1, and a reference (id, value) and an
+object numbered by their first place, which give their number alone at every later place. A case names a reference or
+an object again by its id alone, and gives n nested lists or objects as one with repeat (binding G-5). A reference and
+an object with an id are made empty at their first place and filled after, so that a later place inside their own
+value names them. A case that arms fault injection
 points runs armed: the runner makes the value first, arms the faults for the member with _arm_faults of the native
 module, the entry point of the feature fault-test (binding GN-5, GN-8a), calls the member at once and requires
 _fault_left to be empty after the expected failure.
@@ -14,6 +18,7 @@ import datetime
 import json
 import math
 import os
+import sys
 import unittest
 from pathlib import Path
 
@@ -21,6 +26,9 @@ import polyspec.php_serialization as lib
 from polyspec.php_serialization import _native
 
 CONTRACTS = Path(os.environ["PHP_SERIALIZATION_CONTRACTS"])
+
+# The cases of deep nest 4096 lists or objects (RQ-006), and the canonical forms recurse once or twice per level.
+sys.setrecursionlimit(20_000)
 
 
 def read(name: str) -> dict:
@@ -47,7 +55,7 @@ def case_key(key) -> tuple:
 
 
 def canonical_case(value: dict, ids: dict | None = None):
-    ids = {} if ids is None else ids
+    ids = {"references": {}, "objects": {}, "count": 0} if ids is None else ids
     kind = value["kind"]
     if kind == "null":
         return ("null",)
@@ -61,7 +69,22 @@ def canonical_case(value: dict, ids: dict | None = None):
         return ("bytes", value["value"]["hex"])
     if kind == "text":
         return ("bytes", value["value"].encode().hex())
-    if kind in ("map", "object"):
+    if kind == "list":
+        if "repeat" in value:
+            inner = (
+                {**value, "repeat": value["repeat"] - 1}
+                if value["repeat"] > 1
+                else value["value"]
+            )
+            return ("map", [(("int", "0"), canonical_case(inner, ids))])
+        return (
+            "map",
+            [
+                (("int", str(i)), canonical_case(item, ids))
+                for i, item in enumerate(value["value"])
+            ],
+        )
+    if kind == "map":
         return (
             kind,
             [
@@ -69,11 +92,47 @@ def canonical_case(value: dict, ids: dict | None = None):
                 for key, item in value["value"]
             ],
         )
+    if kind == "object":
+        if "value" not in value:
+            return ("object", ids["objects"][value["id"]])
+        number = ids["count"]
+        ids["count"] += 1
+        if "id" in value:
+            ids["objects"][value["id"]] = number
+        if "repeat" in value:
+            inner = (
+                {
+                    "kind": "object",
+                    "repeat": value["repeat"] - 1,
+                    "key": value["key"],
+                    "value": value["value"],
+                }
+                if value["repeat"] > 1
+                else value["value"]
+            )
+            return (
+                "object",
+                number,
+                [(case_key(value["key"]), canonical_case(inner, ids))],
+            )
+        return (
+            "object",
+            number,
+            [
+                (case_key(key), canonical_case(item, ids))
+                for key, item in value["value"]
+            ],
+        )
     if kind == "reference":
-        seen = value["value"]["id"] in ids
+        references = ids["references"]
+        seen = value["value"]["id"] in references
+        if seen and "value" in value["value"]:
+            raise ValueError(
+                f"the reference {value['value']['id']} gives its value again"
+            )
         if not seen:
-            ids[value["value"]["id"]] = len(ids)
-        number = ids[value["value"]["id"]]
+            references[value["value"]["id"]] = len(references)
+        number = references[value["value"]["id"]]
         return (
             ("reference", number)
             if seen
@@ -91,7 +150,7 @@ def host_key(key) -> tuple:
 
 
 def canonical_host(value, ids: dict | None = None):
-    ids = {} if ids is None else ids
+    ids = {"references": {}, "objects": {}} if ids is None else ids
     if value is None:
         return ("null",)
     if isinstance(value, bool):
@@ -118,18 +177,25 @@ def canonical_host(value, ids: dict | None = None):
             [(host_key(key), canonical_host(item, ids)) for key, item in value.items()],
         )
     if isinstance(value, lib.StdClass):
+        objects = ids["objects"]
+        if id(value) in objects:
+            return ("object", objects[id(value)][0])
+        number = len(objects)
+        objects[id(value)] = (number, value)
         return (
             "object",
+            number,
             [
                 (host_key(key), canonical_host(item, ids))
                 for key, item in value.properties.items()
             ],
         )
     if isinstance(value, lib.Reference):
-        seen = id(value) in ids
+        references = ids["references"]
+        seen = id(value) in references
         if not seen:
-            ids[id(value)] = len(ids)
-        number = ids[id(value)]
+            references[id(value)] = (len(references), value)
+        number = references[id(value)][0]
         return (
             ("reference", number)
             if seen
@@ -161,8 +227,9 @@ OTHERS = {
 }
 
 
-def from_case(value: dict, references: dict | None = None):
+def from_case(value: dict, references: dict | None = None, objects: dict | None = None):
     references = {} if references is None else references
+    objects = {} if objects is None else objects
     if "host" in value:
         return OTHERS[value["host"]]()
     kind = value["kind"]
@@ -186,24 +253,36 @@ def from_case(value: dict, references: dict | None = None):
     if kind == "list":
         # A list nested deeper than a JSON reader takes is {"kind": "list", "repeat": n, "value"} (binding G-5).
         if "repeat" in value:
-            made = from_case(value["value"], references)
+            made = from_case(value["value"], references, objects)
             for _ in range(value["repeat"]):
                 made = [made]
             return made
-        return [from_case(item, references) for item in value["value"]]
+        return [from_case(item, references, objects) for item in value["value"]]
     if kind == "map":
         return {
-            key_of(key): from_case(item, references) for key, item in value["value"]
+            key_of(key): from_case(item, references, objects)
+            for key, item in value["value"]
         }
     if kind == "object":
-        return lib.StdClass(
-            {key_of(key): from_case(item, references) for key, item in value["value"]}
-        )
+        if "value" not in value:
+            return objects[value["id"]]
+        if "repeat" in value:
+            made = from_case(value["value"], references, objects)
+            for _ in range(value["repeat"]):
+                made = lib.StdClass({key_of(value["key"]): made})
+            return made
+        made = lib.StdClass({})
+        if "id" in value:
+            objects[value["id"]] = made
+        for key, item in value["value"]:
+            made.properties[key_of(key)] = from_case(item, references, objects)
+        return made
     if kind == "reference":
         number = value["value"]["id"]
         if number not in references:
-            references[number] = lib.Reference(
-                from_case(value["value"]["value"], references)
+            references[number] = lib.Reference(None)
+            references[number].value = from_case(
+                value["value"]["value"], references, objects
             )
         return references[number]
     raise ValueError(f"a value of the kind {kind} has no form in the cases")
