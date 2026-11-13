@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 8420367de9bafa2d374a06421cb30a4e7263ba178dfd45da4e0bb04a0816d7d3 -->
+<!-- source-sha256: a9f0fcbd6d47164325b80ecf6e08267037032ed9368548e65ac618f0e862bd56 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `config/release.json`은 Go와 WASM의 binding 패키지(`packages/go/go.mod`, `packages/go/internal/ffi/Cargo.toml`, `packages/ts/wasm/Cargo.toml`)를 다른 binding 패키지와 같은 이유로 release하지 않는 것으로 적는다. 전에는 binding scaffold가 두 target에 쓰는 패키지 파일 셋이 분류되지 않아 `make release-coverage`가 실패했다.
 - `scripts/binding.mts`는 Cargo의 metadata를 unknown JSON으로 읽고 검사로 좁힌다. 전에는 읽은 metadata의 타입을 단언했고, `make lint-ts`가 `scripts/binding.mts:17`에서 oxlint 규칙 `no-unsafe-type-assertion`으로 실패했다.
 - kind `internal`이 자기 case를 갖는다(binding CK-22, X-1; RQ-014). 어떤 입력도 그 kind에 닿지 않으므로, crate는 `serialize`에서 열린 배열이나 객체를 값에서 찾는 자리에 결함 주입점 `php_serialization.internal`(`fault::INTERNAL`)을 두고, 계약은 그 점을 `faults`에 적는다(inject `broken`, fills `internal`). `contracts/host-values.json`의 group `serialize`의 case `a_broken_invariant_is_internal`은 그 점을 arm하고 category `internal`의 `internal`을 낸다. Rust 계약 시험은 생성된 binding 시험처럼 그 점을 arm하고, 터지지 않은 결함을 실패시킨다. crate는 `polyspec-binding-core`의 feature를 켜는 feature `fault-test`를 가지며, Python, Node, PHP의 binding crate는 binding scaffold가 쓰는 대로 그 feature를 켠다. crate의 시험은 `polyspec-binding-core`에 대한 dev-dependency로 그 feature를 켜고, Cargo는 정확한 고정 하나에 release 하나만 고르므로 dev-dependency `serde_json`도 이제 `polyspec-binding-core`의 `serde_json =1.0.154`를 받는다. 계약 검사는 CK-22의 finding 셋, 곧 `serialize`와 `StdClass`, `Reference`의 constructor의 kind `depth`를 그대로 낸다: 입력이 그 kind에 닿지만 binding의 case 규약에 4097단계로 중첩된 값의 형식이 없고, 결함 주입점은 입력이 닿지 않는 kind만 낼 수 있다. CK-8 `go has no built-in keyed_map value`도 그대로 낸다.
 - 계약이 binding의 다섯 target을 적는다(BD-27): `packages/rust/interface.json`의 `targets`는 php, python, node, go, wasm이고, `packages.go`는 Go 모듈 `github.com/polyspec/php-serialization/packages/go`를 적으며, npm 패키지의 entry `.`는 조건 `{node: napi, browser: wasm}`을 받고, 각 오류 클래스는 WASM 클래스로 Node의 것을 적으며, `errors.fixed`는 Node처럼 WASM에도 `TypeError`를 적는다. `php_value`의 값 표에 WASM의 행(Node의 것)과 Go의 행이 더해진다: 들어오는 `nil`, `bool`, `int64`, `float64`, `string`, `[]byte`, `[]any`, `map[string]any`, `StdClass`, `Reference`, 그리고 나가는 내장 형태와 key가 0부터 n-1이 아닌 배열의 `keyed_map`이다(RQ-012, RQ-013). `PhpFloat`는 Node와 WASM의 클래스이고, `StdClass`와 `Reference`는 Node, Python, Go, WASM의 클래스다. 전에는 계약이 php, python, node만 적어 Go와 WASM 바인딩이 생성되지 않았다. 바인딩 패키지에 binding scaffold가 두 target을 위해 쓰는 것(`packages/go`, `packages/ts/wasm`, `packages/ts/package.json`의 브라우저 exports)이 더해지고, 두 crate가 workspace의 member가 되며, `config/owner-checks.json`은 `packages/go/**`를 `bindings-check`에 맡긴다. 계약 검사에 finding 하나가 더해진다, CK-8: Go에는 내장 `keyed_map`이 없어 Go 바인딩이 생성되지 않는다. 전부터 있던 CK-22 finding 넷은 그대로다(`serialize`, `StdClass`, `Reference`의 case 가운데 `depth`를 내는 것이 없고, `php_serialization.internal`을 broken으로 켜는 case가 없다, X-1).
