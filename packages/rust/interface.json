@@ -431,6 +431,7 @@
               "type": {
                 "keyed_map": "php_value",
                 "key": [
+                  "int",
                   "text",
                   "bytes"
                 ]
@@ -459,6 +460,7 @@
           "returns": {
             "keyed_map": "php_value",
             "key": [
+              "int",
               "text",
               "bytes"
             ]

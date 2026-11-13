@@ -211,6 +211,21 @@
    ]
   },
   {
+   "id": "an_integer_name_is_its_decimal_text",
+   "rule": "RQ-012",
+   "properties": [
+    [
+     {
+      "int": 5
+     },
+     {
+      "kind": "int",
+      "value": 1
+     }
+    ]
+   ]
+  },
+  {
    "id": "a_property_name_with_nul_is_refused",
    "rule": "RQ-009",
    "properties": [
