@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: b583a8d8702d969bf2e9cf5b5d78539f75ada09207479d263e4ae6888c8f3715 -->
+<!-- source-sha256: bd5c19d3d65a1ffbfa0d517d521e240491862488211f02bfbf938c1dc9c0b87f -->
 # PHP serialize 계약
 
 [English](php-serialize.md)

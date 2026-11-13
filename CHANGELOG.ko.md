@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 4fca3ce67feed8ca05bf79636d409b62ab6c0d107806af7e46e61b2c385a6aec -->
+<!-- source-sha256: a4671b3e67a784c63ebb85de7e52d6a72e1237e49ea216c2a2115ff1b4c90106 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `StdClass`의 constructor와 `serialize`는 정수 속성 이름을 받아 그 속성을 십진 문자열로 부른다. PHP가 `(object) [1 => 'a']`의 속성을 그렇게 부르고, 그 값은 `O:8:"stdClass":1:{s:1:"1";s:1:"a";}`로 직렬화된다(RQ-012). `packages/rust/interface.json`에서 `std_class`의 속성 key는 `int`, `text`, `bytes`이고, `contracts/host-values.json`의 case `an_integer_name_is_its_decimal_text`가 그것을 담는다. 전에는 core가 정수 이름을 `unsupported_value`로 거부했으므로, 언어가 정수 key로 가진 `StdClass`는 변환되지 않았다. `make test-rust`(contract case 679개)로 확인했다.
 - `Cargo.toml`의 workspace는 `unsafe_code`를 forbid했다. 그래서 binding scaffold가 쓰는, FFI 때문에 `src/lib.rs`에서 `unsafe_code`를 allow하는 바인딩 crate는 E0453(`allow(unsafe_code) incompatible with previous forbid`)으로 컴파일되지 않았고, `make lint-bindings`는 통과할 수 없었다. 이제 workspace는 다른 레포처럼 `unsafe_code`를 deny하고, 코어 crate는 `packages/rust/src/lib.rs`에 `#![forbid(unsafe_code)]`를 유지한다. `make layout-check`가 둘을 확인한다. 모든 `Cargo.toml`을 `config/cargo.schema.json`에 대어 보고(`lint-cargo-lints`), 코어의 forbid를 본다(`core-forbids-unsafe`). `make layout-check`로 확인했다.
 - contract case가 담지 않은 legacy 패키지의 시험이 바인딩에서 실행된다(T2.3). `make test-node`가 `api.test.mjs`로, `make test-wasm`이 `api.wasm.test.mjs`로 실행하는 `packages/ts/tests/api.mjs`와, `make test-python-binding`이 실행하는 `packages/python/tests/test_api.py`가 `legacy/packages/js/tests/api.test.mjs`와 `legacy/packages/python/tests/test_api.py`의 만든 값, 거부되는 속성 이름, 표현할 수 없는 값, 큰 record를 같은 bytes로 담는다. 거부는 그 category의 class와 kind다(RQ-010). `PhpSerializationValueError`(`RangeError`) 또는 `PHPSerializationValueError`(`ValueError`)에 `property_name`, `invalid_text`, `unsupported_value`, `int_range`, `depth`이며, legacy 패키지는 그 자리에서 `TypeError`, `RangeError`, `ValueError`, `UnicodeEncodeError`, `OverflowError`를 냈다. legacy 시험의 group forms, deep, rejected, stricter, cases는 case runner가 이미 실행하는 contract case다. 이 시험은 아직 실행되지 않는다. binding이 class unit `php_float`, `std_class`, `reference`(only와 native)의 생성을 거부하기 때문이다.
 - core의 시험이 feature `fault-test`를 켠 core 자신에 의존한다(`packages/rust/Cargo.toml`의 `[dev-dependencies]`). 그래서 `cargo test -p polyspec-php-serialization`은 flag 없이 case `a_broken_invariant_is_internal`의 결함 주입점을 걸고, `make test-rust`는 feature를 넘기지 않는다. 전에는 binding의 end-to-end 검사가 실행하는 core의 `cargo test`가 binding 49a4e97에서 그 case를 실패시켰다. 그 주입점은 그것을 쓰는 crate의 feature로만 살아 있기 때문이다(binding GN-5). `make test-rust`(contract case 678개)로 확인했다.
