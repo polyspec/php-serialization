@@ -178,14 +178,16 @@
   {
    "id": "one",
    "rule": "RQ-008",
-   "value": 1.0
+   "value": 1.0,
+   "result": 1.0
   }
  ],
  "php_float.value_of": [
   {
    "id": "negative_zero",
    "rule": "RQ-008",
-   "value": -0.0
+   "value": -0.0,
+   "result": -0.0
   }
  ],
  "std_class.constructor": [
@@ -311,6 +313,15 @@
       "value": 1
      }
     ]
+   ],
+   "result": [
+    [
+     "a",
+     {
+      "kind": "int",
+      "value": 1
+     }
+    ]
    ]
   }
  ],
@@ -390,6 +401,10 @@
    "id": "the_value_is_kept",
    "rule": "RQ-008",
    "value": {
+    "kind": "int",
+    "value": 1
+   },
+   "result": {
     "kind": "int",
     "value": 1
    }
