@@ -46,7 +46,7 @@ pub fn serialize(value: &PhpValue) -> Result<Vec<u8>, Error> {
             what: "an open array or object names no part of the value",
         };
         // RQ-014: the fault injection point imitates an open array or object that names no part of the value.
-        if binding_core::fault::point(crate::fault::INTERNAL).is_some() {
+        if binding_core::fault::point!(crate::fault::INTERNAL).is_some() {
             return Err(missing());
         }
         match open {
