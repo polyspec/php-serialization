@@ -4,9 +4,11 @@
 resolver = "2"
 members = ["packages/rust", "packages/python", "packages/ts", "packages/ts/wasm", "packages/php-ext", "packages/go/internal/ffi"]
 
+# The binding crates need unsafe code for their FFI, so the workspace denies it and each site allows it with its reason;
+# the core crate forbids it in packages/rust/src/lib.rs (config/cargo.schema.json).
 [workspace.lints.rust]
 warnings = "deny"
-unsafe_code = "forbid"
+unsafe_code = "deny"
 unused_must_use = "deny"
 
 # R-1: no unwrap or expect, no discarded result, and every allow names its rule id; clippy.toml of the root disallows the
