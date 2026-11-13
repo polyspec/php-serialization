@@ -14,21 +14,26 @@ import { existsSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const metadata = JSON.parse(
+// The metadata is read as unknown JSON and narrowed by checks (K157, K158).
+const metadata: unknown = JSON.parse(
   execFileSync('cargo', ['metadata', '--format-version', '1', '--locked', '--manifest-path', join(root, 'Cargo.toml')], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'inherit'],
     // The metadata of a workspace with the binding crates passes the default buffer of one megabyte.
     maxBuffer: 1 << 28,
   }),
-) as { packages: { name: string; source: string | null; manifest_path: string }[] };
-const core = metadata.packages.find((p) => p.name === 'polyspec-binding-core');
-if (core === undefined || core.source === null) throw new Error('Cargo.lock has no Git dependency polyspec-binding-core');
-const commit = /#([0-9a-f]{40})$/.exec(core.source)?.[1];
-if (commit === undefined) throw new Error(`polyspec-binding-core has no pinned commit: ${core.source}`);
+);
+const packages: unknown = typeof metadata === 'object' && metadata !== null && 'packages' in metadata ? metadata.packages : undefined;
+if (!Array.isArray(packages)) throw new Error('cargo metadata gave no list of packages');
+const core: unknown = packages.find((p: unknown) => typeof p === 'object' && p !== null && 'name' in p && p.name === 'polyspec-binding-core');
+const source: unknown = typeof core === 'object' && core !== null && 'source' in core ? core.source : undefined;
+const manifestPath: unknown = typeof core === 'object' && core !== null && 'manifest_path' in core ? core.manifest_path : undefined;
+if (typeof source !== 'string' || typeof manifestPath !== 'string') throw new Error('Cargo.lock has no Git dependency polyspec-binding-core');
+const commit = /#([0-9a-f]{40})$/.exec(source)?.[1];
+if (commit === undefined) throw new Error(`polyspec-binding-core has no pinned commit: ${source}`);
 
 // The crate is packages/core/rust of the binding repository; the tool is packages/ts beside it.
-const checkout = resolve(dirname(core.manifest_path), '../../..');
+const checkout = resolve(dirname(manifestPath), '../../..');
 const tool = join(root, 'var/binding', commit);
 const packageDir = join(tool, 'packages/ts');
 if (!existsSync(join(packageDir, 'node_modules'))) {
