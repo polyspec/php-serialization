@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 01d33414505f342e7c1e8653d1957e3e0dadbbd9516c0a5b1420ea36c5b60d01 -->
+<!-- source-sha256: c5d6f9564418bf447acb390108f8f10cf1cb792ecba1ed01ca9899e12b3614ac -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -30,6 +30,7 @@
 - G-5: `contracts/php-serialize.json`의 `value`에서 JavaScript의 안전 정수(-(2^53 - 1)부터 2^53 - 1) 밖의 정수는 그 10진 텍스트이며, `make contracts`가 case 48개의 값 51개를 그렇게 씁니다. 언어의 JSON reader는 그런 수를 반올림할 수 있습니다. Rust contract 시험은 그 텍스트를 읽고, 범위 밖의 수와 범위 안의 텍스트를 거부합니다. 정수 key `{"int"}`는 수로 남습니다.
 - RQ-012: `contracts/host-values.json`에 값 자체의 case인 group `php_value`가 생겼습니다. `from_host`가 거부하는 값 다섯 개이며, 함수·date·다른 class의 instance(`{"host": <종류>}`)는 `unsupported_value`, 64-bit 밖의 정수(10진 텍스트)는 `int_range`입니다. Rust contract 시험이 이 case를 실행합니다. `Cargo.lock`이 고정한 binding에 값의 case가 없어 인터페이스 계약은 이 group을 연결하지 않습니다. `invalid_text`와 `depth`의 case는 없습니다: case 규약에 짝 없는 surrogate를 가진 텍스트의 형식이 없고, 4097단계로 중첩된 값은 JSON reader가 기본으로 받는 깊이보다 깊습니다.
 - 한국어 문서 `AGENTS.ko.md`, `README.ko.md`, `CHANGELOG.ko.md`, `docs/plans/rust-core/plan.ko.md`는 그 영어 문서가 말하는 것을 말하고, `source-sha256`이 그 영어 문서의 sha256이 아니던 한국어 문서 여섯 개는 그 sha256을 가집니다: 그 네 문서와 `docs/plans/rust-core/checklist.ko.md`, `packages/rust/README.ko.md`입니다(T2.1).
+- CK-20: `Cargo.lock`은 값 alias, 실패 주입, 오류 unit의 생성기를 한 개발 줄기에 가진 binding을 고정하고, 바인딩 package는 그 scaffold가 쓰는 것이다. 각 바인딩 crate는 `polyspec-binding-core`를 feature `construct`와 `lock`과 함께 받고, lock에는 `polyspec-binding-core`의 의존으로 `tokio`가 더해진다. `make bindings-check`는 여전히 실패하며, 7건이던 CK-22 지적이 4건이 되었고, 그 때문에 `make bindings`는 아무것도 쓰지 않는다. `serialize`와 `StdClass`, `Reference`의 constructor에서 kind `depth`를 내는 case가 없고, 1건은 실패 주입점 `php_serialization.internal`을 `broken`으로 장전하는 case를 요구한다. 계약은 실패 주입점을 선언하지 않고 crate에도 없다.
 
 ## 0.0.6
 
