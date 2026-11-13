@@ -270,10 +270,7 @@
             "polyspec_php_serialization::Error::PropertyName",
             "polyspec_php_serialization::Error::NestedReference",
             "polyspec_php_serialization::Error::TopReference",
-            "polyspec_php_serialization::Error::Internal",
-            "polyspec_php_serialization::Error::UnsupportedValue",
-            "polyspec_php_serialization::Error::InvalidText",
-            "polyspec_php_serialization::Error::IntRange"
+            "polyspec_php_serialization::Error::Internal"
           ],
           "wait": "none",
           "core": {
@@ -408,9 +405,6 @@
             }
           ],
           "raises": [
-            "polyspec_php_serialization::Error::UnsupportedValue",
-            "polyspec_php_serialization::Error::InvalidText",
-            "polyspec_php_serialization::Error::IntRange",
             "polyspec_php_serialization::Error::Depth",
             "polyspec_php_serialization::Error::PropertyName",
             "polyspec_php_serialization::Error::NestedReference",
@@ -475,9 +469,6 @@
             }
           ],
           "raises": [
-            "polyspec_php_serialization::Error::UnsupportedValue",
-            "polyspec_php_serialization::Error::InvalidText",
-            "polyspec_php_serialization::Error::IntRange",
             "polyspec_php_serialization::Error::Depth",
             "polyspec_php_serialization::Error::PropertyName",
             "polyspec_php_serialization::Error::NestedReference",

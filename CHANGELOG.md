@@ -25,6 +25,7 @@
 - RQ-013: a question to `to_host` about a part that the value does not hold, which no binding asks, panics with RQ-013 and the handle instead of answering null, and a count that does not fit in `u64` panics instead of becoming the largest `u64`; a binding turns the panic into the kind `internal` (B-7).
 - `Cargo.lock` pins binding at 9de9d03, the commit that every repository of the library family pins (CK-20); its scaffold writes the same binding packages.
 - RQ-012: the specification states that `unsupported_value`, `invalid_text` and `int_range` of a value of a language are kinds of the value `php_value`, which reach every member that takes one, and that the `raises` of a member names the kinds that its function of the crate returns; `depth` arises in both places.
+- RQ-012: the `raises` of `serialize` and of the constructors of `StdClass` and `Reference` in `packages/rust/interface.json` no longer name `unsupported_value`, `invalid_text` and `int_range`, the kinds of the value `php_value`; `depth` stays. `make bindings-check` reports 7 findings instead of 16: no case raises `depth` for the three members, and no case raises `internal` for the four members that name it.
 
 ## 0.0.6
 
