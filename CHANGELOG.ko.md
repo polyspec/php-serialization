@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 1a7ad1e75f2c6c4c8b88ba72007a2a5daa6a3fb88e2e2e53513ed134845b7ea2 -->
+<!-- source-sha256: 89228647a20c394fe1c62d6d83cfafa7d194b93f7bbacbb9fd4ea939505738ee -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- API의 Python 시험과 Node 시험(`packages/python/tests/test_api.py`, `packages/ts/tests/api.mjs`)은 만든 값과 거부되는 값을 반복문 하나가 도는 표로 쓰고, 큰 record를 index의 함수로 쓴다. 그래서 그 시험이 옮겨 온 legacy 시험과 같은 여섯 줄짜리 코드가 없고 `make duplication-check`가 통과한다. 전에는 이 시험들과 `legacy/packages/js/tests/api.test.mjs`, `legacy/packages/python/tests/test_api.py` 사이에서 복제 세 개를 찾았다. 각 값은 그 bytes나 kind를 그대로 둔다. `make duplication-check`(복제 0개), `make lint-ts`, ruff로 확인했다. 시험 자체는 빌드된 바인딩이 있어야 하므로 여기서 실행하지 않았다.
 - `make binding-features-test`(공유 CI group의 target)는 Makefile과 manifest의 복사본에서 바인딩 recipe의 dry run을 읽고, 각 바인딩 crate가 그 manifest의 feature 전부로 빌드되고 workspace가 그 합집합으로 lint되기를 요구한다. recipe가 manifest의 feature를 쓰기 전의 Makefile에서는 실패한다: `make test-python-binding builds packages/python/Cargo.toml with the features panic-test,fault-test, its manifest declares codec-test,fault-test,panic-test`. knip은 `make`를 어느 package도 설치하지 않는 기계의 binary로 적는다.
 - `unserialize`의 group `cases`, `forms`, `deep` 행은 `value`를 결과로 적는다. 그래서 바인딩의 생성 시험이 `unserialize`가 주는 값을 각 case의 값과 그 형태, 동일성, 순환까지 비교한다(binding GN-13e). 전에는 case 601개에서 `unserialize`를 부르기만 하고 아무것도 비교하지 않았다. 계약 시험은 `unserialize`와 `serialize`의 각 행이 결과의 키를 적기를 요구한다. `make test-rust`(trial 681개)와 binding의 생성으로 확인했으며, 네 target의 생성 시험에는 비교하지 않는다는 이유로 실패하는 시험이 없다.
 - 인터페이스 계약이 `contracts/host-values.json`의 group `php_value`를 alias `php_value`에 연결한다. alias는 그 case의 kind인 `int_range`와 `unsupported_value`를 `in_raises`로 적으므로, 바인딩의 생성 시험이 그 다섯 case를 alias의 in 함수로 실행한다(binding U-7, GN-13). 바인딩 crate의 manifest는 binding scaffold가 그것을 위해 쓰는 feature를 가진다. 각 crate에 `codec-test`, 그리고 64비트 밖의 정수가 PHP에서 꼴을 갖지 않는 PHP 확장에 `case-test`다. 전에는 `cases`의 어느 행도 그 group을 적지 않아 그 case가 Rust 계약 시험에서만 실행되었다. 계약 시험은 case 파일의 모든 group에 행을 요구한다. `make test-rust`(trial 680개), `make contracts-check`, `binding check`로 확인했다.
