@@ -242,6 +242,14 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
                 Err(failure) => check_failure(Err(failure), entry),
             }
         }
+        // The cases of the value php_value itself: from_host refuses the value with the kind (RQ-012).
+        "php_value" => {
+            if entry.get("raises").is_none() {
+                return Err("a case of the value names no raises".into());
+            }
+            let top = host.describe(given("value")?)?;
+            check_failure(from_host(&mut host, top).map(drop), entry)
+        }
         "php_float.constructor" | "php_float.value" | "php_float.value_of" => {
             let value = given("value")?.as_f64().ok_or("value is no float")?;
             let made = PhpFloat::new(value).value();

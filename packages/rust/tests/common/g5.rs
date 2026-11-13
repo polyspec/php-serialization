@@ -120,6 +120,9 @@ pub struct Host {
 impl Host {
     /// Describes one level of a value of G-5.
     pub fn describe(&mut self, value: &Value) -> Result<HostValue, String> {
+        if let Some(sort) = value.get("host") {
+            return self.foreign(sort);
+        }
         let content = || {
             value
                 .get("value")
@@ -156,6 +159,22 @@ impl Host {
             }
             _ => return Err(format!("{value} has no kind of php_value")),
         })
+    }
+
+    /// A value of a language that is no value of PHP, `{"host": <sort>}`, as a binding describes it.
+    fn foreign(&mut self, sort: &Value) -> Result<HostValue, String> {
+        self.nodes.push(sort.clone());
+        let handle = Handle::new(length(self.nodes.len() - 1));
+        match sort.as_str() {
+            Some("callable") => Ok(HostValue::Callable(handle)),
+            Some("date") => Ok(HostValue::Date(handle)),
+            Some("object") => Ok(HostValue::Object {
+                handle,
+                type_name: String::from("Other"),
+                json_serializable: false,
+            }),
+            _ => Err(format!("{sort} is no sort of a value of a language")),
+        }
     }
 
     /// The properties of a std_class as the binding gives them: a keyed map of the pairs.
