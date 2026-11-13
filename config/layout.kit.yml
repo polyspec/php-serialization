@@ -292,3 +292,12 @@ rules:
     paths: "packages/rust/src/lib.rs"
     pattern: '(?m)^#!\[forbid\(unsafe_code\)\]$'
     message: "the core crate says #![forbid(unsafe_code)] in packages/rust/src/lib.rs"
+
+  # A fresh checkout installs package-lock.json, @polyspec/kit included, with the npm that devEngines names before any
+  # tool of the checkout exists, since install-tools TOOLS=npm runs the bootstrap of the installed kit.
+  - id: makefile-bootstraps
+    kind: file_content_matches
+    level: error
+    paths: "Makefile"
+    pattern: '(?m)^bootstrap: ## .*\n\troot="\$\$PWD"; version="\$\$\(node -p ''require\("\./package\.json"\)\.devEngines\.packageManager\.version''\)"; \\\n\tcd "\$\$\{TMPDIR:-/tmp\}" && npm_config_cache="\$\$root/var/bootstrap/npm-cache" "\$\(BOOTSTRAP_NPM\)" exec --yes --package="npm@\$\$version" -- npm --prefix "\$\$root" ci --ignore-scripts$'
+    message: "the Makefile has the target bootstrap, which installs package-lock.json with the npm of devEngines"
