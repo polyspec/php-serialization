@@ -88,10 +88,28 @@ fn given_value(entry: &Value, value: &PhpValue, written: &str) -> Result<(), Fai
     if base64(&bytes) != written {
         return Err(format!("the value of G-5 wrote {}", String::from_utf8_lossy(&bytes)).into());
     }
+    serialized(entry, &bytes)?;
     // RQ-013, U-1: to_host describes the value of the bytes as the case does, and a value that from_host took goes
     // back to the language unchanged.
     same_out(value, argument, "the value of the bytes")?;
     same_out(&taken, argument, "the value that from_host took")?;
+    Ok(())
+}
+
+/// The result of serialize that a case gives, `serialized` in the form of G-5, which the generated tests of the
+/// bindings compare (GN-13e): the bytes that the value writes.
+fn serialized(entry: &Value, bytes: &[u8]) -> Result<(), Failed> {
+    let given = hex(entry
+        .get("serialized")
+        .ok_or("the case gives no serialized")?)?;
+    if given != bytes {
+        return Err(format!(
+            "serialized is {}, the value writes {}",
+            String::from_utf8_lossy(&given),
+            String::from_utf8_lossy(bytes)
+        )
+        .into());
+    }
     Ok(())
 }
 
@@ -360,6 +378,10 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
             match from_host(&mut host, top) {
                 Ok(value) => {
                     check_failure(Ok(()), entry)?;
+                    serialized(
+                        entry,
+                        &serialize(&value).map_err(|error| error.to_string())?,
+                    )?;
                     // RQ-013, U-1: a value that the format takes goes back to the language unchanged.
                     same_out(&value, given("value")?, "the value that from_host took")
                 }
