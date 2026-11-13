@@ -88,6 +88,7 @@ $reference = [1];
 $cycle = [];
 $cycle['self'] = &$cycle;
 $scalar = 7;
+$one = 1;
 
 $values = [
     'null' => null, 'true' => true, 'false' => false,
@@ -119,6 +120,7 @@ $values = [
     'reference_array' => [&$reference, &$reference, 'x'],
     'reference_scalar' => [&$scalar, 'x', &$scalar],
     'reference_cycle' => $cycle,
+    'reference_shared_int' => [&$one, &$one],
     'array_nul_key' => ["\0a" => 1, "\0" => 2], 'object_empty_name' => (object) ['' => 1],
     'session_like' => ['user' => ['id' => 1, 'name' => '홍길동', 'score' => 1.0, 'tags' => ['a', 'b'], 'meta' => new stdClass()], 'csrf' => str_repeat('a', 64), 'at' => 1793653509],
 ];
@@ -194,6 +196,15 @@ function randomString(): string {
 }
 
 for ($index = 0; $index < 500; $index++) $cases[] = record("random_value_$index", serialize(randomValue(4)));
+// The bytes that PHP writes back for a form are a case of their own, unless a case or a form already holds them, so the
+// generated tests read what serialize writes as unserialize reads it (binding GN-13e).
+$held = [...array_column($cases, 'bytes'), ...array_column($normal, 'bytes')];
+foreach ($forms as $id => $bytes) {
+    $written = serialize(unserialize($bytes, ['allowed_classes' => ['stdClass']]));
+    if (in_array(base64_encode($written), $held, true)) continue;
+    $cases[] = record("{$id}_written", $written);
+    $held[] = base64_encode($written);
+}
 
 // The deepest arrays and objects that PHP reads, without a tree because the tree nests as deep.
 $depth = 4096;
