@@ -1,5 +1,5 @@
 {
- "comment": "The values of a language that the format refuses or takes (RQ-008, RQ-009, RQ-012), and the classes of php_value, which no PHP writes: one group per member of packages/rust/interface.json in the case convention of binding (G-5). A value of php_value is {\"kind\", \"value\"}: bytes are {\"hex\"}, a map and an object are [key, value] pairs, a key is a text, {\"int\"} or {\"hex\"}, and a reference is {\"id\", \"value\"}, and a list nested deeper than a JSON reader takes is {\"kind\": \"list\", \"repeat\": n, \"value\"}: n lists, each the one item of the one around it, the innermost holding the value (RQ-006). A failure is raises: its kind and category (RQ-010). A value that the format takes is also what to_host gives back for it (RQ-013, U-1). The group php_value holds the cases of the value itself, which the interface contract does not link yet: a value that from_host refuses and the kind of the refusal. {\"host\": <sort>} is a value of a language that is no value of PHP (callable, date, object), and an integer outside the safe integers of JavaScript is its decimal text.",
+ "comment": "The values of a language that the format refuses or takes (RQ-008, RQ-009, RQ-012), and the classes of php_value, which no PHP writes: one group per member of packages/rust/interface.json in the case convention of binding (G-5). A value of php_value is {\"kind\", \"value\"}: bytes are {\"hex\"}, a map and an object are [key, value] pairs, a key is a text, {\"int\"} or {\"hex\"}, and a reference is {\"id\", \"value\"}, and a list nested deeper than a JSON reader takes is {\"kind\": \"list\", \"repeat\": n, \"value\"}: n lists, each the one item of the one around it, the innermost holding the value (RQ-006). A failure is raises: its kind and category (RQ-010). A value that the format takes is also what to_host gives back for it (RQ-013, U-1). The group php_value holds the cases of the value itself, which the interface contract links to the alias php_value (U-7): a value that from_host refuses and the kind of the refusal. {\"host\": <sort>} is a value of a language that is no value of PHP (callable, date, object), and an integer outside the safe integers of JavaScript is its decimal text.",
  "serialize": [
   {
    "id": "a_top_reference_is_refused",
@@ -83,6 +83,9 @@
   {
    "id": "a_shared_reference_is_one_reference",
    "rule": "RQ-008",
+   "serialized": {
+    "hex": "613a323a7b693a303b693a313b693a313b523a323b7d"
+   },
    "value": {
     "kind": "map",
     "value": [
@@ -108,11 +111,7 @@
       {
        "kind": "reference",
        "value": {
-        "id": 0,
-        "value": {
-         "kind": "int",
-         "value": 1
-        }
+        "id": 0
        }
       }
      ]
@@ -178,14 +177,16 @@
   {
    "id": "one",
    "rule": "RQ-008",
-   "value": 1.0
+   "value": 1.0,
+   "result": 1.0
   }
  ],
  "php_float.value_of": [
   {
    "id": "negative_zero",
    "rule": "RQ-008",
-   "value": -0.0
+   "value": -0.0,
+   "result": -0.0
   }
  ],
  "std_class.constructor": [
@@ -206,6 +207,21 @@
      },
      {
       "kind": "null"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "an_integer_name_is_its_decimal_text",
+   "rule": "RQ-012",
+   "properties": [
+    [
+     {
+      "int": 5
+     },
+     {
+      "kind": "int",
+      "value": 1
      }
     ]
    ]
@@ -296,6 +312,15 @@
       "value": 1
      }
     ]
+   ],
+   "result": [
+    [
+     "a",
+     {
+      "kind": "int",
+      "value": 1
+     }
+    ]
    ]
   }
  ],
@@ -375,6 +400,10 @@
    "id": "the_value_is_kept",
    "rule": "RQ-008",
    "value": {
+    "kind": "int",
+    "value": 1
+   },
+   "result": {
     "kind": "int",
     "value": 1
    }

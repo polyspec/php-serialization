@@ -271,6 +271,17 @@ fn objects_keep_their_identity() -> Result<(), Failure<Error>> {
         Lang::Null,
     ];
     assert_eq!(kind(written(name, Numbers::Typed)), Some("property_name"));
+    // An integer name is its decimal text, as PHP gives the integer key of an array cast to an object.
+    for (key, numbers) in [
+        (Lang::Int(5), Numbers::Typed),
+        (Lang::Float(5.0), Numbers::Untyped),
+    ] {
+        let integer = vec![Lang::StdClass(vec![(1, 2)]), key, Lang::Text("a")];
+        assert_eq!(
+            written(integer, numbers)?,
+            "O:8:\"stdClass\":1:{s:1:\"5\";s:1:\"a\";}"
+        );
+    }
     Ok(())
 }
 
@@ -375,14 +386,15 @@ fn constructors() {
     properties.insert(Key::Text(String::from("a")), HostValue::Int(1));
     properties.insert(Key::Bytes(vec![0xff]), HostValue::Null);
     assert!(check_std_class(&mut host, Some(properties)).is_ok());
-    for key in [Key::Int(1), Key::Bytes(b"\0a".to_vec())] {
-        let mut properties = KeyedMap::new();
-        properties.insert(key, HostValue::Null);
-        assert!(matches!(
-            check_std_class(&mut host, Some(properties)),
-            Err(Failure::Kind(_))
-        ));
-    }
+    let mut properties = KeyedMap::new();
+    properties.insert(Key::Int(1), HostValue::Null);
+    assert!(check_std_class(&mut host, Some(properties)).is_ok());
+    let mut properties = KeyedMap::new();
+    properties.insert(Key::Bytes(b"\0a".to_vec()), HostValue::Null);
+    assert!(matches!(
+        check_std_class(&mut host, Some(properties)),
+        Err(Failure::Kind(_))
+    ));
     assert!(check_reference(&mut host, None).is_ok());
     assert!(check_reference(&mut host, Some(HostValue::Int(1))).is_ok());
     let reference = HostValue::Value {

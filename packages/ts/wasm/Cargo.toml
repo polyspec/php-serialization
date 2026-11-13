@@ -14,6 +14,7 @@ crate-type = ["cdylib"]
 [features]
 panic-test = []
 fault-test = ["polyspec-php-serialization/fault-test"]
+codec-test = []
 
 [dependencies]
 polyspec-php-serialization = { path = "../../rust" }

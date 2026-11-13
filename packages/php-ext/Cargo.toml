@@ -16,7 +16,9 @@ doctest = false
 
 [features]
 panic-test = []
+case-test = []
 fault-test = ["polyspec-php-serialization/fault-test"]
+codec-test = []
 
 [dependencies]
 polyspec-php-serialization = { path = "../rust" }

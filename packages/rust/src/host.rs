@@ -26,12 +26,13 @@ pub fn from_host(host: &mut dyn HostValues, value: HostValue) -> Result<PhpValue
 }
 
 /// The judgement of the properties that the constructor of the language class `StdClass` takes (RQ-012): each name is a
-/// string that does not start with U+0000 (RQ-009) and each value is a value of PHP. The language object keeps the
-/// properties that it was given, a field of the object; none is the empty map.
+/// string that does not start with U+0000 (RQ-009) and each value is a value of PHP; an integer name is its decimal
+/// text, as PHP names the property of `(object) [1 => 'a']`. The language object keeps the properties that it was
+/// given, a field of the object; none is the empty map.
 ///
 /// # Errors
 ///
-/// As [`from_host`], and `unsupported_value` for a name that is an integer.
+/// As [`from_host`].
 pub fn check_std_class(
     host: &mut dyn HostValues,
     properties: Option<KeyedMap<HostValue>>,
@@ -48,7 +49,7 @@ pub fn check_std_class(
         let name = match key {
             binding_core::Key::Text(text) => text.into_bytes(),
             binding_core::Key::Bytes(bytes) => bytes,
-            binding_core::Key::Int(_) => return Err(Failure::Kind(Error::UnsupportedValue)),
+            binding_core::Key::Int(number) => number.to_string().into_bytes(),
         };
         walk.place(value, Slot::Property(object, name))?;
         walk.drain()?;
@@ -186,11 +187,16 @@ impl<'h> Walk<'h> {
         }
     }
 
-    /// The name of a property of a key of the language: a string (RQ-004, RQ-012).
+    /// The name of a property of a key of the language: a string, and an integer as its decimal text (RQ-004, RQ-012).
     fn name(&self, key: HostValue) -> Result<Vec<u8>, Failure<Error>> {
         match key {
             HostValue::Text(text) => bytes_of_text(text),
             HostValue::Bytes(bytes) => Ok(bytes),
+            HostValue::Int(number) => Ok(number.to_string().into_bytes()),
+            HostValue::UntypedNumber(number) => match integer_of_number(number) {
+                Some(integer) => Ok(integer.to_string().into_bytes()),
+                None => Err(Failure::Kind(Error::UnsupportedValue)),
+            },
             _ => Err(Failure::Kind(Error::UnsupportedValue)),
         }
     }

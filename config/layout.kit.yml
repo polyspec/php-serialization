@@ -274,3 +274,30 @@ rules:
     paths: ["**/composer.json", "!tests/kit/fixture/**"]
     schema_path: config/composer.schema.json
     message: "S2: a composer.json maps no classmap or PSR-0, and a library maps autoload and autoload-dev by PSR-4"
+
+  # The Rust lint (make lint-rust): a workspace denies unsafe code and an allow attribute without its reason, and every
+  # package takes the lints of its workspace (config/cargo.schema.json). The generated binding crates need unsafe code
+  # for their FFI, so the workspace denies it, which a site of unsafe code allows with its reason, instead of forbidding it.
+  - id: lint-cargo-lints
+    kind: json_schema_passes
+    level: error
+    paths: ["**/Cargo.toml", "!tests/kit/fixture/**"]
+    schema_path: config/cargo.schema.json
+    message: "a workspace denies unsafe_code and clippy::allow_attributes_without_reason, and a package says lints.workspace = true"
+
+  # The core crate holds no unsafe code: it forbids it in its own lib.rs, which no allow can lift.
+  - id: core-forbids-unsafe
+    kind: file_content_matches
+    level: error
+    paths: "packages/rust/src/lib.rs"
+    pattern: '(?m)^#!\[forbid\(unsafe_code\)\]$'
+    message: "the core crate says #![forbid(unsafe_code)] in packages/rust/src/lib.rs"
+
+  # A fresh checkout installs package-lock.json, @polyspec/kit included, with the npm that devEngines names before any
+  # tool of the checkout exists, since install-tools TOOLS=npm runs the bootstrap of the installed kit.
+  - id: makefile-bootstraps
+    kind: file_content_matches
+    level: error
+    paths: "Makefile"
+    pattern: '(?m)^bootstrap: ## .*\n\troot="\$\$PWD"; version="\$\$\(node -p ''require\("\./package\.json"\)\.devEngines\.packageManager\.version''\)"; \\\n\tcd "\$\$\{TMPDIR:-/tmp\}" && \$\(ONLINE\) npm_config_cache="\$\$root/var/bootstrap/npm-cache" "\$\(BOOTSTRAP_NPM\)" exec --yes --package="npm@\$\$version" -- npm --prefix "\$\$root" ci --ignore-scripts$'
+    message: "the Makefile has the target bootstrap, which installs package-lock.json with the npm of devEngines"

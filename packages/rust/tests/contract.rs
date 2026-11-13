@@ -28,6 +28,107 @@ const HOST_VALUES: &str = concat!(
     "/../../contracts/host-values.json"
 );
 
+/// The interface contract, whose rows of `cases` link the groups of the case files to the generated tests (binding K-1).
+const INTERFACE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/interface.json");
+
+/// Every group of the case files is named by a row of `cases` of the interface contract, so that the generated tests of
+/// the bindings run it (binding K-1, U-7): a group that no row names is checked here alone.
+fn linked() -> Result<(), Failed> {
+    let interface = read(INTERFACE)?;
+    let rows = interface
+        .get("cases")
+        .and_then(Value::as_array)
+        .ok_or("the interface has no cases")?;
+    let mut unlinked = Vec::new();
+    for (path, file) in [
+        (CONTRACT, "contracts/php-serialize.json"),
+        (HOST_VALUES, "contracts/host-values.json"),
+    ] {
+        let contract = read(path)?;
+        for (group, entries) in contract.as_object().into_iter().flatten() {
+            let named = rows.iter().any(|row| {
+                row.get("file").and_then(Value::as_str) == Some(file)
+                    && row.get("group").and_then(Value::as_str) == Some(group.as_str())
+            });
+            if entries.is_array() && !named {
+                unlinked.push(format!("{file} {group}"));
+            }
+        }
+    }
+    if unlinked.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "no row of cases of the interface names the groups {}",
+            unlinked.join(", ")
+        )
+        .into())
+    }
+}
+
+/// Every row of unserialize and serialize whose group has a case that does not raise names the key of the result,
+/// which every such case gives, so that the generated tests compare the result (binding GN-13e).
+fn results_named() -> Result<(), Failed> {
+    let interface = read(INTERFACE)?;
+    let rows = interface
+        .get("cases")
+        .and_then(Value::as_array)
+        .ok_or("the interface has no cases")?;
+    let mut unnamed = Vec::new();
+    for row in rows {
+        let Some(member @ ("unserialize" | "serialize")) =
+            row.get("member").and_then(Value::as_str)
+        else {
+            continue;
+        };
+        let file = row
+            .get("file")
+            .and_then(Value::as_str)
+            .ok_or("a row names no file")?;
+        let group = row
+            .get("group")
+            .and_then(Value::as_str)
+            .ok_or("a row names no group")?;
+        let path = if file == "contracts/host-values.json" {
+            HOST_VALUES
+        } else {
+            CONTRACT
+        };
+        let contract = read(path)?;
+        let entries = contract
+            .get(group)
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{file} has no group {group}"))?;
+        let result = row.get("result").and_then(Value::as_str);
+        for entry in entries.iter().filter(|entry| entry.get("raises").is_none()) {
+            if result.is_none_or(|key| entry.get(key).is_none()) {
+                unnamed.push(format!(
+                    "{member} {group} {}",
+                    entry
+                        .get("id")
+                        .map(Value::to_string)
+                        .ok_or("a case has no id")?
+                ));
+            }
+        }
+    }
+    if unnamed.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{} cases give no result that a row names: {}",
+            unnamed.len(),
+            unnamed
+                .iter()
+                .take(5)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+        .into())
+    }
+}
+
 fn field<'a>(entry: &'a Value, name: &str) -> Result<&'a str, Failed> {
     entry
         .get(name)
@@ -75,20 +176,40 @@ fn read_case(entry: &Value, written: &str) -> Result<(), Failed> {
     if base64(&bytes) != written {
         return Err(format!("the built value wrote {}", String::from_utf8_lossy(&bytes)).into());
     }
-    // The argument of serialize in the form of G-5, which a language gives, writes the same bytes (RQ-012). A value
-    // that holds an object or a reference twice has no such form.
-    if let Some(argument) = entry.get("value") {
-        let taken = value_of(argument)?;
-        let bytes = serialize(&taken).map_err(|error| error.to_string())?;
-        if base64(&bytes) != written {
-            return Err(
-                format!("the value of G-5 wrote {}", String::from_utf8_lossy(&bytes)).into(),
-            );
-        }
-        // RQ-013, U-1: to_host describes the value of the bytes as the case does, and a value that from_host took goes
-        // back to the language unchanged.
-        same_out(&value, argument, "the value of the bytes")?;
-        same_out(&taken, argument, "the value that from_host took")?;
+    given_value(entry, &value, written)
+}
+
+/// The argument of serialize in the form of G-5, which a language gives, writes the same bytes (RQ-012); every case
+/// gives it, an object held again and a reference inside its own value named by their ids, and the deepest objects as
+/// a repeated object.
+fn given_value(entry: &Value, value: &PhpValue, written: &str) -> Result<(), Failed> {
+    let argument = entry.get("value").ok_or("the case gives no value of G-5")?;
+    let taken = value_of(argument)?;
+    let bytes = serialize(&taken).map_err(|error| error.to_string())?;
+    if base64(&bytes) != written {
+        return Err(format!("the value of G-5 wrote {}", String::from_utf8_lossy(&bytes)).into());
+    }
+    serialized(entry, &bytes)?;
+    // RQ-013, U-1: to_host describes the value of the bytes as the case does, and a value that from_host took goes
+    // back to the language unchanged.
+    same_out(value, argument, "the value of the bytes")?;
+    same_out(&taken, argument, "the value that from_host took")?;
+    Ok(())
+}
+
+/// The result of serialize that a case gives, `serialized` in the form of G-5, which the generated tests of the
+/// bindings compare (GN-13e): the bytes that the value writes.
+fn serialized(entry: &Value, bytes: &[u8]) -> Result<(), Failed> {
+    let given = hex(entry
+        .get("serialized")
+        .ok_or("the case gives no serialized")?)?;
+    if given != bytes {
+        return Err(format!(
+            "serialized is {}, the value writes {}",
+            String::from_utf8_lossy(&given),
+            String::from_utf8_lossy(bytes)
+        )
+        .into());
     }
     Ok(())
 }
@@ -108,15 +229,134 @@ where
 
 fn assert_out<T, F: for<'a> OutFn<'a, T>>(_: F) {}
 
-/// Compares what to_host gives for a value with a value of G-5.
+/// Compares what to_host gives for a value with a value of G-5, one level at a time, so that a value as deep as the
+/// format reads needs no deep stack. A list of G-5 is an array whose keys are 0 to n-1, and a repeated list is its n
+/// lists, and a repeated object its n objects. A reference, and an object that the value holds again, gives its id
+/// and its value at its first place and its id alone at every later one.
 fn same_out(value: &PhpValue, expected: &Value, what: &str) -> Result<(), Failed> {
     assert_out::<PhpValue, _>(to_host);
     let (top, mut children) = to_host(value);
-    let actual = g5_of(top, &mut children, &mut HashMap::new());
-    if &actual != expected {
-        return Err(format!("{what}: to_host gives {actual}, the case {expected}").into());
+    let mut references: HashMap<u64, u64> = HashMap::new();
+    let mut objects: HashMap<u64, Option<u64>> = HashMap::new();
+    let mut pending = vec![(top, expected.clone())];
+    while let Some((out, want)) = pending.pop() {
+        let differ = |actual: &str| -> Failed {
+            format!("{what}: to_host gives {actual}, the case {want}").into()
+        };
+        match out {
+            OutValue::Map(map) => {
+                let pairs = pairs_of(&want, &["map", "list"]).ok_or_else(|| differ("an array"))?;
+                if u64::try_from(pairs.len()).map_err(|error| error.to_string())? != map.len() {
+                    return Err(differ(&format!("an array of {} entries", map.len())));
+                }
+                let mut level = Vec::new();
+                for (at, (key, item)) in (0..map.len()).zip(pairs) {
+                    let (actual, child) = children.entry(map.handle(), at);
+                    if key_of(&actual) != key {
+                        return Err(differ(&format!("the key {}", key_of(&actual))));
+                    }
+                    level.push((child, item));
+                }
+                pending.extend(level.into_iter().rev());
+            }
+            OutValue::Object { handle, len } => {
+                let id = want.get("id").and_then(Value::as_u64);
+                if let Some(first) = objects.get(&handle.raw()) {
+                    if first.is_none() || *first != id || want.get("value").is_some() {
+                        return Err(differ(&format!("the object {first:?} again")));
+                    }
+                    continue;
+                }
+                objects.insert(handle.raw(), id);
+                let pairs = pairs_of(&want, &["object"]).ok_or_else(|| differ("an object"))?;
+                if u64::try_from(pairs.len()).map_err(|error| error.to_string())? != len {
+                    return Err(differ(&format!("an object of {len} properties")));
+                }
+                let mut level = Vec::new();
+                for (at, (key, item)) in (0..len).zip(pairs) {
+                    let (name, child) = children.entry(handle, at);
+                    if key_of(&name) != key {
+                        return Err(differ(&format!("the property {}", key_of(&name))));
+                    }
+                    level.push((child, item));
+                }
+                pending.extend(level.into_iter().rev());
+            }
+            OutValue::Reference { handle, value } => {
+                let held = (want.get("kind").and_then(Value::as_str) == Some("reference"))
+                    .then(|| want.get("value"))
+                    .flatten()
+                    .ok_or_else(|| differ("a reference"))?;
+                let id = held.get("id").and_then(Value::as_u64);
+                if let Some(first) = references.get(&handle.raw()) {
+                    if Some(*first) != id || held.get("value").is_some() {
+                        return Err(differ(&format!("the reference {first} again")));
+                    }
+                    continue;
+                }
+                let id = id.ok_or_else(|| differ("a reference without an id"))?;
+                references.insert(handle.raw(), id);
+                let target = held
+                    .get("value")
+                    .cloned()
+                    .ok_or_else(|| differ(&format!("the first place of the reference {id}")))?;
+                pending.push((*value, target));
+            }
+            other => {
+                let actual = scalar_of(other);
+                if actual != want {
+                    return Err(differ(&actual.to_string()));
+                }
+            }
+        }
     }
     Ok(())
+}
+
+/// The entries that a value of G-5 of one of the kinds gives, as pairs of a key of G-5 and a value: the pairs of a map
+/// or an object, the items of a list under the keys 0 to n-1, and the one list or object inside a repeated one.
+fn pairs_of(value: &Value, kinds: &[&str]) -> Option<Vec<(Value, Value)>> {
+    let kind = value.get("kind").and_then(Value::as_str)?;
+    if !kinds.contains(&kind) {
+        return None;
+    }
+    let content = value.get("value")?;
+    if kind == "object" {
+        if let Some(repeat) = value.get("repeat") {
+            let repeat = repeat.as_u64()?;
+            let key = value.get("key")?.clone();
+            let item = if repeat > 1 {
+                serde_json::json!({"kind": "object", "repeat": repeat - 1, "key": key, "value": content})
+            } else {
+                content.clone()
+            };
+            return Some(vec![(key, item)]);
+        }
+    }
+    if kind == "list" {
+        if let Some(repeat) = value.get("repeat") {
+            let repeat = repeat.as_u64()?;
+            let item = if repeat > 1 {
+                serde_json::json!({"kind": "list", "repeat": repeat - 1, "value": content})
+            } else {
+                content.clone()
+            };
+            return Some(vec![(serde_json::json!({"int": 0}), item)]);
+        }
+        let items = content.as_array()?;
+        return Some(
+            items
+                .iter()
+                .enumerate()
+                .map(|(at, item)| (serde_json::json!({"int": at}), item.clone()))
+                .collect(),
+        );
+    }
+    content
+        .as_array()?
+        .iter()
+        .map(|pair| Some((pair.get(0)?.clone(), pair.get(1)?.clone())))
+        .collect()
 }
 
 fn hex_of(bytes: &[u8]) -> String {
@@ -132,12 +372,8 @@ fn key_of(key: &OutValue) -> Value {
     }
 }
 
-/// An OutValue as a value of G-5; a reference is numbered by its first position, as the case numbers it.
-fn g5_of(
-    out: OutValue,
-    children: &mut dyn OutValues,
-    references: &mut HashMap<u64, usize>,
-) -> Value {
+/// A value of to_host that holds no other value, as a value of G-5.
+fn scalar_of(out: OutValue) -> Value {
     use serde_json::json;
     match out {
         OutValue::Null => json!({"kind": "null"}),
@@ -163,27 +399,6 @@ fn g5_of(
             json!({"kind": "float", "value": form})
         }
         OutValue::Bytes(bytes) => json!({"kind": "bytes", "value": {"hex": hex_of(bytes.value())}}),
-        OutValue::Map(map) => {
-            let mut pairs = Vec::new();
-            for at in 0..map.len() {
-                let (key, item) = children.entry(map.handle(), at);
-                pairs.push(json!([key_of(&key), g5_of(item, children, references)]));
-            }
-            json!({"kind": "map", "value": pairs})
-        }
-        OutValue::Object { handle, len } => {
-            let mut pairs = Vec::new();
-            for at in 0..len {
-                let (name, item) = children.entry(handle, at);
-                pairs.push(json!([key_of(&name), g5_of(item, children, references)]));
-            }
-            json!({"kind": "object", "value": pairs})
-        }
-        OutValue::Reference { handle, value } => {
-            let next = references.len();
-            let id = *references.entry(handle.raw()).or_insert(next);
-            json!({"kind": "reference", "value": {"id": id, "value": g5_of(*value, children, references)}})
-        }
         other => json!({"unexpected": format!("{:?}", other.kind())}),
     }
 }
@@ -200,7 +415,7 @@ fn data(entry: &Value) -> Result<Vec<u8>, Failed> {
 /// The value of PHP of a value of G-5 that a language gives.
 fn value_of(argument: &Value) -> Result<polyspec_php_serialization::PhpValue, Failed> {
     let mut host = Host::default();
-    let top = host.describe(argument)?;
+    let top = host.take(argument)?;
     from_host(&mut host, top).map_err(|failure| Failed::from(describe(&failure)))
 }
 
@@ -260,10 +475,14 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
     match group {
         "serialize" if entry.get("faults").is_some() => faulted_serialize(entry),
         "serialize" => {
-            let top = host.describe(given("value")?)?;
+            let top = host.take(given("value")?)?;
             match from_host(&mut host, top) {
                 Ok(value) => {
                     check_failure(Ok(()), entry)?;
+                    serialized(
+                        entry,
+                        &serialize(&value).map_err(|error| error.to_string())?,
+                    )?;
                     // RQ-013, U-1: a value that the format takes goes back to the language unchanged.
                     same_out(&value, given("value")?, "the value that from_host took")
                 }
@@ -275,7 +494,7 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
             if entry.get("raises").is_none() {
                 return Err("a case of the value names no raises".into());
             }
-            let top = host.describe(given("value")?)?;
+            let top = host.take(given("value")?)?;
             check_failure(from_host(&mut host, top).map(drop), entry)
         }
         "php_float.constructor" | "php_float.value" | "php_float.value_of" => {
@@ -291,7 +510,7 @@ fn host_trial(group: &str, entry: &Value) -> Result<(), Failed> {
             check_failure(check_std_class(&mut host, Some(properties)), entry)
         }
         "reference.constructor" | "reference.value" => {
-            let value = host.describe(given("value")?)?;
+            let value = host.take(given("value")?)?;
             check_failure(check_reference(&mut host, Some(value)), entry)
         }
         other => Err(format!("unknown group {other}").into()),
@@ -309,7 +528,7 @@ fn trial(group: &str, entry: &Value) -> Result<(), Failed> {
             if serialize(&value).map_err(|error| error.to_string())? != bytes {
                 return Err("wrote other bytes".into());
             }
-            Ok(())
+            given_value(entry, &value, field(entry, "bytes")?)
         }
         "rejected" | "stricter" => match unserialize(&data(entry)?) {
             Ok(_) => Err("read the refused bytes".into()),
@@ -328,7 +547,7 @@ fn trial(group: &str, entry: &Value) -> Result<(), Failed> {
             }
             // The same value given by a language is refused the same way (RQ-012).
             let mut host = Host::default();
-            let top = host.describe(entry.get("value").ok_or("the entry has no value")?)?;
+            let top = host.take(entry.get("value").ok_or("the entry has no value")?)?;
             check_failure(from_host(&mut host, top).map(drop), entry)
         }
         other => Err(format!("unknown group {other}").into()),
@@ -370,7 +589,10 @@ fn trials_of(
 
 fn main() -> std::process::ExitCode {
     let arguments = Arguments::from_args();
-    let mut trials = Vec::new();
+    let mut trials = vec![
+        Trial::test("interface::links_every_group", linked),
+        Trial::test("interface::rows_name_the_result", results_named),
+    ];
     match read(CONTRACT) {
         Ok(contract) => trials.extend(trials_of(
             &contract,

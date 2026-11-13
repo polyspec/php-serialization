@@ -27,20 +27,23 @@ export function run(lib) {
   });
 
   test('built_values', () => {
-    assert.equal(text(1), 'i:1;');
-    assert.equal(text(new lib.PhpFloat(1)), 'd:1;');
-    assert.equal(text(1.5), 'd:1.5;');
-    assert.equal(text(-0), 'd:-0;');
-    assert.equal(text(2 ** 60), 'd:1.152921504606847E+18;');
-    assert.equal(text(new Map([['5', 'a'], ['05', 'b']])), 'a:2:{i:5;s:1:"a";s:2:"05";s:1:"b";}');
-    assert.equal(text([]), 'a:0:{}');
-    assert.equal(text(new Map()), 'a:0:{}');
-    assert.equal(text(new Map([[utf8('a'), 1], ['a', 2]])), 'a:1:{s:1:"a";i:2;}');
-    assert.equal(text(new Map([[5n, 1], [5, 2]])), 'a:1:{i:5;i:2;}');
-    assert.equal(text(new Map([[utf8('5'), 'a']])), 'a:1:{i:5;s:1:"a";}');
-    assert.equal(text(new lib.StdClass(new Map([[5, 'a']]))), 'O:8:"stdClass":1:{s:1:"5";s:1:"a";}');
-    assert.equal(text(new lib.StdClass(new Map([[5, 'a'], ['5', 'b']]))), 'O:8:"stdClass":1:{s:1:"5";s:1:"b";}');
-    assert.equal(text(new lib.StdClass(new Map([[utf8('a'), 1], ['a', 2]]))), 'O:8:"stdClass":1:{s:1:"a";i:2;}');
+    const built = [
+      [1, 'i:1;'],
+      [new lib.PhpFloat(1), 'd:1;'],
+      [1.5, 'd:1.5;'],
+      [-0, 'd:-0;'],
+      [2 ** 60, 'd:1.152921504606847E+18;'],
+      [new Map([['5', 'a'], ['05', 'b']]), 'a:2:{i:5;s:1:"a";s:2:"05";s:1:"b";}'],
+      [[], 'a:0:{}'],
+      [new Map(), 'a:0:{}'],
+      [new Map([[utf8('a'), 1], ['a', 2]]), 'a:1:{s:1:"a";i:2;}'],
+      [new Map([[5n, 1], [5, 2]]), 'a:1:{i:5;i:2;}'],
+      [new Map([[utf8('5'), 'a']]), 'a:1:{i:5;s:1:"a";}'],
+      [new lib.StdClass(new Map([[5, 'a']])), 'O:8:"stdClass":1:{s:1:"5";s:1:"a";}'],
+      [new lib.StdClass(new Map([[5, 'a'], ['5', 'b']])), 'O:8:"stdClass":1:{s:1:"5";s:1:"b";}'],
+      [new lib.StdClass(new Map([[utf8('a'), 1], ['a', 2]])), 'O:8:"stdClass":1:{s:1:"a";i:2;}'],
+    ];
+    for (const [value, written] of built) assert.equal(text(value), written, written);
   });
 
   test('unrepresentable', () => {

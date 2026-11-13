@@ -127,7 +127,8 @@
       "paths": [
         "config/layout.yml",
         "config/layout.kit.yml",
-        "config/composer.schema.json"
+        "config/composer.schema.json",
+        "config/cargo.schema.json"
       ],
       "targets": [
         "layout-check"
@@ -199,6 +200,20 @@
       ],
       "targets": [
         "bindings-check"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/binding-features.test.mts",
+        "Makefile",
+        "packages/python/Cargo.toml",
+        "packages/ts/Cargo.toml",
+        "packages/ts/wasm/Cargo.toml",
+        "packages/php-ext/Cargo.toml",
+        "packages/go/internal/ffi/Cargo.toml"
+      ],
+      "targets": [
+        "binding-features-test"
       ]
     }
   ]

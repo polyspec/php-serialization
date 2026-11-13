@@ -12,7 +12,9 @@ use Polyspec\PhpSerialization as P;
  * contracts/, which make test-php sets. A value of the cases is {"kind", "value"} (binding G-5,
  * docs/spec/php-serialize.md); its PHP value is the one that PHP itself reads from the bytes of the case, so the
  * runner compares the result of the extension with PHP: the bytes that PHP writes for it, and those that the
- * extension writes. A reference of the cases is a PHP reference at each place of its id. A top value that is a
+ * extension writes. A reference of the cases is a PHP reference at each place of its id, and an object with an id is
+ * the same PHP object at each place of its id, which a later place names by its id alone; n nested objects are one
+ * object with repeat (binding G-5). A top value that is a
  * reference has no PHP form, since PHP passes a value and not a reference, and neither has a reference that holds a
  * reference or an integer outside 64 bits; the runner fails on such a case. A case that arms fault injection points
  * runs armed: the runner makes the value first, arms the faults for the member with Internal\armFaults, the entry point
@@ -49,7 +51,7 @@ final class CasesTest extends TestCase
      * access.
      *
      * @param array<string, mixed> $value
-     * @param array<int, mixed> $cells
+     * @param array<int|string, mixed> $cells
      */
     private static function fromCase(array $value, array &$cells): mixed
     {
@@ -88,8 +90,28 @@ final class CasesTest extends TestCase
                     $items[] = self::fromCase($item, $cells);
                 }
                 return $items;
-            case 'map':
             case 'object':
+                if (!isset($value['value'])) {
+                    $object = $cells['object ' . $value['id']] ?? null;
+                    if (!is_object($object)) {
+                        self::fail('the object ' . $value['id'] . ' has no first place');
+                    }
+                    return $object;
+                }
+                if (isset($value['repeat'])) {
+                    $made = self::fromCase($value['value'], $cells);
+                    for ($i = 0; $i < $value['repeat']; $i++) {
+                        $made = (object) [self::key($value['key']) => $made];
+                    }
+                    return $made;
+                }
+                $object = self::fromCase(['kind' => 'map', 'value' => $value['value']], $cells);
+                $object = (object) $object;
+                if (isset($value['id'])) {
+                    $cells['object ' . $value['id']] = $object;
+                }
+                return $object;
+            case 'map':
                 $array = [];
                 foreach ($value['value'] as [$key, $item]) {
                     if (($item['kind'] ?? null) === 'reference') {
@@ -98,7 +120,7 @@ final class CasesTest extends TestCase
                         $array[self::key($key)] = self::fromCase($item, $cells);
                     }
                 }
-                return $value['kind'] === 'map' ? $array : (object) $array;
+                return $array;
         }
         self::fail('a value of the kind ' . $value['kind'] . ' has no PHP form as a top value');
     }

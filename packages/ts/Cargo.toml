@@ -15,6 +15,7 @@ crate-type = ["cdylib"]
 [features]
 panic-test = []
 fault-test = ["polyspec-php-serialization/fault-test"]
+codec-test = []
 
 [build-dependencies]
 napi-build = "=2.6.0"
