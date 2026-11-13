@@ -299,5 +299,5 @@ rules:
     kind: file_content_matches
     level: error
     paths: "Makefile"
-    pattern: '(?m)^bootstrap: ## .*\n\troot="\$\$PWD"; version="\$\$\(node -p ''require\("\./package\.json"\)\.devEngines\.packageManager\.version''\)"; \\\n\tcd "\$\$\{TMPDIR:-/tmp\}" && npm_config_cache="\$\$root/var/bootstrap/npm-cache" "\$\(BOOTSTRAP_NPM\)" exec --yes --package="npm@\$\$version" -- npm --prefix "\$\$root" ci --ignore-scripts$'
+    pattern: '(?m)^bootstrap: ## .*\n\troot="\$\$PWD"; version="\$\$\(node -p ''require\("\./package\.json"\)\.devEngines\.packageManager\.version''\)"; \\\n\tcd "\$\$\{TMPDIR:-/tmp\}" && \$\(ONLINE\) npm_config_cache="\$\$root/var/bootstrap/npm-cache" "\$\(BOOTSTRAP_NPM\)" exec --yes --package="npm@\$\$version" -- npm --prefix "\$\$root" ci --ignore-scripts$'
     message: "the Makefile has the target bootstrap, which installs package-lock.json with the npm of devEngines"

@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: ac44ee3842e2e34906d17ec85a439ccab5b7f14154bda4a610f03b1f9ba641cb -->
+<!-- source-sha256: 294d517863cf22e08e84a21a8bd2c647d2c7a70d12647910fd4887778adf0140 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `make bootstrap`은 `package.json`의 `devEngines`가 적은 npm을 checkout 밖에서 `--prefix`로 실행해 `@polyspec/kit`을 포함한 `package-lock.json`을 설치한다. 그래서 새 checkout은 `make bootstrap` 다음에 `make install`을 실행한다. 전에는 `make install`이 설치된 kit의 bootstrap을 실행하는 `make install-tools TOOLS=npm`으로 시작했으므로, `node_modules`가 없는 checkout에서 `MODULE_NOT_FOUND`로 실패했다. `make layout-check`가 그 target을 확인한다(`makefile-bootstraps`). 새 worktree의 `make bootstrap`과 `make layout-check`로 확인했다.
 - `contracts/php-serialize.json`의 case 다섯이 binding의 case 규약(G-5)으로 `serialize`의 인자를 준다. 전에는 주지 않았다. 값이 참조를 다시 담는 `reference_array`, `reference_scalar`, `form_empty_array_slot`은 같은 id가 같은 참조이므로 그 id와 값을 되풀이하고, `deepest_array`와 `deepest_with_empty`는 list를 `{"kind": "list", "repeat": 4096, "value": ...}`로 준다. 전에는 `scripts/contracts.mts`가 참조를 두 번 담는 tree와 깊은 case에 값을 주지 않았으므로, `serialize`의 생성 시험은 그 다섯을 `has no value`로 실패시켰다. G-5의 형식이 없는 것은 `object_repeated`, `reference_cycle`, `deepest_object`뿐이고(객체에는 동일성이 없고, 자기 값 안의 참조와 되풀이되는 객체에는 형식이 없다), Rust 계약 시험은 `cases`, `forms`, `deep`의 다른 모든 case에 값을 요구한다. 시험은 `to_host`가 주는 것을 값과 한 단계씩 비교하며, G-5의 list는 key가 0부터 n-1인 배열이므로 4096단계 깊이의 값에도 깊은 stack이 필요 없다. `make test-rust`(contract case 679개)와 `make contracts-check`로 확인했다.
 - `contracts/host-values.json`에서 `php_float.value`와 `php_float.value_of`의 case `one`과 `negative_zero`, `std_class.properties`의 `properties_are_kept`, `reference.value`의 `the_value_is_kept`가 property가 주는 값인 `result`를 적는다(G-5, GN-13e). 전에는 생성자의 인자만 적었으므로, binding의 생성 시험은 property를 부르기만 하고 아무것도 비교하지 않았다. `make test-rust`(contract case 679개)와 각 결과를 비교하는 binding의 생성 시험으로 확인했다.
 - `StdClass`의 constructor와 `serialize`는 정수 속성 이름을 받아 그 속성을 십진 문자열로 부른다. PHP가 `(object) [1 => 'a']`의 속성을 그렇게 부르고, 그 값은 `O:8:"stdClass":1:{s:1:"1";s:1:"a";}`로 직렬화된다(RQ-012). `packages/rust/interface.json`에서 `std_class`의 속성 key는 `int`, `text`, `bytes`이고, `contracts/host-values.json`의 case `an_integer_name_is_its_decimal_text`가 그것을 담는다. 전에는 core가 정수 이름을 `unsupported_value`로 거부했으므로, 언어가 정수 key로 가진 `StdClass`는 변환되지 않았다. `make test-rust`(contract case 679개)로 확인했다.

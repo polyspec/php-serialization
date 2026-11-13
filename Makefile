@@ -41,7 +41,7 @@ CI_PYTHON := lint-python test-python
 CI_RUST := lint-rust test-rust bindings-check
 CI_REPORT ?= var/report/ci-targets
 
-.PHONY: install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
+.PHONY: bootstrap install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test \
@@ -53,6 +53,15 @@ CI_REPORT ?= var/report/ci-targets
 	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage
 
 # ---- Install ----------------------------------------------------------------------------------------------------------------
+# The npm that devEngines of package.json names installs the lock, @polyspec/kit included, before the tools of the checkout
+# exist, since install-tools TOOLS=npm runs the bootstrap of the installed kit. It runs outside the checkout with --prefix,
+# since an npm of another release refuses a folder whose devEngines names npm 12.2.0 (EBADDEVENGINES); npm reads
+# allow-remote of the .npmrc of the checkout. A fresh checkout runs make bootstrap, then make install.
+BOOTSTRAP_NPM := $(abspath $(shell command -v npm))
+bootstrap: ## Install package-lock.json with the npm of devEngines before the tools of the checkout exist; ONLINE
+	root="$$PWD"; version="$$(node -p 'require("./package.json").devEngines.packageManager.version')"; \
+	cd "$${TMPDIR:-/tmp}" && $(ONLINE) npm_config_cache="$$root/var/bootstrap/npm-cache" "$(BOOTSTRAP_NPM)" exec --yes --package="npm@$$version" -- npm --prefix "$$root" ci --ignore-scripts
+
 # install: the mise, node and npm of mise.toml (the bootstrap, which runs on the Node.js of the machine and imports only its
 # built-ins), the packages of package-lock.json, the other tools of mise.toml, then the Python package and the links.
 install: ## Install the tools, the packages, the Python package and the links of the checkout; ONLINE
