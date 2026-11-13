@@ -43,6 +43,7 @@ CI_REPORT ?= var/report/ci-targets
 
 .PHONY: install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings bindings-check \
+	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
@@ -149,11 +150,107 @@ lint-rust: ## Lint the Rust crate with cargo clippy ([workspace.lints] of Cargo.
 # binding runs at the commit of polyspec-binding-core that Cargo.lock pins (scripts/binding.mts).
 BINDING := $(NODE) scripts/binding.mts
 
-bindings: ## Write the generated sources of packages/{php-ext,python,ts}/generated, which are not tracked, with binding; offline
+bindings: ## Write the generated sources of the five targets with binding: the untracked generated folders and the tracked Go files zz_generated_*.go (binding GN-3); offline
 	$(BINDING) generate --root .
 
 bindings-check: ## Check the interface contract and that the binding packages are what binding scaffold writes; offline
 	$(BINDING) check packages/rust/interface.json
+
+# The tools of the binding tests: the Go of the go directive of packages/go/go.mod, the wasm-bindgen CLI of the release
+# of the wasm-bindgen crate of packages/ts/wasm/Cargo.toml (binding GN-15, GN-18) and maturin, from mise.toml; PHP of
+# .php-version, whose headers the extension is built against (PHP_CONFIG) and which loads it, and PHPUnit. test-go and
+# node-package compare the releases of Go and wasm-bindgen before they use them.
+GO ?= $(VAR_TOOLS)/mise/shims/go
+GOFMT ?= $(VAR_TOOLS)/mise/shims/gofmt
+WASM_BINDGEN ?= $(VAR_TOOLS)/mise/shims/wasm-bindgen
+MATURIN ?= $(VAR_TOOLS)/mise/shims/maturin
+PHP ?= $(VAR_TOOLS)/bin/php
+PHP_CONFIG ?= $(VAR_TOOLS)/bin/php-config
+PHPUNIT ?= $(VAR_TOOLS)/bin/phpunit
+# The file name extension of a library that Cargo builds as a cdylib: dylib on macOS, so on Linux.
+CDYLIB := $(if $(filter Darwin,$(shell uname -s)),dylib,so)
+CARGO_TARGET := $(CURDIR)/target
+BINDINGS_VAR := $(CURDIR)/var/bindings
+# The case runners read contracts/php-serialize.json and contracts/host-values.json from this folder.
+CONTRACTS_ENV := PHP_SERIALIZATION_CONTRACTS=$(CURDIR)/contracts
+
+# test-bindings runs every binding test of the five targets; none of them is a target of make check, since each needs
+# the generated sources of the binding of Cargo.lock.
+test-bindings: lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go ## Run the lint and the tests of the bindings of the five targets; offline
+
+lint-bindings: bindings ## Run clippy on the binding crates with every warning an error, after make bindings; offline
+	cargo clippy --workspace --locked --offline --all-targets --features panic-test -- -D warnings
+
+check-declarations: bindings ## Check the generated declarations of the Node and WASM bindings with tsc; offline
+	$(NODE) node_modules/typescript/bin/tsc --noEmit --strict packages/ts/generated/index.d.ts
+	$(NODE) node_modules/typescript/bin/tsc --noEmit --strict packages/ts/wasm/generated/index.d.ts
+
+# The wheel, installed into a virtual environment of the Python of mise.toml; the generated tests (binding G-5) and the
+# contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
+test-python-binding: bindings ## Build the wheel, install it into var/bindings/venv and run the generated tests and the contract cases; offline
+	rm -rf $(BINDINGS_VAR)/wheels
+	cd packages/python && $(MATURIN) build --locked --offline --features panic-test --out $(BINDINGS_VAR)/wheels
+	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
+	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
+	cd $(BINDINGS_VAR) && venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/generated/tests -t $(CURDIR)/packages/python/generated/tests
+	cd $(BINDINGS_VAR) && $(CONTRACTS_ENV) venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/tests -t $(CURDIR)/packages/python/tests
+
+# The package and the platform package of the addon, packed and installed into var/bindings/node. The addon is the npm
+# package of this machine's platform, which the package names in optionalDependencies (binding T-2); the recipe packs
+# it as a release does and installs both tarballs, without the other platforms' packages. The package also holds the
+# WASM module and its glue, which wasm-bindgen writes into packages/ts/wasm/generated before the package is packed
+# (binding GN-18, P-5).
+NODE_PLATFORM := $(shell uname -s | tr A-Z a-z)-$(subst x86_64,x64,$(subst aarch64,arm64,$(shell uname -m)))$(if $(filter Linux,$(shell uname -s)),-gnu)
+NODE_ADDON := php-serialization.$(NODE_PLATFORM).node
+NODE_VERSION := $(shell sed -n 's/^  "version": "\(.*\)",$$/\1/p' packages/ts/package.json)
+WASM_BINDGEN_RELEASE := $(shell sed -n 's/^wasm-bindgen = "=\(.*\)"$$/\1/p' packages/ts/wasm/Cargo.toml)
+node-package: bindings ## Build the WASM module and the Node addon, then pack and install the npm package into var/bindings/node; offline
+	test "$$($(WASM_BINDGEN) --version)" = "wasm-bindgen $(WASM_BINDGEN_RELEASE)"
+	cargo build --locked --offline -p $(CORE)-wasm --target wasm32-unknown-unknown --features panic-test
+	$(WASM_BINDGEN) --target web --out-dir packages/ts/wasm/generated --out-name php_serialization_wasm \
+		$(CARGO_TARGET)/wasm32-unknown-unknown/debug/polyspec_php_serialization_wasm.wasm
+	cargo build --locked --offline -p $(CORE)-node --features panic-test
+	rm -rf $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform && mkdir -p $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform
+	cp $(CARGO_TARGET)/debug/libpolyspec_php_serialization_node.$(CDYLIB) $(BINDINGS_VAR)/node-platform/$(NODE_ADDON)
+	$(NODE) -e 'require("fs").writeFileSync("$(BINDINGS_VAR)/node-platform/package.json", JSON.stringify({ name: "@polyspec/php-serialization-$(NODE_PLATFORM)", version: "$(NODE_VERSION)", os: [process.platform], cpu: [process.arch], main: "$(NODE_ADDON)", files: ["$(NODE_ADDON)"] }, null, 2) + "\n")'
+	cd $(BINDINGS_VAR)/node-platform && $(NPM) pack --pack-destination $(BINDINGS_VAR)/node
+	cd packages/ts && $(NPM) pack --pack-destination $(BINDINGS_VAR)/node
+	echo '{ "private": true }' > $(BINDINGS_VAR)/node/package.json
+	cd $(BINDINGS_VAR)/node && $(NPM) install --no-audit --no-fund --omit=optional ./polyspec-php-serialization-$(NODE_VERSION).tgz ./polyspec-php-serialization-$(NODE_PLATFORM)-$(NODE_VERSION).tgz
+
+# The generated tests and the contract cases of the Node binding on node --test, against the installed package.
+test-node: node-package ## Run the generated tests and the contract cases of the Node binding on node --test; offline
+	cp packages/ts/generated/tests/generated.test.mjs packages/ts/tests/cases.mjs packages/ts/tests/cases.test.mjs $(BINDINGS_VAR)/node/
+	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --test generated.test.mjs cases.test.mjs
+
+# The generated tests and the contract cases of the WASM binding through the subpath ./wasm of the installed package
+# (binding P-5); --expose-gc serves the generated tests that collect instances (binding GN-18a).
+test-wasm: node-package ## Run the generated tests and the contract cases of the WASM binding on node --test; offline
+	cp packages/ts/wasm/generated/tests/generated.test.mjs $(BINDINGS_VAR)/node/generated.wasm.test.mjs
+	cp packages/ts/tests/cases.mjs packages/ts/tests/cases.wasm.test.mjs $(BINDINGS_VAR)/node/
+	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --expose-gc --test generated.wasm.test.mjs cases.wasm.test.mjs
+
+# The extension built against PHP_CONFIG and loaded into PHP; the stub is linted, then the generated tests and the
+# contract cases run on PHPUnit. ext-php-rs reads PHP and PHP_CONFIG when it builds the extension.
+test-php: export PHP := $(PHP)
+test-php: export PHP_CONFIG := $(PHP_CONFIG)
+test-php: bindings ## Build the extension, lint its stub and run the generated tests and the contract cases on PHPUnit; offline
+	cargo build --locked --offline -p $(CORE)-php-ext --features panic-test
+	$(PHP) -l packages/php-ext/generated/polyspec_php_serialization.stub.php
+	$(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/generated/tests
+	$(CONTRACTS_ENV) $(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/tests
+
+# The static library with the test features (binding GN-13b), which Go links through CGO_LDFLAGS; gofmt and go vet,
+# then the generated tests on go test. GOTOOLCHAIN=local: a go of another release than the go directive fails instead
+# of fetching that release.
+GO_RELEASE := $(shell sed -n 's/^go \(.*\)$$/\1/p' packages/go/go.mod)
+GO_ENV := GOTOOLCHAIN=local CGO_LDFLAGS=-L$(CARGO_TARGET)/debug GOFLAGS=-tags=polyspec_panic_test,polyspec_codec_test
+test-go: bindings ## Build the static library of the Go binding, run gofmt and go vet, then the generated tests on go test; offline
+	test "$$($(GO_ENV) $(GO) env GOVERSION)" = "go$(GO_RELEASE)"
+	cargo build --locked --offline -p $(CORE)-go --features panic-test,codec-test
+	test -z "$$(cd packages/go && $(GOFMT) -l .)"
+	cd packages/go && $(GO_ENV) $(GO) vet ./...
+	cd packages/go && $(GO_ENV) $(CONTRACTS_ENV) $(GO) test -count=1 -v ./...
 
 typecheck: ## Check the TypeScript of scripts/ with tsc; offline
 	$(NODE) node_modules/typescript/bin/tsc -p tsconfig.json

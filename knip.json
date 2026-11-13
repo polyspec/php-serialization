@@ -10,6 +10,7 @@
     "php"
   ],
   "ignoreDependencies": [
-    "@polyspec/kit"
+    "@polyspec/kit",
+    "@polyspec/php-serialization"
   ]
 }

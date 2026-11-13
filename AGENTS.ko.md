@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: d0e1b4d9b4700c22fd8bafc92a2c4ef2ca3e28be9523851dea5939856b42c973 -->
+<!-- source-sha256: ee150e82990d002c44f23d12af6d7c8854d1690dbaa682377123fe8c7a8a6c45 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -23,6 +23,16 @@
   Enforced by: `make layout-check`, `make release-coverage`
 - Own: 모든 계약이 적는 다섯 target(binding BD-27)의 바인딩 패키지 `packages/python`, `packages/ts`, `packages/ts/wasm`, `packages/php-ext`, 그리고 C ABI crate `packages/go/internal/ffi`를 가진 `packages/go`는 `binding scaffold`가 `packages/rust/interface.json`에서 쓰는 그대로이며, 그 `generated/`는 추적하지 않습니다. 루트 Cargo workspace가 코어 crate와 함께 그것들을 담고, 코어의 Rust 레시피는 코어 package를 이름으로 지정합니다.
   Enforced by: `make bindings-check`
+
+<a id="bindings"></a>
+## 바인딩
+
+- Own: `make bindings`가 생성하고, 바인딩을 빌드하거나 시험하는 모든 make target이 먼저 그것을 실행합니다. `make test-bindings`는 workspace 전체에 clippy를, `make check-declarations`를 실행한 뒤 `make test-python-binding`, `make test-node`, `make test-wasm`, `make test-php`, `make test-go`를 실행합니다. 계약의 다섯 target마다 하나이며, 각각 binding이 생성하는 시험과 그 바인딩의 계약 case를 그 언어의 표준 runner에서 실행합니다: unittest, node --test(Node와 WASM, WASM 바인딩은 같은 설치 패키지의 subpath `./wasm`으로), PHPUnit, go test. 계약 case는 `packages/python/tests`, `packages/ts/tests/cases.mjs`를 함께 쓰는 `packages/ts/tests/cases.test.mjs`와 `packages/ts/tests/cases.wasm.test.mjs`, 그리고 `packages/php-ext/tests`입니다. 각각 실패하지 않는 모든 case의 결과를 그 `value`와 bytes와 비교하고, 실패하는 모든 case의 class, kind, status를 비교합니다. Go는 아직 계약 case가 없습니다. binding에 `php_value`의 Go 형식이 없고 Go에서 class unit을 거부하므로(binding GN-1, T-5), runner가 있지 않은 타입을 이름으로 쓰게 되기 때문입니다. 생성기가 받지 못하는 target은 원인과 함께 실패하는 target으로 남고, 어떤 target도 빼거나 건너뛰지 않습니다(binding BD-27). `make test-python`은 legacy Python 패키지가 없어질 때까지 그 시험을 실행합니다.
+  Enforced by: none, binding이 계약을 거부하는 동안 `make test-bindings`는 CI의 target이 아닙니다(CK-8, CK-22).
+- Own: Go module에서 binding은 파일 `zz_generated_*.go`를 소유합니다(binding GN-3). Go module은 소스로 받아 오므로 그 파일은 추적하고, `make bindings`가 다시 씁니다. `packages/ts/wasm/generated`와 `packages/go/internal/ffi/generated`는 추적하지 않으며, wasm-bindgen이 앞의 것에 module과 그 glue를 씁니다.
+  Enforced by: `make layout-check`
+- Own: 변수 `GO`, `GOFMT`, `WASM_BINDGEN`, `MATURIN`, `PHP`, `PHP_CONFIG`, `PHPUNIT`는 바인딩 시험의 도구를 가리키며, 기본값은 `mise.toml`과 `.php-version`이 고정하는 checkout의 도구입니다. `make test-go`는 `packages/go/go.mod`의 go directive와 다른 release의 Go를 실패시키고 `GOTOOLCHAIN=local`로 실행해 toolchain을 받아 오지 않습니다. `make test-node`와 `make test-wasm`이 함께 쓰는 `make node-package`는 `packages/ts/wasm/Cargo.toml`의 `wasm-bindgen` crate와 다른 release의 wasm-bindgen CLI를 실패시킵니다. CLI는 자기 release의 module만 읽기 때문입니다(binding GN-18).
+  Enforced by: none, `make test-go`와 `make node-package`의 recipe가 실행할 때 release를 비교합니다.
 
 <a id="tools"></a>
 ## 도구

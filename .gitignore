@@ -7,6 +7,10 @@ __pycache__/
 /var/
 # The sources that make bindings writes from the interface contract (binding design L-1); they are not tracked.
 /packages/*/generated/
+# The generated folders of the WASM crate and of the C ABI crate of Go; the Go files zz_generated_*.go of packages/go are
+# tracked (binding GN-3).
+/packages/ts/wasm/generated/
+/packages/go/internal/ffi/generated/
 .venv/
 *.egg-info/
 
