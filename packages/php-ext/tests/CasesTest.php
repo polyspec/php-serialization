@@ -74,6 +74,20 @@ final class CasesTest extends TestCase
                 return (string) hex2bin($value['value']['hex']);
             case 'text':
                 return $value['value'];
+            case 'list':
+                // A list nested deeper than a JSON reader takes is {"kind": "list", "repeat": n, "value"} (binding G-5).
+                if (isset($value['repeat'])) {
+                    $made = self::fromCase($value['value'], $cells);
+                    for ($i = 0; $i < $value['repeat']; $i++) {
+                        $made = [$made];
+                    }
+                    return $made;
+                }
+                $items = [];
+                foreach ($value['value'] as $item) {
+                    $items[] = self::fromCase($item, $cells);
+                }
+                return $items;
             case 'map':
             case 'object':
                 $array = [];

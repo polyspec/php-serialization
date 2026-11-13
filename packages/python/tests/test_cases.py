@@ -183,6 +183,14 @@ def from_case(value: dict, references: dict | None = None):
         return bytes.fromhex(value["value"]["hex"])
     if kind == "text":
         return value["value"]
+    if kind == "list":
+        # A list nested deeper than a JSON reader takes is {"kind": "list", "repeat": n, "value"} (binding G-5).
+        if "repeat" in value:
+            made = from_case(value["value"], references)
+            for _ in range(value["repeat"]):
+                made = [made]
+            return made
+        return [from_case(item, references) for item in value["value"]]
     if kind == "map":
         return {
             key_of(key): from_case(item, references) for key, item in value["value"]

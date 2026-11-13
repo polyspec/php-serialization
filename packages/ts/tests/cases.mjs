@@ -126,6 +126,13 @@ function fromCase(lib, value, references = new Map()) {
       return fromHex(value.value.hex);
     case 'text':
       return value.value;
+    // A list nested deeper than a JSON reader takes is {"kind": "list", "repeat": n, "value"} (binding G-5).
+    case 'list': {
+      if (value.repeat === undefined) return value.value.map((item) => fromCase(lib, item, references));
+      let made = fromCase(lib, value.value, references);
+      for (let i = 0; i < value.repeat; i += 1) made = [made];
+      return made;
+    }
     case 'map':
       return new Map(value.value.map(([key, item]) => [hostKey(key), fromCase(lib, item, references)]));
     case 'object':

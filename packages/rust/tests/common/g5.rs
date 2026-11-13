@@ -134,6 +134,29 @@ impl Host {
             Some("int") => integer(content()?)?,
             Some("float") => HostValue::Float(float(content()?)?),
             Some("bytes") => HostValue::Bytes(hex(content()?)?),
+            // A list holds its items, or, nested deeper than a JSON reader takes, `{"kind": "list", "repeat": n,
+            // "value"}`: n lists, each the one item of the one around it, the innermost holding the value (G-5).
+            Some("list") => {
+                let items = match value.get("repeat") {
+                    Some(repeat) => {
+                        let repeat = repeat.as_u64().ok_or("repeat is no count")?;
+                        let inner = content()?.clone();
+                        let item = if repeat > 1 {
+                            serde_json::json!({"kind": "list", "repeat": repeat - 1, "value": inner})
+                        } else {
+                            inner
+                        };
+                        Value::Array(vec![item])
+                    }
+                    None => content()?.clone(),
+                };
+                let len = length(items.as_array().ok_or("the items are no array")?.len());
+                self.nodes.push(items);
+                HostValue::List {
+                    handle: Handle::new(length(self.nodes.len() - 1)),
+                    len,
+                }
+            }
             Some(kind @ ("map" | "object")) => {
                 let pairs = content()?.as_array().ok_or("the pairs are no array")?;
                 let len = length(pairs.len());
@@ -188,6 +211,17 @@ impl Host {
         Ok(map)
     }
 
+    fn list_item(&mut self, list: Handle, at: u64) -> Result<HostValue, String> {
+        let at = usize::try_from(at).map_err(|error| error.to_string())?;
+        let item = self
+            .nodes
+            .get(index(list))
+            .and_then(|items| items.get(at))
+            .cloned()
+            .ok_or("no such item")?;
+        self.describe(&item)
+    }
+
     fn pair(&mut self, map: Handle, at: u64) -> Result<(HostValue, HostValue), String> {
         let at = usize::try_from(at).map_err(|error| error.to_string())?;
         let pair = self
@@ -205,8 +239,12 @@ impl Host {
 }
 
 impl HostValues for Host {
-    fn item(&mut self, list: Handle, _index: u64) -> Result<HostValue, Raised> {
-        Err(Raised::from_generated(list))
+    fn item(&mut self, list: Handle, index: u64) -> Result<HostValue, Raised> {
+        // A case that names no such item is a defect of the case, which the language would raise as its exception.
+        match self.list_item(list, index) {
+            Ok(item) => Ok(item),
+            Err(_defect) => Err(Raised::from_generated(list)),
+        }
     }
 
     fn entry(&mut self, map: Handle, at: u64) -> Result<(HostValue, HostValue), Raised> {

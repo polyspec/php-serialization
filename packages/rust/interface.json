@@ -1084,6 +1084,15 @@
           ]
         },
         {
+          "go": "*KeyedMap[any]",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
           "go": "std_class",
           "cases": [
             {
