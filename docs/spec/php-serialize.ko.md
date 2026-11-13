@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: d5a8b823f16c611af8968ad063a49b75692b386b1878932fe0baf255072bfec7 -->
+<!-- source-sha256: a31255c2515e9dc5581956cbb41a98274fa2dc4de8530733c959d13e2a4832cc -->
 # PHP serialize 계약
 
 [English](php-serialize.md)
@@ -31,6 +31,8 @@
   | id | 자리(함수) | inject | fills | 흉내 내는 조건의 규칙 id | arming이 이어지는가 |
   |---|---|---|---|---|---|
   | `internal` | `serialize` | `broken` | `internal` | RQ-010 | task나 thread를 시작하지 않는다. 호출은 그 entry point의 thread에서 돈다 |
+
+- **RQ-015**: PHP에는 64-bit 밖의 정수가 없습니다. 그래서 `contracts/host-values.json`의 group `php_value`의 `int_range` case 둘, `an_integer_above_64_bits_is_refused`와 `an_integer_below_64_bits_is_refused`는 손으로 쓴 runner `packages/php-ext/tests/CasesTest.php`가 바인딩에 줄 PHP 값이 없습니다. runner는 두 case에서 실패하며 건너뛰지 않습니다. 건너뛴 case는 실행된 case로 읽히고, 계약의 모든 case는 모든 target의 결과로 남아야 하기 때문입니다(binding BD-27). 두 실패는 이 runner가 그 kind에 닿지 않는다는 기록입니다. binding이 PHP용으로 생성하는 시험은 그 kind에 닿습니다. 그 시험은 정수를 십진 토큰으로, 시험용으로만 빌드되는 확장의 feature `case-test` 진입점에 넘깁니다.
 
 <a id="refused"></a>
 ## 일부러 거부하는 입력

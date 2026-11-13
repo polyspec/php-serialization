@@ -31,6 +31,8 @@ This specification defines the behavior of every package. The executable cases a
   |---|---|---|---|---|---|
   | `internal` | `serialize` | `broken` | `internal` | RQ-010 | no task or thread is started: the call runs on the thread of its entry point |
 
+- **RQ-015**: PHP has no integer outside 64 bits, so the two cases of `int_range` of the group `php_value` of `contracts/host-values.json`, `an_integer_above_64_bits_is_refused` and `an_integer_below_64_bits_is_refused`, have no PHP value that the hand-written runner `packages/php-ext/tests/CasesTest.php` could give to the binding. The runner fails on both and does not skip them, because a skipped case reads as a case that ran and every case of the contract stays a result of every target (binding BD-27); the two failures are the record that this runner does not reach the kind. The tests that binding generates for PHP reach it: they give the integer as its decimal token to the entry point of the feature `case-test` of the extension, which is built only for tests.
+
 <a id="refused"></a>
 ## Inputs refused on purpose
 
