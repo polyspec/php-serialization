@@ -24,6 +24,7 @@
 - RQ-013: the crate gives a value of PHP to a language through `to_host`, the `out` of the value alias `php_value`: an `OutValue` with the children of its handles through `OutValues`, which borrow the value. The contract test checks that `to_host` describes the value of the bytes of every entry as its `value`, and that a value that `from_host` took goes back unchanged.
 - RQ-013: a question to `to_host` about a part that the value does not hold, which no binding asks, panics with RQ-013 and the handle instead of answering null, and a count that does not fit in `u64` panics instead of becoming the largest `u64`; a binding turns the panic into the kind `internal` (B-7).
 - `Cargo.lock` pins binding at 9de9d03, the commit that every repository of the library family pins (CK-20); its scaffold writes the same binding packages.
+- RQ-012: the specification states that `unsupported_value`, `invalid_text` and `int_range` of a value of a language are kinds of the value `php_value`, which reach every member that takes one, and that the `raises` of a member names the kinds that its function of the crate returns; `depth` arises in both places.
 
 ## 0.0.6
 
