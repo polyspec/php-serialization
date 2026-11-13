@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: 5b002a20d6d899e838dfa47298b426c2a09c9a53a4e94b0bde7556cc9974f729 -->
+<!-- source-sha256: 5c361813811cc1ba14c57ea4086bce2e241941dce2a247ebfa149dbdf817b474 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -41,3 +41,5 @@
   Enforced by: none, recipe가 어떤 utility를 실행할지는 이 repository가 정합니다.
 - Own: 개발 중에는 변경을 담당하는 Red/Green unit test를 실행합니다. 전체 suite는 `main`의 모든 push에서 CI가 실행합니다.
   Enforced by: none, 로컬 실행은 도구가 관찰하지 않습니다.
+- Own: 추적되는 파일은 이 저장소나 다른 저장소의 Git commit을 적지 않습니다. commit 이름은 release와 lock이 고정하며, 문서에 적힌 이름은 기록이 바뀌면 틀린 값이 됩니다. 기록은 그 대신 사실을 적습니다: 입력, 동작, 기대 동작, 시험 수.
+  Enforced by: `make commit-names-check`, 추적되는 Markdown 파일을 읽습니다. 다른 추적 파일에 적힌 commit은 review로 찾습니다.

@@ -40,3 +40,5 @@ The working principles of every polyspec repository are in [PRINCIPLES.md](https
   Enforced by: none, which utility a recipe runs is the choice of this repository.
 - Own: Development runs the Red and Green unit tests that own a change; CI runs the full suite on every push to `main`.
   Enforced by: none, a local run is not observed by a tool.
+- Own: No tracked file names a Git commit, of this repository or of another. A release and a lock pin the name of a commit, and a name written in a document is a wrong value once the history changes; a record states the fact instead: the input, the behavior, the expected behavior and the count of the tests.
+  Enforced by: `make commit-names-check`, which reads the tracked Markdown files; a commit named in another tracked file is found by review.
