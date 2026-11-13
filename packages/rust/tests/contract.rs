@@ -28,6 +28,44 @@ const HOST_VALUES: &str = concat!(
     "/../../contracts/host-values.json"
 );
 
+/// The interface contract, whose rows of `cases` link the groups of the case files to the generated tests (binding K-1).
+const INTERFACE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/interface.json");
+
+/// Every group of the case files is named by a row of `cases` of the interface contract, so that the generated tests of
+/// the bindings run it (binding K-1, U-7): a group that no row names is checked here alone.
+fn linked() -> Result<(), Failed> {
+    let interface = read(INTERFACE)?;
+    let rows = interface
+        .get("cases")
+        .and_then(Value::as_array)
+        .ok_or("the interface has no cases")?;
+    let mut unlinked = Vec::new();
+    for (path, file) in [
+        (CONTRACT, "contracts/php-serialize.json"),
+        (HOST_VALUES, "contracts/host-values.json"),
+    ] {
+        let contract = read(path)?;
+        for (group, entries) in contract.as_object().into_iter().flatten() {
+            let named = rows.iter().any(|row| {
+                row.get("file").and_then(Value::as_str) == Some(file)
+                    && row.get("group").and_then(Value::as_str) == Some(group.as_str())
+            });
+            if entries.is_array() && !named {
+                unlinked.push(format!("{file} {group}"));
+            }
+        }
+    }
+    if unlinked.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "no row of cases of the interface names the groups {}",
+            unlinked.join(", ")
+        )
+        .into())
+    }
+}
+
 fn field<'a>(entry: &'a Value, name: &str) -> Result<&'a str, Failed> {
     entry
         .get(name)
@@ -488,7 +526,7 @@ fn trials_of(
 
 fn main() -> std::process::ExitCode {
     let arguments = Arguments::from_args();
-    let mut trials = Vec::new();
+    let mut trials = vec![Trial::test("interface::links_every_group", linked)];
     match read(CONTRACT) {
         Ok(contract) => trials.extend(trials_of(
             &contract,
