@@ -131,8 +131,8 @@ test-js: ## Run the unit tests of the JavaScript package with the name filter CA
 test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
 	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots legacy/packages/python --venv .venv
 
-test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test and the feature fault-test, with the name filter CASES=<pattern>; offline
-	cargo test -p $(CORE) --locked --offline --features fault-test $(CASES)
+test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test, with the name filter CASES=<pattern>; offline
+	cargo test -p $(CORE) --locked --offline $(CASES)
 
 lint-ts: ## Lint the TypeScript and JavaScript with oxlint (.oxlintrc.json) and knip (knip.json); offline
 	$(NODE) $(KIT)/lint-ts.mjs

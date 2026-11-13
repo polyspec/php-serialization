@@ -1146,6 +1146,7 @@ dependencies = [
  "base64 0.22.1",
  "libtest-mimic",
  "polyspec-binding-core",
+ "polyspec-php-serialization",
  "ryu",
  "serde_json",
 ]

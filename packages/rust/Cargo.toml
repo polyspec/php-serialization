@@ -33,6 +33,9 @@ polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", branc
 # The tests raise a callback exception as a binding does, which only the feature construct allows, and arm the fault
 # injection points of a case as a generated binding test does (fault-test).
 polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", branch = "v1/rust-core", features = ["construct", "fault-test"] }
+# A fault injection point is live only with the feature fault-test of this crate (binding GN-5), so the tests depend on
+# the crate itself with that feature, and `cargo test` turns it on for them alone.
+polyspec-php-serialization = { path = ".", features = ["fault-test"] }
 base64 = "=0.22.1"
 libtest-mimic = "=0.8.2"
 # float_roundtrip: a float of a case reads back as the float that PHP wrote (G-5).

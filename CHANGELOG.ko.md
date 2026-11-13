@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: f4778f44669424b025021491082a0cb6f87d83b99962c7550a8ce33ea6e87893 -->
+<!-- source-sha256: 9e61a8b03ea6e2f269fd1e08681f45404f6e57ca1874819b52e9ceede598c9fb -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- core의 시험이 feature `fault-test`를 켠 core 자신에 의존한다(`packages/rust/Cargo.toml`의 `[dev-dependencies]`). 그래서 `cargo test -p polyspec-php-serialization`은 flag 없이 case `a_broken_invariant_is_internal`의 결함 주입점을 걸고, `make test-rust`는 feature를 넘기지 않는다. 전에는 binding의 end-to-end 검사가 실행하는 core의 `cargo test`가 binding 49a4e97에서 그 case를 실패시켰다. 그 주입점은 그것을 쓰는 crate의 feature로만 살아 있기 때문이다(binding GN-5). `make test-rust`(contract case 678개)로 확인했다.
 - `packages/rust/src/write.rs`의 결함 주입점은 binding 49a4e97의 macro `binding_core::fault::point!`이며, 그것을 쓰는 crate의 feature `fault-test`로 판정된다(binding GN-5). 그래서 `make test-rust`는 core의 시험을 그 feature `fault-test`와 함께 실행하고, Python, Node, WASM, PHP 바인딩 crate는 `panic-test,fault-test`(`TEST_FEATURES`)로 빌드하고 lint한다. 전에는 `panic-test`만으로 빌드했고 주입점은 Cargo가 binding_core의 feature를 합쳤기 때문에만 살아 있었으며, core는 함수 `fault::point`이 없는 binding 49a4e97로 컴파일되지 않았다. `make bindings`는 각 target을 자기 `make bindings-<target>`(`--target <target>`)에서 생성하고, 각 바인딩 target은 그것에 의존한다. 그래서 binding이 거부하는 target은 자기 이름으로 실패한다(binding GN-1c). 전에는 거부된 target 하나가 모든 바인딩 target을 멈췄다. `make test-rust`(contract case 678개), `make lint-rust`, `make bindings-check`로 확인했다.
 - `Cargo.lock`이 `polyspec-binding-core`를 binding의 commit 49a4e97로 고정하고, 바인딩 crate는 그 commit의 binding scaffold가 쓰는 것이다(binding BD-9, GN-3d). 각 crate는 `[lints] workspace = true`로 workspace의 lint를 받고, `src/lib.rs`의 attribute는 binding scaffold가 쓰는 꼴이며, PHP crate는 `build.rs`를 가져 macOS 링커에게 자기 라이브러리에만 PHP의 기호를 정의하지 않은 채 두게 하고 `[lib]`에 `test = false`와 `doctest = false`를 둔다. 전에는 binding 49a4e97의 `make bindings-check`가 crate마다 CK-19를 보고했고, 고정된 f63a655는 계약의 Go keyed map과 case의 반복 list를 거부했다. `make bindings-check`로 확인했다.
 - kind `depth`가 `contracts/host-values.json`의 `serialize`, `StdClass`의 constructor, `Reference`의 constructor의 각 group에 case를 가진다(binding CK-22, RQ-006): 4097단계로 중첩된 list 값이며, binding G-5의 형식 `{"kind": "list", "repeat": 4097, "value": {"kind": "null"}}`로 적고, Rust, Python, PHP, Node의 case runner가 반복문으로 만든다. `php_value`의 `in` 행이 Go에서 keyed map의 out 행이 만드는 Go 타입 `*KeyedMap[any]`을 적는다(binding CK-8, GN-15). 전에는 binding의 계약 검사가 세 member에 `depth`를 내는 case가 없다고, Go의 어떤 `in` 행도 `*KeyedMap[any]`를 분류하지 않아 값이 돌아오지 않는다고(P-3) 보고했다. `make test-rust`로 확인했다. 고정된 binding은 `keyed_map`의 Go 타입과 반복 list를 모르므로, 고정이 옮겨질 때까지 고정된 binding의 계약 검사는 실패한다.
