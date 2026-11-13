@@ -29,6 +29,10 @@
     "scripts/binding.mts": {
       "kind": "policy",
       "reason": "runs binding at the commit of polyspec-binding-core that Cargo.lock pins, from the checkout that Cargo made of it, because no registry holds the tool before its release (binding design L-2)"
+    },
+    "scripts/check-commit-names.mts": {
+      "kind": "policy",
+      "reason": "fails a tracked document that names a Git commit, a rule of this repository (AGENTS.md, \"Tools\"): a release and a lock pin the name of a commit"
     }
   }
 }

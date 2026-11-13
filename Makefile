@@ -34,7 +34,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check link-check release-coverage typecheck contracts-check binding-features-test
+CI_SHARED := layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -44,7 +44,7 @@ CI_REPORT ?= var/report/ci-targets
 .PHONY: bootstrap install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
-	contracts contracts-check fuzz fuzz-temp-test binding-features-test \
+	contracts contracts-check fuzz fuzz-temp-test binding-features-test commit-names-check commit-names-test \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust \
@@ -317,6 +317,13 @@ layout-check: ## Check the folder layout, that Git ignores each install director
 
 docs-check: ## Check the documents of config/documents.json and the checklists of config/checklist.json; offline
 	$(NODE) $(KIT)/check-documents.mjs --checklist-place --private-path /Users/ --private-path /home/ --kit-rows
+
+# No tracked document names a Git commit (AGENTS.md, "Tools"); commit-names-test tests the checker.
+commit-names-check: ## Fail while a tracked document names a Git commit; offline
+	$(NODE) scripts/check-commit-names.mts
+
+commit-names-test: ## Run the test of the checker of commit names; offline
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/commit-names.test.mts
 
 rules-check: ## Check that every rule of AGENTS.md names a check that CI runs; offline
 	$(NODE) $(KIT)/check-rules.mjs AGENTS.md

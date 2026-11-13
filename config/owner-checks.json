@@ -215,6 +215,17 @@
       "targets": [
         "binding-features-test"
       ]
+    },
+    {
+      "paths": [
+        "**/*.md",
+        "scripts/check-commit-names.mts",
+        "scripts/commit-names.test.mts"
+      ],
+      "targets": [
+        "commit-names-check",
+        "commit-names-test"
+      ]
     }
   ]
 }
