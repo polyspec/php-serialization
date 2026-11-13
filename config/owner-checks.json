@@ -80,7 +80,8 @@
       "paths": [
         "Makefile",
         ".github/workflows/*.yml",
-        ".github/actions/**"
+        ".github/actions/**",
+        "scripts/workflows.test.mts"
       ],
       "targets": [
         "rules-check",
