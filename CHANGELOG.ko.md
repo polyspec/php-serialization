@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: dda9893b6d9a6d64ee4fc18a2661527d55a1c0ac8aca721fbdf135188f839261 -->
+<!-- source-sha256: 8ad512839822e5b0f843f735517fed8349ff0c10a58f5c46dd93ea8db445afa1 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- GitHub workflow가 polyspec 저장소의 규칙을 지키고, `make workflows-test`가 그것을 검사한다(T2.8). 이전에는 workflow `ci`의 job 5개와 workflow `release`의 job이 `ubuntu-24.04`에서 실행됐고, workflow `ci`는 pull request에서도 시작했고, 그 step 2개가 각각 make target 둘을 실행했고, 릴리스와 bootstrap action의 step 3개가 shell 명령을 실행했고, step 하나가 `TAG="$TAG"`를 넘겼고, 어떤 job도 run의 결과를 말하지 않았다. 이제 모든 job은 `ubuntu-26.04-arm`에서 실행한다. workflow `ci`는 `main`의 push와 `workflow_dispatch`에서만 시작한다. 각 step은 make target 하나를 실행한다. 새 target `make release-zip`, `make release-checkout`이 있고 bootstrap action은 `make bootstrap`을 실행한다. 마지막 job `ci-passed`는 `shared`, `fuzz`, `ts`, `python`, `rust`를 needs에 두고, 자기 needs의 JSON인 `RESULTS`와 함께 `make ci-passed FAIL_SKIPPED=1`을 실행한다. `scripts/workflows.test.mts`는 추적되는 workflow와 Makefile을 읽는다. 변경 전에 `make workflows-test`는 5개 통과, 1개 실패에 finding 15개였고, 변경 뒤에는 6개 통과, 0개 실패다. 이 target은 `make ci-shared`의 target이다. 미확인: `ubuntu-26.04-arm`에서 job을 실행한 CI run이 아직 없다.
 - checklist에 열린 행 T2.4-1이 있다. `scripts/check-commit-names.mts`는 php-serialization, fsm, session-store가 각각 가진 commit 이름 검사의 복사본이고, kit이 이 검사를 `make commit-names-check`가 실행하는 utility로 릴리스하면 지운다.
 - checklist에 열린 행 둘이 있습니다. T2.6: `make bindings-check`가 `packages/php-ext/Cargo.toml`에 CK-19를 보고합니다. 그 파일의 feature `case-test`를 `Cargo.lock`이 고정한 binding의 scaffold가 쓰지 않기 때문입니다. 그것을 쓰는 scaffold의 binding을 고정하고 package를 다시 scaffold하면 끝납니다. T2.7: release가 바인딩 package(PIE 확장, wheel, npm package와 그 플랫폼 package, Rust crate의 tag, Go module)를 담으며, kit 0.0.111과 Go module의 tag 형태를 기다립니다. `config/release.json`의 `notReleased`에 있는 각 바인딩 manifest의 사유가 그 행과 조건을 적습니다. `make release-coverage`와 `make docs-check`로 확인했습니다.
 - 명세가 RQ-015를 적습니다. group `php_value`의 `int_range` case 둘, 곧 64-bit 위의 정수와 아래의 정수는 손으로 쓴 PHP runner `packages/php-ext/tests/CasesTest.php`에서 실패하며 건너뛰지 않습니다. PHP에는 그런 정수가 없고, 건너뛴 case는 실행된 case로 읽히기 때문입니다. binding이 PHP용으로 생성하는 시험은 정수를 십진 토큰으로 feature `case-test` 진입점에 넘깁니다. 전에는 runner의 주석과 이 변경 기록의 한 항목만 이 결정을 담고 있었습니다(T2.5).

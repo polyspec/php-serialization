@@ -358,6 +358,9 @@ suppression-check: ## Fail on a suppression of a lint finding without its reason
 ci-shared: ## Run the targets of the shared CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_SHARED)
 
+ci-passed: ## Fail unless every job of RESULTS, the JSON of toJSON(needs), has the result success; FAIL_SKIPPED=1 fails a skipped job
+	$(NODE) $(KIT)/ci-passed.mjs
+
 ci-fuzz: ## Run the targets of the fuzz CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_FUZZ)
 
@@ -439,6 +442,13 @@ land: ## Land the branch BRANCH on main fast-forward and remove its worktree; of
 release-tag: ## Tag the commit of the successful CI run RUN of ci.yml on main with the newest version of its change log; AUTO for workflow_run
 	@test -n "$$RUN" || { echo "release-tag: RUN is required, for example make release-tag RUN=123"; exit 1; }
 	RELEASE_MAIN=origin/main $(NODE) $(KIT)/release-run.mjs tag "$$RUN"$(if $(AUTO), --auto)
+
+release-zip: ## Fail unless zip, which Composer needs for the release archives, is on PATH
+	@command -v zip >/dev/null || { echo 'release-zip: Info-ZIP is required for Composer release archives; install the zip package on the Ubuntu runner'; exit 1; }
+
+release-checkout: ## Check out the tag TAG, so that the release builds the tagged commit with its own kit
+	@test -n "$$TAG" || { echo "release-checkout: TAG is required, for example make release-checkout TAG=v0.0.1"; exit 1; }
+	git checkout --quiet "$$TAG"
 
 release-tools: ## Install the tools that config/release.json needs for the release; ONLINE
 	$(ONLINE) $(NODE) $(KIT)/release-tools.mjs

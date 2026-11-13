@@ -1,17 +1,17 @@
 # CI of php-serialization: one workflow whose jobs run the targets of the Makefile, each job the target that names its list
 # (CI_SHARED, CI_FUZZ, CI_TS, CI_PYTHON and CI_RUST of the Makefile), past failures, with the report of ci-targets as an artifact. The
-# release workflow releases the commit whose run of this workflow is green.
+# release workflow releases the commit whose run of this workflow is green. The workflow starts on a push of main and
+# on a manual run alone, and its last job ci-passed passes only when every other job succeeded (make workflows-test).
 name: ci
 
 on:
-  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ permissions:
 jobs:
   # The checks of the repository and of the contract: alint for the layout, PHP for contracts-check, the Python of mise.toml.
   shared:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     steps:
       # actions/checkout v7.0.1: with the whole history, which the checks of the documents and the owners read.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -47,7 +47,7 @@ jobs:
 
   # The fuzz of the Rust crate and both ports against real PHP, which reads the installed Python package.
   fuzz:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -60,8 +60,10 @@ jobs:
       - uses: ./.github/actions/bootstrap
       - name: install the tools of the job
         run: make install-tools TOOLS="php python uv"
-      - name: install the Python package and the Rust toolchain
-        run: make php-serialization-install-python php-serialization-install-rust
+      - name: install the Python package
+        run: make php-serialization-install-python
+      - name: install the Rust toolchain and the locked crates
+        run: make php-serialization-install-rust
       - name: fuzz
         run: make ci-fuzz
       - name: report
@@ -74,7 +76,7 @@ jobs:
 
   # The lint and the unit tests of legacy/packages/js.
   ts:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
@@ -92,14 +94,16 @@ jobs:
 
   # The lint and the unit tests of legacy/packages/python, against the installed package.
   python:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
       - name: install the tools of the job
         run: make install-tools TOOLS="python uv ruff vulture"
-      - name: install and build the package
-        run: make php-serialization-install-python build-python
+      - name: install the package
+        run: make php-serialization-install-python
+      - name: build the package
+        run: make build-python
       - name: lint and unit tests
         run: make ci-python
       - name: report
@@ -112,7 +116,7 @@ jobs:
 
   # The lint and the tests of packages/rust: the contract and the unit tests with cargo test, clippy with the lints of R-1.
   rust:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
@@ -127,3 +131,18 @@ jobs:
           name: report-rust
           path: var/report/ci-targets/
           if-no-files-found: ignore
+
+  # The result of the run: the job runs after every other job, also after a failed or cancelled one, and make ci-passed
+  # passes only when each job of needs has the result success; a skipped job fails it (FAIL_SKIPPED=1). make
+  # workflows-test fails this workflow when ci-passed is not its last job or when needs leaves a job out.
+  ci-passed:
+    if: ${{ always() }}
+    needs: [shared, fuzz, ts, python, rust]
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/bootstrap
+      - name: every job passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: make ci-passed FAIL_SKIPPED=1

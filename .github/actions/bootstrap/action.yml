@@ -18,10 +18,7 @@ runs:
     # install the kit package of its release URL.
     - name: install the locked kit package
       shell: bash
-      run: |
-        root="$PWD"
-        version="$(node -p 'require("./package.json").devEngines.packageManager.version')"
-        (cd "${RUNNER_TEMP:?RUNNER_TEMP is not set}" && npm_config_cache="$root/var/bootstrap/npm-cache" npm exec --yes --package="npm@$version" -- npm --prefix "$root" ci --ignore-scripts)
+      run: make bootstrap
     - name: install npm
       shell: bash
       run: make install-tools TOOLS=npm

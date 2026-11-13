@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: 5c361813811cc1ba14c57ea4086bce2e241941dce2a247ebfa149dbdf817b474 -->
+<!-- source-sha256: e414b002725b68d7726a63867323dde607f4f67c6140e05310439527cb66d902 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -43,3 +43,9 @@
   Enforced by: none, 로컬 실행은 도구가 관찰하지 않습니다.
 - Own: 추적되는 파일은 이 저장소나 다른 저장소의 Git commit을 적지 않습니다. commit 이름은 release와 lock이 고정하며, 문서에 적힌 이름은 기록이 바뀌면 틀린 값이 됩니다. 기록은 그 대신 사실을 적습니다: 입력, 동작, 기대 동작, 시험 수.
   Enforced by: `make commit-names-check`, 추적되는 Markdown 파일을 읽습니다. 다른 추적 파일에 적힌 commit은 review로 찾습니다.
+
+<a id="ci"></a>
+## CI와 릴리스
+
+- Own: GitHub workflow의 모든 job은 `ubuntu-26.04-arm`에서 실행한다. 모든 action은 `.github/actions`의 local action이거나 전체 commit으로 고정하고, 파일의 주석이 그 릴리스를 적는다. action 고정은 추적 파일이 적는 유일한 Git commit이다. 어떤 job과 step도 `timeout-minutes`를 두지 않는다. 모든 `run` step은 `Makefile`이 정의하는 make target 하나다. 그래서 Makefile의 설정이 CI의 모든 명령에 적용된다. workflow `ci`는 `main`의 push와 `workflow_dispatch`에서만 시작하고, 그 마지막 job `ci-passed`는 다른 모든 job 뒤에 실행되고, 그 job을 모두 needs에 두고, 각 job이 성공했을 때만 통과한다(`make ci-passed FAIL_SKIPPED=1`). 그래서 job 하나가 run의 결과를 말한다.
+  Enforced by: `make workflows-test`

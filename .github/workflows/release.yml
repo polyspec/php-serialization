@@ -47,7 +47,7 @@ jobs:
     concurrency:
       group: release-${{ github.repository }}
       cancel-in-progress: false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     env:
       RUN: ${{ inputs.run || github.event.workflow_run.id }}
       GH_TOKEN: ${{ github.token }}
@@ -60,7 +60,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha }}
       - name: verify the Composer archive tool
-        run: command -v zip >/dev/null || { echo 'Info-ZIP is required for Composer release archives; install the zip package on the Ubuntu runner'; exit 1; }
+        run: make release-zip
       # shivammathur/setup-php 2.40.0: the PHP of .php-version, which the tools of the release read when it is declared.
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         if: ${{ hashFiles('.php-version') != '' }}
@@ -74,7 +74,7 @@ jobs:
       # The release builds the tagged commit with its own kit and packages.
       - name: check out the tag
         if: ${{ env.TAG != '' }}
-        run: git checkout --quiet "$TAG"
+        run: make release-checkout
       # The bootstrap of the tagged commit, with its own kit and packages.
       - uses: ./.github/actions/bootstrap
         if: ${{ env.TAG != '' }}
@@ -95,4 +95,4 @@ jobs:
         run: make release-publish
       - name: make the release public
         if: ${{ env.TAG != '' }}
-        run: make release-undraft TAG="$TAG"
+        run: make release-undraft
