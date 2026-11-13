@@ -8,7 +8,9 @@
   "targets": [
     "php",
     "python",
-    "node"
+    "node",
+    "go",
+    "wasm"
   ],
   "packages": {
     "php": {
@@ -23,11 +25,18 @@
       "package": "@polyspec/php-serialization",
       "entries": {
         ".": {
+          "conditions": {
+            "node": "napi",
+            "browser": "wasm"
+          },
           "formats": [
             "import"
           ]
         }
       }
+    },
+    "go": {
+      "module": "github.com/polyspec/php-serialization/packages/go"
     }
   },
   "naming": {
@@ -44,32 +53,38 @@
       "value": {
         "php": "Polyspec\\PhpSerialization\\PhpSerializationValueError",
         "python": "PHPSerializationValueError",
-        "node": "PhpSerializationValueError"
+        "node": "PhpSerializationValueError",
+        "wasm": "PhpSerializationValueError"
       },
       "type": {
         "php": "Polyspec\\PhpSerialization\\PhpSerializationTypeError",
         "python": "PHPSerializationTypeError",
-        "node": "PhpSerializationTypeError"
+        "node": "PhpSerializationTypeError",
+        "wasm": "PhpSerializationTypeError"
       },
       "io": {
         "php": "Polyspec\\PhpSerialization\\PhpSerializationIoError",
         "python": "PHPSerializationIoError",
-        "node": "PhpSerializationIoError"
+        "node": "PhpSerializationIoError",
+        "wasm": "PhpSerializationIoError"
       },
       "store": {
         "php": "Polyspec\\PhpSerialization\\PhpSerializationStoreError",
         "python": "PHPSerializationStoreError",
-        "node": "PhpSerializationStoreError"
+        "node": "PhpSerializationStoreError",
+        "wasm": "PhpSerializationStoreError"
       },
       "busy": {
         "php": "Polyspec\\PhpSerialization\\PhpSerializationBusyError",
         "python": "PHPSerializationBusyError",
-        "node": "PhpSerializationBusyError"
+        "node": "PhpSerializationBusyError",
+        "wasm": "PhpSerializationBusyError"
       },
       "internal": {
         "php": "Polyspec\\PhpSerialization\\PhpSerializationInternalError",
         "python": "PHPSerializationInternalError",
-        "node": "PhpSerializationInternalError"
+        "node": "PhpSerializationInternalError",
+        "wasm": "PhpSerializationInternalError"
       }
     },
     "fixed": [
@@ -87,6 +102,10 @@
       },
       {
         "lang": "node",
+        "class": "TypeError"
+      },
+      {
+        "lang": "wasm",
         "class": "TypeError"
       }
     ],
@@ -303,7 +322,8 @@
       "origin": "value",
       "only": {
         "targets": [
-          "node"
+          "node",
+          "wasm"
         ],
         "reason": "RQ-008"
       },
@@ -375,7 +395,9 @@
       "only": {
         "targets": [
           "node",
-          "python"
+          "python",
+          "go",
+          "wasm"
         ],
         "reason": "RQ-008"
       },
@@ -445,7 +467,9 @@
       "only": {
         "targets": [
           "node",
-          "python"
+          "python",
+          "go",
+          "wasm"
         ],
         "reason": "RQ-008"
       },
@@ -511,7 +535,9 @@
           "make": {
             "php": "null",
             "python": "null",
-            "node": "null"
+            "node": "null",
+            "go": "null",
+            "wasm": "null"
           }
         },
         {
@@ -519,7 +545,9 @@
           "make": {
             "php": "bool",
             "python": "bool",
-            "node": "bool"
+            "node": "bool",
+            "go": "bool",
+            "wasm": "bool"
           }
         },
         {
@@ -531,7 +559,9 @@
           "make": {
             "php": "int",
             "python": "int",
-            "node": "int"
+            "node": "int",
+            "go": "int",
+            "wasm": "int"
           }
         },
         {
@@ -543,7 +573,9 @@
           "make": {
             "php": "int",
             "python": "int",
-            "node": "bigint"
+            "node": "bigint",
+            "go": "int",
+            "wasm": "bigint"
           }
         },
         {
@@ -555,7 +587,9 @@
           "make": {
             "php": "float",
             "python": "float",
-            "node": "php_float.constructor"
+            "node": "php_float.constructor",
+            "go": "float",
+            "wasm": "php_float.constructor"
           }
         },
         {
@@ -567,7 +601,9 @@
           "make": {
             "php": "float",
             "python": "float",
-            "node": "float"
+            "node": "float",
+            "go": "float",
+            "wasm": "float"
           }
         },
         {
@@ -579,7 +615,9 @@
           "make": {
             "php": "bytes",
             "python": "text",
-            "node": "text"
+            "node": "text",
+            "go": "text",
+            "wasm": "text"
           }
         },
         {
@@ -591,7 +629,9 @@
           "make": {
             "php": "bytes",
             "python": "bytes",
-            "node": "bytes"
+            "node": "bytes",
+            "go": "bytes",
+            "wasm": "bytes"
           }
         },
         {
@@ -603,7 +643,9 @@
           "make": {
             "php": "list",
             "python": "list",
-            "node": "list"
+            "node": "list",
+            "go": "list",
+            "wasm": "list"
           }
         },
         {
@@ -638,6 +680,24 @@
                   "bytes"
                 ]
               }
+            },
+            "go": {
+              "keyed_map": {
+                "key": [
+                  "int",
+                  "text",
+                  "bytes"
+                ]
+              }
+            },
+            "wasm": {
+              "keyed_map": {
+                "key": [
+                  "int",
+                  "text",
+                  "bytes"
+                ]
+              }
             }
           }
         },
@@ -646,7 +706,9 @@
           "make": {
             "php": "php_object",
             "python": "std_class.constructor",
-            "node": "std_class.constructor"
+            "node": "std_class.constructor",
+            "go": "std_class.constructor",
+            "wasm": "std_class.constructor"
           }
         },
         {
@@ -654,7 +716,9 @@
           "make": {
             "php": "php_reference",
             "python": "reference.constructor",
-            "node": "reference.constructor"
+            "node": "reference.constructor",
+            "go": "reference.constructor",
+            "wasm": "reference.constructor"
           }
         }
       ],
@@ -927,6 +991,210 @@
         },
         {
           "node": "reference",
+          "cases": [
+            {
+              "kind": "reference",
+              "read": "reference.value"
+            }
+          ]
+        },
+        {
+          "go": "nil",
+          "cases": [
+            {
+              "kind": "null"
+            }
+          ]
+        },
+        {
+          "go": "bool",
+          "cases": [
+            {
+              "kind": "bool",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "int64",
+          "cases": [
+            {
+              "kind": "int",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "float64",
+          "cases": [
+            {
+              "kind": "float",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "string",
+          "cases": [
+            {
+              "kind": "bytes",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "[]byte",
+          "cases": [
+            {
+              "kind": "bytes",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "[]any",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "map[string]any",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "go": "std_class",
+          "cases": [
+            {
+              "kind": "object",
+              "read": "std_class.properties"
+            }
+          ]
+        },
+        {
+          "go": "reference",
+          "cases": [
+            {
+              "kind": "reference",
+              "read": "reference.value"
+            }
+          ]
+        },
+        {
+          "wasm": "null",
+          "cases": [
+            {
+              "kind": "null"
+            }
+          ]
+        },
+        {
+          "wasm": "boolean",
+          "cases": [
+            {
+              "kind": "bool",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "number",
+          "cases": [
+            {
+              "when": {
+                "predicate": "integral_float",
+                "is": false
+              },
+              "kind": "float",
+              "read": "builtin"
+            },
+            {
+              "when": {
+                "predicate": "safe_integer",
+                "is": true
+              },
+              "kind": "int",
+              "read": "builtin"
+            },
+            {
+              "when": "else",
+              "kind": "float",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "bigint",
+          "cases": [
+            {
+              "kind": "int",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "string",
+          "cases": [
+            {
+              "kind": "bytes",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "Uint8Array",
+          "cases": [
+            {
+              "kind": "bytes",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "Array",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "Map",
+          "cases": [
+            {
+              "kind": "map",
+              "read": "builtin"
+            }
+          ]
+        },
+        {
+          "wasm": "php_float",
+          "cases": [
+            {
+              "kind": "float",
+              "read": "php_float.value"
+            }
+          ]
+        },
+        {
+          "wasm": "std_class",
+          "cases": [
+            {
+              "kind": "object",
+              "read": "std_class.properties"
+            }
+          ]
+        },
+        {
+          "wasm": "reference",
           "cases": [
             {
               "kind": "reference",

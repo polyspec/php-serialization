@@ -1149,6 +1149,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "polyspec-php-serialization-go"
+version = "0.0.6"
+dependencies = [
+ "polyspec-binding-core",
+ "polyspec-php-serialization",
+]
+
+[[package]]
 name = "polyspec-php-serialization-node"
 version = "0.0.6"
 dependencies = [
@@ -1175,6 +1183,16 @@ dependencies = [
  "polyspec-binding-core",
  "polyspec-php-serialization",
  "pyo3",
+]
+
+[[package]]
+name = "polyspec-php-serialization-wasm"
+version = "0.0.6"
+dependencies = [
+ "js-sys",
+ "polyspec-binding-core",
+ "polyspec-php-serialization",
+ "wasm-bindgen",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: b28407d8cfb6f329ba1ac5cb7e2eb04e5164aa3aabf618e77dd248ae5f82772b -->
+<!-- source-sha256: b4e03e7235d7d365772bbdf18d79c5e1a7ba6b607b4653993dc8908898d63127 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 계약이 binding의 다섯 target을 적는다(BD-27): `packages/rust/interface.json`의 `targets`는 php, python, node, go, wasm이고, `packages.go`는 Go 모듈 `github.com/polyspec/php-serialization/packages/go`를 적으며, npm 패키지의 entry `.`는 조건 `{node: napi, browser: wasm}`을 받고, 각 오류 클래스는 WASM 클래스로 Node의 것을 적으며, `errors.fixed`는 Node처럼 WASM에도 `TypeError`를 적는다. `php_value`의 값 표에 WASM의 행(Node의 것)과 Go의 행이 더해진다: 들어오는 `nil`, `bool`, `int64`, `float64`, `string`, `[]byte`, `[]any`, `map[string]any`, `StdClass`, `Reference`, 그리고 나가는 내장 형태와 key가 0부터 n-1이 아닌 배열의 `keyed_map`이다(RQ-012, RQ-013). `PhpFloat`는 Node와 WASM의 클래스이고, `StdClass`와 `Reference`는 Node, Python, Go, WASM의 클래스다. 전에는 계약이 php, python, node만 적어 Go와 WASM 바인딩이 생성되지 않았다. 바인딩 패키지에 binding scaffold가 두 target을 위해 쓰는 것(`packages/go`, `packages/ts/wasm`, `packages/ts/package.json`의 브라우저 exports)이 더해지고, 두 crate가 workspace의 member가 되며, `config/owner-checks.json`은 `packages/go/**`를 `bindings-check`에 맡긴다. 계약 검사에 finding 하나가 더해진다, CK-8: Go에는 내장 `keyed_map`이 없어 Go 바인딩이 생성되지 않는다. 전부터 있던 CK-22 finding 넷은 그대로다(`serialize`, `StdClass`, `Reference`의 case 가운데 `depth`를 내는 것이 없고, `php_serialization.internal`을 broken으로 켜는 case가 없다, X-1).
 - 명세는 형식의 값을 정하고(RQ-008), U+0000으로 시작하는 속성 이름을 읽을 때와 값을 만들 때 거부하며(RQ-009), 모든 실패의 kind와 offset을 정하고(RQ-010), 규칙을 Rust crate `polyspec-php-serialize`에 두고 Node.js와 Python 패키지의 차이를 판정한다(RQ-011) (T2.1).
 - contract는 모든 거부의 kind를 `raises`에 적고, U+0000으로 시작하는 속성 이름을 `stricter`와 새 group `refused_values`에 담으며, Node.js와 Python 패키지는 그런 이름을 읽을 때와 쓸 때 거부한다(RQ-009) (T2.1).
 - `packages/rust`의 Rust crate `polyspec-php-serialize`는 PHP 값의 자기 타입 위에서 RQ-010의 kind로 형식을 읽고 쓰며 contract를 통과한다(`make test-rust`, `make lint-rust`). `make fuzz`는 입력과 무작위 PHP 값의 bytes를 crate에도 주고, CI는 Rust job을 실행한다(T2.1).

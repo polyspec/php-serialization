@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: 511d0fc049551a53c102c58a651713a40490172e765400322f7429c9f8c6602a -->
+<!-- source-sha256: d0e1b4d9b4700c22fd8bafc92a2c4ef2ca3e28be9523851dea5939856b42c973 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -21,7 +21,7 @@
 
 - Own: 이행 기간의 S6 예외: `legacy/packages/js`와 `legacy/packages/python`은 생성된 바인딩이 대체하는 Node.js와 Python 패키지를 담습니다. 배포 대상이 아니며, 그 언어의 바인딩이 contract, 패키지 시험, fuzz를 통과하면 각각 그것만의 변경으로 없앱니다([이행](docs/spec/php-serialize.ko.md#transition), 계획 V-6 (5)).
   Enforced by: `make layout-check`, `make release-coverage`
-- Own: 바인딩 패키지 `packages/python`, `packages/ts`, `packages/php-ext`는 `binding scaffold`가 `packages/rust/interface.json`에서 쓰는 그대로이며, 그 `generated/`는 추적하지 않습니다. 루트 Cargo workspace가 코어 crate와 함께 그것들을 담고, 코어의 Rust 레시피는 코어 package를 이름으로 지정합니다.
+- Own: 모든 계약이 적는 다섯 target(binding BD-27)의 바인딩 패키지 `packages/python`, `packages/ts`, `packages/ts/wasm`, `packages/php-ext`, 그리고 C ABI crate `packages/go/internal/ffi`를 가진 `packages/go`는 `binding scaffold`가 `packages/rust/interface.json`에서 쓰는 그대로이며, 그 `generated/`는 추적하지 않습니다. 루트 Cargo workspace가 코어 crate와 함께 그것들을 담고, 코어의 Rust 레시피는 코어 package를 이름으로 지정합니다.
   Enforced by: `make bindings-check`
 
 <a id="tools"></a>

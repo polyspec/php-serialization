@@ -2,7 +2,7 @@
 # the root pins every dependency of all of them, the commit of polyspec-binding-core included.
 [workspace]
 resolver = "2"
-members = ["packages/rust", "packages/python", "packages/ts", "packages/php-ext"]
+members = ["packages/rust", "packages/python", "packages/ts", "packages/ts/wasm", "packages/php-ext", "packages/go/internal/ffi"]
 
 [workspace.lints.rust]
 warnings = "deny"
