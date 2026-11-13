@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: 656035ee44a5c9bc840b541c426f51b2e4b57949fb04d6b6236c81bf62700b0b -->
+<!-- source-sha256: 511d0fc049551a53c102c58a651713a40490172e765400322f7429c9f8c6602a -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -13,7 +13,7 @@
   Enforced by: `make contracts-check`, `make fuzz`
 - Own: 기록은 형식의 출처로 PHP만 적고 이 repository만 설명합니다.
   Enforced by: none, 기록의 표현은 판단입니다.
-- Own: contract는 실제 PHP가 쓴 데이터만 담고 언어별 형태를 담지 않습니다. 새 runtime은 `packages/` 아래의 새 패키지입니다.
+- Own: contract는 실제 PHP가 쓴 데이터를 담고 언어별 형태를 담지 않으므로, 새 runtime은 `packages/` 아래의 새 패키지입니다.
   Enforced by: none, 안내 규칙: kit은 구현들이 서로 어떻게 관계되는지 검사하지 않으며, 각 저장소가 자기 테스트를 실행한다(K1129)
 
 <a id="layout"></a>
@@ -29,5 +29,5 @@
 
 - Own: recipe는 이 repository의 것입니다. `Makefile`은 release asset에 고정한 npm 패키지 `@polyspec/kit`의 utility를 명시적 인자로 실행하고, 각 도구는 자기 file(`.npmrc`, `mise.toml`, `ruff.toml`, `.oxlintrc.json`, `knip.json`)에서 설정을 읽습니다. kit은 여기에 recipe를 include하지 않고 file을 쓰지 않습니다.
   Enforced by: none, recipe가 어떤 utility를 실행할지는 이 repository가 정합니다.
-- Own: 개발 중에는 변경을 담당하는 Red/Green unit test만 실행합니다. 전체 suite는 `main`의 모든 push에서 CI가 실행합니다.
+- Own: 개발 중에는 변경을 담당하는 Red/Green unit test를 실행합니다. 전체 suite는 `main`의 모든 push에서 CI가 실행합니다.
   Enforced by: none, 로컬 실행은 도구가 관찰하지 않습니다.

@@ -1,5 +1,5 @@
 <!-- doc-id: rust-overview -->
-<!-- source-sha256: a272d4a0415a29b337e7a52207e1ba57e72e19b56740b8ce80d2eb6ef87d50f8 -->
+<!-- source-sha256: 4ab670adde9c70ae2cb53ac209418505dece09261d0ce487e2af50232a63e53e -->
 # Rust용 php-serialization
 
 [English](README.md)

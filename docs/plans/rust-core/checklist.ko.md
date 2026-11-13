@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 2e5038e1f2a9726aa18217d6b52e309df16ff5cbdf3b81e77e1f5d4ff59186be -->
+<!-- source-sha256: 150beccf166101b8fcc5fd8fcc62758d39edf024bffb8e01ee320b50e38acf30 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |

@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 8e4b34f92d35b19e4e02368204e4e8005042afde9f087fa5b0be6b1d04599b36 -->
+<!-- source-sha256: 01d33414505f342e7c1e8653d1957e3e0dadbbd9516c0a5b1420ea36c5b60d01 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -11,24 +11,25 @@
 - contract는 모든 거부의 kind를 `raises`에 적고, U+0000으로 시작하는 속성 이름을 `stricter`와 새 group `refused_values`에 담으며, Node.js와 Python 패키지는 그런 이름을 읽을 때와 쓸 때 거부한다(RQ-009) (T2.1).
 - `packages/rust`의 Rust crate `polyspec-php-serialize`는 PHP 값의 자기 타입 위에서 RQ-010의 kind로 형식을 읽고 쓰며 contract를 통과한다(`make test-rust`, `make lint-rust`). `make fuzz`는 입력과 무작위 PHP 값의 bytes를 crate에도 주고, CI는 Rust job을 실행한다(T2.1).
 - `contracts/interface.json`은 바인딩의 인터페이스 계약 초안이다: 함수, offset을 가진 오류 class, `php_value`의 값 표, Node.js와 Python 패키지에서 바뀌는 점. 형식이 아직 담지 못하는 곳은 `todo`로 둔다(T2.1).
-- 인터페이스 계약을 `packages/rust/interface.json`으로 옮기고 crate의 `include`에 넣는다. `php_value`를 받거나 내는 라이브러리가 Cargo가 해석한 패키지에서 값 표를 읽게 하기 위해서다. 계약은 bindgen 스키마를 따른다: category 오류 클래스는 모든 언어에서 `PhpSerialize<Category>Error`(`PhpSerializeValueError` 등)이고, `php_value`는 alias이며 그 값 표는 PHP 배열을 int와 bytes key의 map으로 만들고 `stdClass`와 참조는 PHP 객체와 참조 그대로 두며 각 언어의 내장 타입은 bindgen이 직접 읽는다. 형식이나 코어가 아직 담지 못하는 곳은 `todo`로 남는다(T2.1).
+- 인터페이스 계약을 `packages/rust/interface.json`으로 옮기고 crate의 `include`에 넣는다. `php_value`를 받거나 내는 라이브러리가 Cargo가 해석한 패키지에서 값 표를 읽게 하기 위해서다. 계약은 bindgen 스키마를 따른다: category 오류 클래스는 모든 언어에서 `PhpSerialize<Category>Error`(`PhpSerializeValueError` 등)이고, `php_value`는 alias이며 그 값 표는 PHP 배열을 int와 bytes key의 map으로 만들고 `stdClass`와 참조는 PHP 객체와 참조 그대로 두며 각 언어의 내장 타입은 직접 읽는다. 형식이나 코어가 아직 담지 못하는 곳은 `todo`로 남는다(T2.1).
 - crate의 `DEPTH_LIMIT`는 인터페이스 계약의 `uint` 타입인 `u64`이고, crate는 Node.js class `PhpFloat`의 생성자, `value`, `valueOf`가 부르는 `PhpFloat`를 가진다(RQ-008) (T2.1).
-- `php_value`의 값 표를 채운다: alias만 `out`·`in` 행을 가지고 `PhpFloat`, `StdClass`, `Reference`를 모으며, `StdClass`의 속성은 text와 bytes key의 keyed map이고, JavaScript number는 정수가 아니면 float, 안전 정수면 int, 그 밖에는 float로 다시 읽힌다. 언어에서 `php_value`를 받는 코어가 생길 때까지 `StdClass`와 `Reference` 생성자의 코어만 `todo`로 남는다(T2.1).
+- `php_value`의 값 표는 완성되었다: alias만 `out`·`in` 행을 가지고 `PhpFloat`, `StdClass`, `Reference`를 모으며, `StdClass`의 속성은 text와 bytes key의 keyed map이고, JavaScript number는 정수가 아니면 float, 안전 정수면 int, 그 밖에는 float로 다시 읽힌다. 언어에서 `php_value`를 받는 코어가 생길 때까지 `StdClass`와 `Reference` 생성자의 코어만 `todo`로 남는다(T2.1).
 - crate는 언어의 값을 `from_host`로 읽는다(RQ-012): 바인딩은 값을 한 단계씩 설명하고 handle의 자식에 답하며(`HostValues`), JavaScript number는 안전 정수이고 `-0`이 아니면 int이고, 객체와 참조는 정체성을 지키며, PHP에 없는 값은 새 kind `unsupported_value`, `invalid_text`나 이제 언어 값의 정수도 가리키는 `int_range`로 거부한다. `StdClass`와 `Reference` 생성자는 같은 규칙으로 받는 것을 판정하는 `check_std_class`와 `check_reference`를 부르므로 인터페이스 계약에 `todo`가 남지 않는다(T2.1).
 - Node.js와 Python 패키지를 `legacy/packages/js`와 `legacy/packages/python`으로 옮기고 생성된 바인딩이 대체할 때까지 배포 대상에서 뺀다([이행](docs/spec/php-serialize.ko.md#transition)). 바인딩은 `bindgen scaffold`가 쓰는 얇은 패키지 `packages/python`, `packages/ts`, `packages/php-ext`이며, 루트 Cargo workspace가 crate와 함께 하나의 `Cargo.lock`으로 담고, `make bindings`와 `make bindings-check`는 고정한 commit의 bindgen을 실행한다(T2.1).
 - crate는 더 새 commit의 bindgen_core를 받고 그 `HostValues`로 값의 자식을 묻는다. JavaScript number는 타입 없는 수로 오므로 crate는 더 이상 바인딩에 수의 모형을 묻지 않는다(RQ-012). `packages/ts`의 scaffold에 `build.rs`가 더해진다(T2.1).
 - 레포 이름은 형식의 이름인 php-serialization이고(계획 N-3) 모든 이름이 그것을 따른다(설계 P-1, E-2): crate `polyspec-php-serialization`, Composer 패키지 `polyspec/php-serialization`(네임스페이스 `Polyspec\PhpSerialization`, 확장 `polyspec_php_serialization`), PyPI 패키지 `polyspec-php-serialization`(모듈 `polyspec.php_serialization`), npm 패키지 `@polyspec/php-serialization`, 오류 클래스 `PhpSerialization<Category>Error`. 인터페이스 계약은 이 변경을 `changes`에 적는다. `legacy/` 아래의 legacy 패키지는 이름을 그대로 두며 배포하지 않는다.
 - 레포는 binding 레포(bindgen의 새 이름)의 `polyspec-binding-core`(`binding_core`, `Cargo.lock`이 고정하는 Git 의존 `https://github.com/polyspec/binding.git`)에 의존하고 그 도구를 `scripts/binding.mts`로 실행한다. 바인딩 package는 `binding scaffold`가 쓰는 것이다. Python 오류 클래스는 Python의 클래스 형식으로 쓴 레포 이름인 `PHPSerialization<Category>Error`다(설계 N-2: 약어 낱말은 Python에서 모두 대문자, PHP와 Node에서 첫 글자만 대문자이며 두 언어는 `PhpSerialization<Category>Error`를 유지한다).
 - `Cargo.lock`은 binding f26aaa0을 고정하고 바인딩 package는 그 scaffold가 쓰는 것이다. Node 패키지는 addon의 플랫폼 패키지마다 optional dependency를 가진다.
-- 계약의 `serialize`는 실제로 내는 kind만 적는다: `array_held`와 `unknown_id`는 Rust 값 builder의 실패이며, `from_host`는 언어의 배열마다 새 배열을 만들고 자기가 만든 식별자만 쓴다(`host.rs`, `Walk::open_array`, `Walk::put`).
+- `serialize`의 계약은 `serialize`가 내는 kind만 적는다: `array_held`와 `unknown_id`는 Rust 값 builder의 실패이며, `from_host`는 언어의 배열마다 새 배열을 만들고 자기가 만든 식별자만 받는다(`host.rs`, `Walk::open_array`, `Walk::put`).
 - K-1, G-5: `contracts/php-serialize.json`의 모든 항목은 `unserialize`의 인자를 `data`(`{"hex"}`)로, `serialize`의 인자를 `value`(`{"kind", "value"}`)로 주며, `make contracts`가 같은 PHP에서 쓴다. `contracts/host-values.json`은 serialize와 `StdClass`·`Reference` 생성자가 거부하거나(`top_reference`, `nested_reference`, `property_name`) 받는 언어의 값과 `PhpFloat`, `StdClass`, `Reference`의 모든 member의 case를 담는다. contract 시험은 두 형식을 `from_host`로 읽는다. 그 member들의 `depth`, `unsupported_value`, `invalid_text`, `int_range`는 case가 없다: 앞의 것은 4097단계로 중첩된 값이, 나머지는 일부 언어에만 있는 값이 필요하다. `internal`은 binding의 실패 주입 지점을 기다린다.
-- RQ-013: crate는 값 alias `php_value`의 `out`인 `to_host`로 PHP 값을 언어에 준다: 값을 빌리는 `OutValues`로 handle의 자식을 묻는 `OutValue`다. contract 시험은 `to_host`가 모든 항목의 bytes의 값을 그 `value`로 기술하는지, `from_host`가 받은 값이 바뀌지 않고 돌아오는지 확인한다.
-- RQ-013: 값에 없는 부분에 대한 `to_host`의 질문(바인딩은 묻지 않는다)은 null을 답하지 않고 RQ-013과 handle을 담아 panic하며, `u64`에 들지 않는 수도 `u64` 최댓값으로 바뀌지 않고 panic한다. 바인딩이 panic을 kind `internal`로 바꾼다(B-7).
+- RQ-013: crate는 값 alias `php_value`의 `out`인 `to_host`로 PHP 값을 언어에 준다: `OutValue`이며, 그 handle의 자식은 값을 빌리는 `OutValues`로 준다. contract 시험은 `to_host`가 모든 항목의 bytes의 값을 그 `value`로 기술하는지, `from_host`가 받은 값이 바뀌지 않고 돌아오는지 확인한다.
+- RQ-013: 값에 없는 부분에 대한 `to_host`의 질문(바인딩은 묻지 않는다)은 null을 답하지 않고 RQ-013과 handle을 담아 panic하며, `u64`에 들지 않는 개수도 `u64` 최댓값으로 바뀌지 않고 panic한다. 바인딩이 panic을 kind `internal`로 바꾼다(B-7).
 - `Cargo.lock`은 같은 라이브러리 묶음의 모든 레포가 고정하는 binding 9de9d03을 고정한다(CK-20). 그 scaffold는 같은 바인딩 package를 쓴다.
 - RQ-012: 명세가 언어 값의 `unsupported_value`, `invalid_text`, `int_range`를 값 `php_value`의 kind로 적습니다. 이 kind는 `php_value`를 받는 모든 member에 닿고, member의 `raises`는 그 crate 함수가 돌려주는 kind를 적습니다. `depth`는 양쪽에서 납니다.
 - RQ-012: `packages/rust/interface.json`에서 `serialize`와 `StdClass`·`Reference` 생성자의 `raises`가 값 `php_value`의 kind인 `unsupported_value`, `invalid_text`, `int_range`를 더는 적지 않습니다. `depth`는 남습니다. `make bindings-check`의 지적은 16건에서 7건이 됩니다. 세 member에 `depth`를 내는 case가 없고, `internal`을 적은 네 member에 그것을 내는 case가 없습니다.
-- G-5: `contracts/php-serialize.json`의 `value`에서 JavaScript의 안전 정수(-(2^53 - 1)부터 2^53 - 1) 밖의 정수는 그 10진 텍스트이며, `make contracts`가 case 48개의 값 51개를 그렇게 씁니다. 언어의 JSON reader가 그런 수를 반올림할 수 있기 때문입니다. Rust contract 시험은 그 텍스트를 읽고, 범위 밖의 수와 범위 안의 텍스트를 거부합니다. 정수 key `{"int"}`는 수로 남습니다.
+- G-5: `contracts/php-serialize.json`의 `value`에서 JavaScript의 안전 정수(-(2^53 - 1)부터 2^53 - 1) 밖의 정수는 그 10진 텍스트이며, `make contracts`가 case 48개의 값 51개를 그렇게 씁니다. 언어의 JSON reader는 그런 수를 반올림할 수 있습니다. Rust contract 시험은 그 텍스트를 읽고, 범위 밖의 수와 범위 안의 텍스트를 거부합니다. 정수 key `{"int"}`는 수로 남습니다.
 - RQ-012: `contracts/host-values.json`에 값 자체의 case인 group `php_value`가 생겼습니다. `from_host`가 거부하는 값 다섯 개이며, 함수·date·다른 class의 instance(`{"host": <종류>}`)는 `unsupported_value`, 64-bit 밖의 정수(10진 텍스트)는 `int_range`입니다. Rust contract 시험이 이 case를 실행합니다. `Cargo.lock`이 고정한 binding에 값의 case가 없어 인터페이스 계약은 이 group을 연결하지 않습니다. `invalid_text`와 `depth`의 case는 없습니다: case 규약에 짝 없는 surrogate를 가진 텍스트의 형식이 없고, 4097단계로 중첩된 값은 JSON reader가 기본으로 받는 깊이보다 깊습니다.
+- 한국어 문서 `AGENTS.ko.md`, `README.ko.md`, `CHANGELOG.ko.md`, `docs/plans/rust-core/plan.ko.md`는 그 영어 문서가 말하는 것을 말하고, `source-sha256`이 그 영어 문서의 sha256이 아니던 한국어 문서 여섯 개는 그 sha256을 가집니다: 그 네 문서와 `docs/plans/rust-core/checklist.ko.md`, `packages/rust/README.ko.md`입니다(T2.1).
 
 ## 0.0.6
 
@@ -40,7 +41,7 @@
 
 ## 0.0.4
 
-- 저장소는 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102에서 실행된다(T1.10, T1.11).
+- 저장소는 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102를 실행한다(T1.10, T1.11).
 - php-serialize는 설치가 실패하면 uv-install이 provider 링크를 되돌리는 kit 0.0.102를 채택한다. recipe 줄은 바뀌지 않는다(T1.10).
 
 ## 0.0.3

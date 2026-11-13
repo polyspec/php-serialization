@@ -1,5 +1,5 @@
 <!-- doc-id: overview -->
-<!-- source-sha256: 894fab87ba099c62859ea53502e74e6b77279ba5abfd7da8387c4e7986c38b00 -->
+<!-- source-sha256: 8a84769fa08a5845a0d6b0b0472cc7dee644f05c6c57d3b8b0b774b404f77026 -->
 # php-serialization
 
 [English](README.md)
@@ -17,7 +17,7 @@ Node.js와 Python 패키지는 [이행](docs/spec/php-serialize.ko.md#transition
 <a id="proof"></a>
 ## 검증
 
-실제 PHP가 [`contracts/php-serialize.json`](contracts/php-serialize.json)을 쓰고, CI가 다시 생성해 비교합니다(`make contracts-check`). `make test-rust`는 contract의 모든 항목을 Rust crate에 실행합니다. `make fuzz`는 고정된 seed로 입력을 깨뜨리거나 생성하고 PHP가 무작위 PHP 값에 대해 serialize한 bytes를 더해 PHP, Rust crate, 각 패키지에 똑같이 줍니다. 각 패키지는 PHP가 거부하는 것을 거부하고, 같은 값을 읽고, 같은 bytes를 다시 써야 합니다.
+실제 PHP가 [`contracts/php-serialize.json`](contracts/php-serialize.json)을 쓰고, CI가 다시 생성해 비교합니다(`make contracts-check`). `make test-rust`는 contract의 모든 항목을 Rust crate에 실행합니다. `make fuzz`는 고정된 seed로 입력을 깨뜨리거나 생성하고 PHP가 무작위 PHP 값에 대해 serialize한 bytes를 더해 모든 입력을 PHP, Rust crate, 각 패키지에 줍니다. 각각은 PHP가 거부하는 것을 거부하고, 같은 값을 읽고, 같은 bytes를 다시 써야 합니다.
 
 <a id="license"></a>
 ## 라이선스
