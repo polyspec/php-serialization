@@ -1292,17 +1292,20 @@
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
-      "group": "cases"
+      "group": "cases",
+      "result": "value"
     },
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
-      "group": "forms"
+      "group": "forms",
+      "result": "value"
     },
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
-      "group": "deep"
+      "group": "deep",
+      "result": "value"
     },
     {
       "member": "unserialize",
