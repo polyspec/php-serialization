@@ -78,30 +78,11 @@ fn read_case(entry: &Value, written: &str) -> Result<(), Failed> {
     given_value(entry, &value, written)
 }
 
-/// The cases whose value the case convention of binding (G-5) has no form of, with the reason.
-const WITHOUT_FORM: [(&str, &str); 3] = [
-    ("object_repeated", "G-5 gives an object no identity"),
-    (
-        "reference_cycle",
-        "G-5 has no form of a reference inside its own value",
-    ),
-    ("deepest_object", "G-5 has no repeated form of an object"),
-];
-
 /// The argument of serialize in the form of G-5, which a language gives, writes the same bytes (RQ-012); every case
-/// gives it but those of `WITHOUT_FORM`.
+/// gives it, an object held again and a reference inside its own value named by their ids, and the deepest objects as
+/// a repeated object.
 fn given_value(entry: &Value, value: &PhpValue, written: &str) -> Result<(), Failed> {
-    let id = field(entry, "id")?;
-    let without = WITHOUT_FORM.iter().find(|(name, _)| *name == id);
-    let Some(argument) = entry.get("value") else {
-        return match without {
-            Some(_) => Ok(()),
-            None => Err("the case gives no value of G-5".into()),
-        };
-    };
-    if let Some((_, reason)) = without {
-        return Err(format!("the case gives a value, but {reason}").into());
-    }
+    let argument = entry.get("value").ok_or("the case gives no value of G-5")?;
     let taken = value_of(argument)?;
     let bytes = serialize(&taken).map_err(|error| error.to_string())?;
     if base64(&bytes) != written {
