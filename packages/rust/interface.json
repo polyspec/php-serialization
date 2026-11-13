@@ -545,6 +545,10 @@
         "in": "polyspec_php_serialization::from_host",
         "out": "polyspec_php_serialization::to_host"
       },
+      "in_raises": [
+        "polyspec_php_serialization::Error::IntRange",
+        "polyspec_php_serialization::Error::UnsupportedValue"
+      ],
       "out": [
         {
           "kind": "null",
@@ -1373,6 +1377,11 @@
       "member": "reference.value",
       "file": "contracts/host-values.json",
       "group": "reference.value"
+    },
+    {
+      "alias": "php_value",
+      "file": "contracts/host-values.json",
+      "group": "php_value"
     }
   ]
 }

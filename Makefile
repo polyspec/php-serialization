@@ -188,10 +188,21 @@ BINDINGS_VAR := $(CURDIR)/var/bindings
 # The case runners read contracts/php-serialize.json and contracts/host-values.json from this folder.
 CONTRACTS_ENV := PHP_SERIALIZATION_CONTRACTS=$(CURDIR)/contracts
 
-# The test features of the Python, Node, WASM and PHP binding crates (binding GN-5): panic-test, and fault-test, which
-# turns on the fault injection points of the core, since a point is live only in a crate whose own feature fault-test is
-# on; the generated tests and the case a_broken_invariant_is_internal arm the point php_serialization.internal.
-TEST_FEATURES := panic-test,fault-test
+# The test features of a binding crate are the features of its manifest, which binding scaffold writes (binding GN-5):
+# panic-test; fault-test, which turns on the fault injection points of the core, since a point is live only in a crate
+# whose own feature fault-test is on (the generated tests and the case a_broken_invariant_is_internal arm the point
+# php_serialization.internal); codec-test, the in function of php_value alone (U-7); and case-test, the values of the
+# cases that PHP has no form of (GN-13). A list of the names that its manifest gives is the features of a crate, and
+# their union is the features of the lint of the workspace.
+features_of = $(subst $(space),$(comma),$(strip $(shell sed -n '/^\[features\]$$/,/^\[/s/^\([a-z][a-z0-9-]*\) = .*/\1/p' $(1))))
+comma := ,
+space := $(subst ,, )
+PYTHON_FEATURES = $(call features_of,packages/python/Cargo.toml)
+NODE_FEATURES = $(call features_of,packages/ts/Cargo.toml)
+WASM_FEATURES = $(call features_of,packages/ts/wasm/Cargo.toml)
+PHP_FEATURES = $(call features_of,packages/php-ext/Cargo.toml)
+GO_FEATURES = $(call features_of,packages/go/internal/ffi/Cargo.toml)
+TEST_FEATURES = $(subst $(space),$(comma),$(sort $(subst $(comma),$(space),$(PYTHON_FEATURES),$(NODE_FEATURES),$(WASM_FEATURES),$(PHP_FEATURES),$(GO_FEATURES))))
 
 # test-bindings runs every binding test of the five targets; none of them is a target of make check, since each needs
 # the generated sources of the binding of Cargo.lock.
@@ -208,7 +219,7 @@ check-declarations: bindings-node bindings-wasm ## Check the generated declarati
 # contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
 test-python-binding: bindings-python ## Build the wheel, install it into var/bindings/venv and run the generated tests and the contract cases; offline
 	rm -rf $(BINDINGS_VAR)/wheels
-	cd packages/python && $(MATURIN) build --locked --offline --features $(TEST_FEATURES) --out $(BINDINGS_VAR)/wheels
+	cd packages/python && $(MATURIN) build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
 	cd $(BINDINGS_VAR) && venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/generated/tests -t $(CURDIR)/packages/python/generated/tests
@@ -225,10 +236,10 @@ NODE_VERSION := $(shell sed -n 's/^  "version": "\(.*\)",$$/\1/p' packages/ts/pa
 WASM_BINDGEN_RELEASE := $(shell sed -n 's/^wasm-bindgen = "=\(.*\)"$$/\1/p' packages/ts/wasm/Cargo.toml)
 node-package: bindings-node bindings-wasm ## Build the WASM module and the Node addon, then pack and install the npm package into var/bindings/node; offline
 	test "$$($(WASM_BINDGEN) --version)" = "wasm-bindgen $(WASM_BINDGEN_RELEASE)"
-	cargo build --locked --offline -p $(CORE)-wasm --target wasm32-unknown-unknown --features $(TEST_FEATURES)
+	cargo build --locked --offline -p $(CORE)-wasm --target wasm32-unknown-unknown --features $(WASM_FEATURES)
 	$(WASM_BINDGEN) --target web --out-dir packages/ts/wasm/generated --out-name php_serialization_wasm \
 		$(CARGO_TARGET)/wasm32-unknown-unknown/debug/polyspec_php_serialization_wasm.wasm
-	cargo build --locked --offline -p $(CORE)-node --features $(TEST_FEATURES)
+	cargo build --locked --offline -p $(CORE)-node --features $(NODE_FEATURES)
 	rm -rf $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform && mkdir -p $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform
 	cp $(CARGO_TARGET)/debug/libpolyspec_php_serialization_node.$(CDYLIB) $(BINDINGS_VAR)/node-platform/$(NODE_ADDON)
 	$(NODE) -e 'require("fs").writeFileSync("$(BINDINGS_VAR)/node-platform/package.json", JSON.stringify({ name: "@polyspec/php-serialization-$(NODE_PLATFORM)", version: "$(NODE_VERSION)", os: [process.platform], cpu: [process.arch], main: "$(NODE_ADDON)", files: ["$(NODE_ADDON)"] }, null, 2) + "\n")'
@@ -254,7 +265,7 @@ test-wasm: node-package ## Run the generated tests and the contract cases of the
 test-php: export PHP := $(PHP)
 test-php: export PHP_CONFIG := $(PHP_CONFIG)
 test-php: bindings-php ## Build the extension, lint its stub and run the generated tests and the contract cases on PHPUnit; offline
-	cargo build --locked --offline -p $(CORE)-php-ext --features $(TEST_FEATURES)
+	cargo build --locked --offline -p $(CORE)-php-ext --features $(PHP_FEATURES)
 	$(PHP) -l packages/php-ext/generated/polyspec_php_serialization.stub.php
 	$(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/generated/tests
 	$(CONTRACTS_ENV) $(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/tests
@@ -266,7 +277,7 @@ GO_RELEASE := $(shell sed -n 's/^go \(.*\)$$/\1/p' packages/go/go.mod)
 GO_ENV := GOTOOLCHAIN=local CGO_LDFLAGS=-L$(CARGO_TARGET)/debug GOFLAGS=-tags=polyspec_panic_test,polyspec_codec_test
 test-go: bindings-go ## Build the static library of the Go binding, run gofmt and go vet, then the generated tests on go test; offline
 	test "$$($(GO_ENV) $(GO) env GOVERSION)" = "go$(GO_RELEASE)"
-	cargo build --locked --offline -p $(CORE)-go --features panic-test,codec-test
+	cargo build --locked --offline -p $(CORE)-go --features $(GO_FEATURES)
 	test -z "$$(cd packages/go && $(GOFMT) -l .)"
 	cd packages/go && $(GO_ENV) $(GO) vet ./...
 	cd packages/go && $(GO_ENV) $(CONTRACTS_ENV) $(GO) test -count=1 -v ./...
