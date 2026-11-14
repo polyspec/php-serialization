@@ -211,6 +211,28 @@ function platformFindings(file: string, text: string): string[] {
   return found;
 }
 
+/**
+ * The findings of the PHP minors of the job platform of assets.yml: it sets up each minor of `minors`, the PHP minors of the
+ * extension that config/toolchain.json names (phpExtension.minors), with setup-php and its php-version, and builds the
+ * extension after each with `make release-php-ext PHP=php`, and sets up no other minor (binding GN-19d).
+ */
+function phpMinorFindings(file: string, text: string, minors: string[]): string[] {
+  const lines = jobsOf(text).get('platform') ?? [];
+  const set: string[] = [];
+  const built: string[] = [];
+  let current: string | undefined;
+  for (const line of lines) {
+    const version = valueOf(line, 'php-version')?.replace(/^'|'$/g, '');
+    if (version !== undefined) current = version;
+    if (valueOf(line, 'run') === 'make release-php-ext PHP=php' && current !== undefined) built.push(current);
+    if (version !== undefined) set.push(version);
+  }
+  const found: string[] = [];
+  if (set.join(' ') !== minors.join(' ')) found.push(`${file}: the job platform sets up PHP ${set.join(', ') || 'none'}, not the minors ${minors.join(', ')} of config/toolchain.json`);
+  if (built.join(' ') !== minors.join(' ')) found.push(`${file}: the job platform builds the extension for PHP ${built.join(', ') || 'none'}, not for the minors ${minors.join(', ')} of config/toolchain.json`);
+  return found;
+}
+
 /** The findings of a workflow that must call assets.yml: one of its jobs uses it (binding GN-19i). */
 function callFindings(file: string, text: string): string[] {
   const calls = [...jobsOf(text).values()].some((lines) => lines.some((line) => /^ {4}uses: \.\/\.github\/workflows\/assets\.yml$/.test(line)));
@@ -368,6 +390,36 @@ test('a workflow that calls assets.yml has no finding of the call, and one that 
   assert.deepEqual(callFindings(CI, GOOD), [`${CI}: no job calls ./${ASSETS}`]);
 });
 
+test('the job platform builds the extension for each PHP minor of config/toolchain.json and for no other', () => {
+  const sample = `jobs:
+  platform:
+    runs-on: \${{ matrix.runner }}
+    steps:
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+      - run: make release-php-ext PHP=php
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.5'
+      - run: make release-php-ext PHP=php
+`;
+  assert.deepEqual(phpMinorFindings(ASSETS, sample, ['8.4', '8.5']), []);
+  assert.deepEqual(phpMinorFindings(ASSETS, sample, ['8.4', '8.5', '8.6']), [`${ASSETS}: the job platform sets up PHP 8.4, 8.5, not the minors 8.4, 8.5, 8.6 of config/toolchain.json`, `${ASSETS}: the job platform builds the extension for PHP 8.4, 8.5, not for the minors 8.4, 8.5, 8.6 of config/toolchain.json`]);
+  assert.deepEqual(phpMinorFindings(ASSETS, sample.replace(/ {6}- run: make release-php-ext PHP=php\n$/, ''), ['8.4', '8.5']), [`${ASSETS}: the job platform builds the extension for PHP 8.4, not for the minors 8.4, 8.5 of config/toolchain.json`]);
+});
+
+/** The PHP minors of the extension that config/toolchain.json names (phpExtension.minors). */
+function phpMinors(): string[] {
+  const toolchain: unknown = JSON.parse(readFileSync(join(root, 'config/toolchain.json'), 'utf8'));
+  const extension: unknown = typeof toolchain === 'object' && toolchain !== null && 'phpExtension' in toolchain ? toolchain.phpExtension : undefined;
+  const minors: unknown = typeof extension === 'object' && extension !== null && 'minors' in extension ? extension.minors : undefined;
+  const named: unknown[] = Array.isArray(minors) ? minors : [];
+  const valid = named.filter((minor): minor is string => typeof minor === 'string' && /^[0-9]+\.[0-9]+$/.test(minor));
+  assert.ok(valid.length > 0 && valid.length === named.length, 'config/toolchain.json names no PHP minors of the extension (phpExtension.minors)');
+  return valid;
+}
+
 /**
  * The targets of the release recipes that binding release-recipes writes for the contract, which the Makefile includes
  * (binding GN-19h). The file is generated and not tracked, so the test writes it into a folder of its own with the binding
@@ -395,6 +447,7 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   found.push(...triggerFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...lastJobFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...platformFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8')));
+  found.push(...phpMinorFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), phpMinors()));
   for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
   assert.deepEqual(found, []);
 });

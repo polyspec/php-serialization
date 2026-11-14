@@ -6,6 +6,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- binding 0.0.5 replaces 0.0.4 (T2.17): the release 0.0.9 stopped in `make release-platform-assets`, whose generated recipe of binding 0.0.4 took no wheel with the platform tag `linux_` of a Linux build; the recipe of binding 0.0.5 builds the Linux wheel for the policy `manylinux_2_34`, which the upload takes. The devDependency `@polyspec/binding` names the asset `polyspec-binding-0.0.5.tgz` of the GitHub Release `v0.0.5` with the integrity of `package-lock.json`, and every dependency line on `polyspec-binding-core` names the tag `v0.0.5`, which `Cargo.lock` pins. `binding scaffold` changes no tracked file, and `binding check packages/rust/interface.json --release` and `make bindings-check` report no finding. `make binding-features-test`: the tests that name v0.0.5 failed with the pin of v0.0.4 (3 passed, 2 failed) and pass with the pin of v0.0.5.
+- `config/toolchain.json` names the PHP minors of the extension (`phpExtension.minors`, 8.4 and 8.5), and `make workflows-test` requires that the job `platform` of `assets.yml` sets up each of them and builds the extension after it, and no other minor (T2.17). Before, the minors were written only in `assets.yml`. `make workflows-test`: without the key it failed (9 passed, 1 failed), with it 10 passed.
+
 ## 0.0.9
 
 - `.github/workflows/release.yml` holds its keys `name`, `on`, `permissions` and `jobs` again (T2.15). The change that split it into the jobs `tag`, `assets` and `release` cut the text at the words "Its jobs:" of its header comment, so the file began with the job `tag` and GitHub failed every run of it as an invalid workflow, also the run of a push. `make workflows-test` now requires the top-level keys of each workflow: it failed on the cut file with four findings (no key `name`, `on` or `jobs`, and a job before them) and passes on the repaired one, 9 passed.

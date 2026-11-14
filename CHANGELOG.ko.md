@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: bf6f2f453ab94ad550a5678c1b71859e8e2678864dae242b3e3d7dd1c20dd124 -->
+<!-- source-sha256: effc5be1bcd3a885f113af0912e3c486e3c34af563b71b68d036b32172b4b221 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- binding 0.0.5가 0.0.4를 대신한다(T2.17). 릴리스 0.0.9는 `make release-platform-assets`에서 멈췄다. binding 0.0.4가 생성한 그 recipe가 Linux 빌드의 platform tag `linux_`를 가진 wheel을 받지 않았기 때문이다. binding 0.0.5의 recipe는 Linux wheel을 policy `manylinux_2_34`로 빌드하고, 업로드는 그것을 받는다. devDependency `@polyspec/binding`은 GitHub Release `v0.0.5`의 asset `polyspec-binding-0.0.5.tgz`를 `package-lock.json`의 integrity와 함께 가리키고, `polyspec-binding-core`에 대한 모든 의존 줄은 `Cargo.lock`이 pin하는 tag `v0.0.5`를 가리킨다. `binding scaffold`는 추적 파일을 바꾸지 않고, `binding check packages/rust/interface.json --release`와 `make bindings-check`는 finding을 보고하지 않는다. `make binding-features-test`: v0.0.5를 가리키는 시험은 v0.0.4의 pin에서 실패했고(3 passed, 2 failed) v0.0.5의 pin에서 통과한다.
+- `config/toolchain.json`이 확장의 PHP minor(`phpExtension.minors`, 8.4와 8.5)를 적고, `make workflows-test`는 `assets.yml`의 job `platform`이 그 각각을 설치하고 그 뒤에 확장을 빌드하며 다른 minor는 설치하지 않기를 요구한다(T2.17). 이전에는 minor가 `assets.yml`에만 적혀 있었다. `make workflows-test`: 키가 없을 때 실패했고(9 passed, 1 failed), 있을 때 10 passed다.
 
 ## 0.0.9
 
