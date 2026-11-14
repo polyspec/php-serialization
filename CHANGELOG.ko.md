@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: fb3362ebe08866d863e1eee252211aa50c2a23d39d8a9a409d90b539f9fb8a6b -->
+<!-- source-sha256: d4752ce93ad50cae1cb545232b5785d23463c8c26b3bbfeef63ca95efb368694 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- release recipe의 시험은 make에게 case가 이름 붙인 변수와 프로세스의 `HOME`, `TMPDIR`만 준다(T2.16). 이전에는 sandbox가 프로세스의 환경을 복사했고 make는 그것을 Makefile의 변수로 읽으므로, `GITHUB_OUTPUT`을 설정하는 CI runner에서는 `GITHUB_OUTPUT`이 없는 `release-tag-output`의 case가 2 대신 0으로 끝났다. `make release-test`: `GITHUB_OUTPUT`을 설정하면 변경 전에 56 passed, 1 failed였다. `GITHUB_OUTPUT`, `GITHUB_ENV`, `GITHUB_PATH`, `TAG`, `VERSION`, `CARGO_TARGET_DIR`, `PHP`, `PHP_CONFIG`, `RELEASE_TARGET`, `RELEASE_ASSETS`를 설정하면 변경 전에 24 passed, 33 failed였고 변경 후에 57 passed였다. 설정하지 않으면 57 passed였다.
 
 ## 0.0.7
 

@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- The tests of the release recipes give make only the variables that a case names, with `HOME` and `TMPDIR` of the process (T2.16). Before, the sandbox copied the environment of the process, which make reads as variables of the Makefile, so on a runner of CI, which sets `GITHUB_OUTPUT`, the case of `release-tag-output` without `GITHUB_OUTPUT` exited with 0 instead of 2. `make release-test`: with `GITHUB_OUTPUT` set, 56 passed and 1 failed before the change; with `GITHUB_OUTPUT`, `GITHUB_ENV`, `GITHUB_PATH`, `TAG`, `VERSION`, `CARGO_TARGET_DIR`, `PHP`, `PHP_CONFIG`, `RELEASE_TARGET` and `RELEASE_ASSETS` set, 24 passed and 33 failed before and 57 passed after; without them 57 passed.
+
 ## 0.0.7
 
 - Every dependency line on `polyspec-binding-core` names the tag `v0.0.2` of binding, which `Cargo.lock` pins, and `package.json` names the tool by the asset `polyspec-binding-0.0.2.tgz` of the GitHub Release `v0.0.2`, which `package-lock.json` pins by its integrity (T2.12). With binding 0.0.1 the check still reported one finding of CK-20, because the tool of its asset knew no commit of itself; binding 0.0.2 takes the tag of its own version, so `binding check packages/rust/interface.json --release` and `make bindings-check` report no finding, `binding scaffold` changes no tracked file and `make bindings` generates the five targets. The test now also requires that `make php-serialization-install-rust` runs `cargo fetch --locked`, because binding reads the crates with `cargo metadata --locked --offline`. `make binding-features-test`: the tests that name v0.0.2 failed with the pin of v0.0.1 and pass with the pin of v0.0.2.

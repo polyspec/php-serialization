@@ -59,12 +59,18 @@ function program(file: string, text: string): void {
   chmodSync(file, 0o755);
 }
 
-/** The environment of a make run, with no inherited make flags. */
+/**
+ * The environment of a make run: only the home and the temporary folder of the process. make reads every variable of
+ * its environment as a variable of the Makefile, and a runner of CI sets some that the recipes read (GITHUB_OUTPUT,
+ * GITHUB_ENV, GITHUB_PATH, and possibly TAG, VERSION, PHP or CARGO_TARGET_DIR), so a copy of the environment of the
+ * process would let the result of a case depend on the machine that runs it. A case names every other variable itself.
+ */
 function cleanEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  delete env.MAKEFLAGS;
-  delete env.MAKELEVEL;
-  delete env.MFLAGS;
+  const env: NodeJS.ProcessEnv = {};
+  for (const name of ['HOME', 'TMPDIR']) {
+    const value = process.env[name];
+    if (value !== undefined) env[name] = value;
+  }
   return env;
 }
 
