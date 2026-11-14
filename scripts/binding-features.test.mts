@@ -59,7 +59,7 @@ test('only php-serialization-install-rust installs binding, and the binding reci
   }
   const dryRun = (...targets: string[]): string[] => execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
   const install = dryRun('php-serialization-install-rust');
-  assert.ok(install.some((line) => /scripts\/binding\.mts install$/.test(line)), `make php-serialization-install-rust does not install binding:\n${install.join('\n')}`);
+  assert.ok(install.some((line) => line.endsWith('scripts/binding.mts install')), `make php-serialization-install-rust does not install binding:\n${install.join('\n')}`);
   const recipes = dryRun('test-python-binding', 'node-package', 'test-php', 'test-go', 'lint-bindings', 'check-declarations');
   const online = recipes.filter((line) => /\bnpm (?:install|ci)\b/.test(line) && !line.includes('--offline'));
   assert.deepEqual(online, [], 'a binding recipe installs npm packages without --offline');

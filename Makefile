@@ -39,6 +39,11 @@ CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
 CI_RUST := lint-rust test-rust bindings-check
+# The targets of the binding tests, which no job of ci.yml runs yet (row T2.9): the generated code of the pinned binding
+# fails clippy with clippy.toml and binding refuses the Go target of the contract, so a job of them would fail ci-passed
+# for a defect of binding. Their job installs every tool of mise.toml (make install-tools), PHPUnit and the crates and
+# binding of make php-serialization-install-rust, and runs make ci-bindings.
+CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
 CI_REPORT ?= var/report/ci-targets
 
 .PHONY: bootstrap install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
@@ -47,7 +52,7 @@ CI_REPORT ?= var/report/ci-targets
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
-	check ci-shared ci-fuzz ci-ts ci-python ci-rust \
+	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
 	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage
@@ -100,11 +105,13 @@ php-serialization-install-python: ## Make legacy/packages/python/.venv and insta
 	$(ONLINE) $(UV) pip install --python legacy/packages/python/.venv/bin/python --link-mode copy --no-deps legacy/packages/python
 	$(MAKE) --no-print-directory link
 
-# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
-# Cargo.lock, so that every Rust recipe runs with --locked and offline.
-php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
+# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup, fetches the crates of the root
+# Cargo.lock and installs binding at the commit of Cargo.lock into var/binding (scripts/binding.mts), so that every Rust
+# recipe and every binding recipe runs with --locked and offline.
+php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml, fetch the locked crates and install binding at the commit of Cargo.lock; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
 	$(ONLINE) cargo fetch --locked
+	$(ONLINE) $(NODE) scripts/binding.mts install
 
 # The local links of 0.0.x development: the git-ignored .links of the main checkout names the checkouts that provide packages.
 link: ## Link the packages to the checkouts of .links; offline
@@ -251,7 +258,7 @@ node-package: bindings-node bindings-wasm ## Build the WASM module and the Node 
 	cd $(BINDINGS_VAR)/node-platform && $(NPM) pack --pack-destination $(BINDINGS_VAR)/node
 	cd packages/ts && $(NPM) pack --pack-destination $(BINDINGS_VAR)/node
 	echo '{ "private": true }' > $(BINDINGS_VAR)/node/package.json
-	cd $(BINDINGS_VAR)/node && $(NPM) install --no-audit --no-fund --omit=optional ./polyspec-php-serialization-$(NODE_VERSION).tgz ./polyspec-php-serialization-$(NODE_PLATFORM)-$(NODE_VERSION).tgz
+	cd $(BINDINGS_VAR)/node && $(NPM) install --offline --no-audit --no-fund --omit=optional ./polyspec-php-serialization-$(NODE_VERSION).tgz ./polyspec-php-serialization-$(NODE_PLATFORM)-$(NODE_VERSION).tgz
 
 # The generated tests and the contract cases of the Node binding on node --test, against the installed package.
 test-node: node-package ## Run the generated tests and the contract cases of the Node binding on node --test; offline
@@ -372,6 +379,9 @@ ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
 
 ci-rust: ## Run the targets of the Rust CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_RUST)
+
+ci-bindings: ## Run the targets of the binding tests past failures into CI_REPORT, the job that waits for row T2.9
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_BINDINGS)
 
 check: ## Run the targets of every CI job once into var/report/full-run
 	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_FUZZ) $(CI_TS) $(CI_PYTHON) $(CI_RUST)
