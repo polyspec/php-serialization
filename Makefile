@@ -39,8 +39,8 @@ CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
 CI_RUST := lint-rust test-rust bindings-check
-# The targets of the binding tests, which no job of ci.yml runs yet (row T2.9): the generated code of the pinned binding
-# fails clippy with clippy.toml and binding refuses the Go target of the contract, so a job of them would fail ci-passed
+# The targets of the binding tests, which no job of ci.yml runs yet (row T2.9): no run has shown that the generated code
+# of the pinned binding passes clippy with clippy.toml and the tests of the five targets, so a job of them could fail ci-passed
 # for a defect of binding. Their job installs every tool of mise.toml (make install-tools), PHPUnit and the crates and
 # binding of make php-serialization-install-rust, and runs make ci-bindings.
 CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
