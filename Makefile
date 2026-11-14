@@ -499,33 +499,41 @@ release-coverage: ## Require every package file of the checkout to be classified
 RELEASE_ASSETS ?= var/release/assets
 RELEASE_TARGET ?= var/release/target
 # release_host sets host to the Rust triple of the toolchain, platform to the name of its platform, which names its npm
-# platform package, go to the directory of the Go module of its platform and pie to the part of the name of a PHP
-# extension archive that names its platform (GN-19a), and ends the recipe $(1) with 2 on a host that is no platform of the
-# release.
+# platform package, go to the directory of the Go module of its platform, pie to the part of the name of a PHP extension
+# archive that names its platform (GN-19a) and, on Linux, musl to the musl triple of its arch, whose Go library the same
+# host builds (GN-19b); it ends the recipe $(1) with 2 on a host that is no platform of the release.
 release_host = host=$$(rustc --print host-tuple) || exit 1; \
 	case "$$host" in \
-	x86_64-unknown-linux-gnu) platform=linux-x64-gnu go=linux_amd64 pie=x86_64-linux-glibc ;; \
-	aarch64-unknown-linux-gnu) platform=linux-arm64-gnu go=linux_arm64 pie=arm64-linux-glibc ;; \
-	aarch64-apple-darwin) platform=darwin-arm64 go=darwin_arm64 pie=arm64-darwin-bsdlibc ;; \
+	x86_64-unknown-linux-gnu) platform=linux-x64-gnu go=linux_amd64 pie=x86_64-linux-glibc musl=x86_64-unknown-linux-musl ;; \
+	aarch64-unknown-linux-gnu) platform=linux-arm64-gnu go=linux_arm64 pie=arm64-linux-glibc musl=aarch64-unknown-linux-musl ;; \
+	aarch64-apple-darwin) platform=darwin-arm64 go=darwin_arm64 pie=arm64-darwin-bsdlibc musl= ;; \
 	*) echo "$(1): the host $$host is no platform of the release: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin" >&2; exit 2 ;; \
 	esac
 
-# release-go-static builds the static library of the Go module (GN-19b) and strips the debug sections of a copy in
-# RELEASE_TARGET with the llvm-strip of the component llvm-tools of the toolchain (rust-toolchain.toml), never the strip of
-# PATH, which differs by machine. The stripped copy enters the assets under another name and is renamed there, so the
-# assets never hold a library that is half written or not stripped.
-release-go-static: ## Build and strip the static library of the Go module of the platform of the host into RELEASE_ASSETS/go
+# release-go-static builds the static library of the Go module (GN-19b), on a Linux host also the one of the musl target of
+# its arch into linux_<arch>_musl, because binding release-go-module requires the libraries of five Go platforms. It strips
+# the debug sections of a copy of each in RELEASE_TARGET with the llvm-strip of the component llvm-tools of the toolchain
+# (rust-toolchain.toml), never the strip of PATH, which differs by machine. A stripped copy enters the assets under another
+# name and is renamed there, so the assets never hold a library that is half written or not stripped.
+release-go-static: ## Build and strip the static libraries of the Go module of the platform of the host into RELEASE_ASSETS/go
 	@$(call release_host,release-go-static); \
 	set -ex; \
-	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-go; \
-	copy=$(RELEASE_TARGET)/stripped/$$go; \
+	publish() { \
+	copy=$(RELEASE_TARGET)/stripped/$$2; \
 	mkdir -p "$$copy"; \
-	cp $(RELEASE_TARGET)/release/libpolyspec_php_serialization_go.a "$$copy/libpolyspec_php_serialization_go.a"; \
+	cp "$$1/libpolyspec_php_serialization_go.a" "$$copy/libpolyspec_php_serialization_go.a"; \
 	"$$(rustc --print sysroot)/lib/rustlib/$$host/bin/llvm-strip" --strip-debug "$$copy/libpolyspec_php_serialization_go.a"; \
-	out=$(RELEASE_ASSETS)/go/$$go; \
+	out=$(RELEASE_ASSETS)/go/$$2; \
 	mkdir -p "$$out"; \
 	cp "$$copy/libpolyspec_php_serialization_go.a" "$$out/.libpolyspec_php_serialization_go.a.part"; \
-	mv "$$out/.libpolyspec_php_serialization_go.a.part" "$$out/libpolyspec_php_serialization_go.a"
+	mv "$$out/.libpolyspec_php_serialization_go.a.part" "$$out/libpolyspec_php_serialization_go.a"; \
+	}; \
+	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-go; \
+	publish $(RELEASE_TARGET)/release "$$go"; \
+	if [ -n "$$musl" ]; then \
+	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-go --target "$$musl"; \
+	publish "$(RELEASE_TARGET)/$$musl/release" "$${go}_musl"; \
+	fi
 
 # release-wheel builds the abi3 wheel of the platform of the host (GN-19c) from the generated Python binding, with the uv
 # of the checkout: maturin builds with --locked, and the time of the commit of HEAD dates the files of the wheel. One

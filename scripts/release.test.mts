@@ -22,11 +22,12 @@ function field(text: string, key: string): unknown {
 const VERSION = String(field(readFileSync(path.join(ROOT, 'packages/ts/package.json'), 'utf8'), 'version'));
 
 // The platforms of a release (GN-19a): the Rust triple of the host, the directory of the Go module that holds its
-// library and the part of the name of a PHP extension archive that names the platform.
+// library, the part of the name of a PHP extension archive that names the platform, and for a Linux host the musl triple
+// of its arch, whose Go library the same runner builds (GN-19b).
 const PLATFORMS = [
-  { triple: 'x86_64-unknown-linux-gnu', platform: 'linux-x64-gnu', go: 'linux_amd64', pie: 'x86_64-linux-glibc' },
-  { triple: 'aarch64-unknown-linux-gnu', platform: 'linux-arm64-gnu', go: 'linux_arm64', pie: 'arm64-linux-glibc' },
-  { triple: 'aarch64-apple-darwin', platform: 'darwin-arm64', go: 'darwin_arm64', pie: 'arm64-darwin-bsdlibc' },
+  { triple: 'x86_64-unknown-linux-gnu', platform: 'linux-x64-gnu', go: 'linux_amd64', pie: 'x86_64-linux-glibc', musl: 'x86_64-unknown-linux-musl' },
+  { triple: 'aarch64-unknown-linux-gnu', platform: 'linux-arm64-gnu', go: 'linux_arm64', pie: 'arm64-linux-glibc', musl: 'aarch64-unknown-linux-musl' },
+  { triple: 'aarch64-apple-darwin', platform: 'darwin-arm64', go: 'darwin_arm64', pie: 'arm64-darwin-bsdlibc', musl: undefined },
 ] as const;
 
 /** The PHP of a case: its minor, whether it is a thread-safe or a debug build, and whether the extension fails to load. */
@@ -107,6 +108,7 @@ esac
 printf 'cargo\\tCARGO_TARGET_DIR=%s\\tPHP=%s\\tPHP_CONFIG=%s\\n' "$CARGO_TARGET_DIR" "$PHP" "$PHP_CONFIG" >> '${calls}'
 mkdir -p "$CARGO_TARGET_DIR/release"
 case "$*" in
+*polyspec-php-serialization-go*--target*) triple=$(for word in "$@"; do [ "$previous" = --target ] && echo "$word"; previous=$word; done); mkdir -p "$CARGO_TARGET_DIR/$triple/release" && printf 'musl library with debug sections\\n' > "$CARGO_TARGET_DIR/$triple/release/libpolyspec_php_serialization_go.a" ;;
 *polyspec-php-serialization-go*) printf 'library with debug sections\\n' > "$CARGO_TARGET_DIR/release/libpolyspec_php_serialization_go.a" ;;
 *polyspec-php-serialization-php-ext*) for ext in so dylib; do printf 'extension\\n' > "$CARGO_TARGET_DIR/release/libpolyspec_php_serialization.$ext"; done ;;
 *polyspec-php-serialization-wasm*) mkdir -p "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release" && printf 'wasm\\n' > "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/polyspec_php_serialization_wasm.wasm" ;;
@@ -212,7 +214,7 @@ function generatesFirst(t: TestContext, target: string, binding: string, build: 
 // ---- release-go-static (GN-19b) ------------------------------------------------------------------------------------
 
 test('release-go-static builds the Go library of the platform of the host and strips a copy with the llvm-strip of the toolchain', async (t) => {
-  for (const { triple, go } of PLATFORMS) {
+  for (const { triple, go, musl } of PLATFORMS) {
     await t.test(triple, (t2) => {
       const box = sandbox(t2, triple);
       const ran = make(box, ['release-go-static']);
@@ -222,17 +224,25 @@ test('release-go-static builds the Go library of the platform of the host and st
       // The library that cargo built stays as it was: the strip runs on a copy.
       assert.equal(readFileSync(path.join(box.dir, 'var/release/target/release/libpolyspec_php_serialization_go.a'), 'utf8'), 'library with debug sections\n');
       const calls = box.calls();
-      assert.deepEqual(calls.filter((call) => call[0] === 'cargo'), [
+      const builds = [
         ['cargo', 'build', '--release', '--locked', '-p', 'polyspec-php-serialization-go'],
         ['cargo', 'CARGO_TARGET_DIR=var/release/target', 'PHP=', 'PHP_CONFIG='],
-      ]);
+      ];
+      // A Linux host also builds the library of the musl target of its arch (GN-19b).
+      if (musl !== undefined) builds.push(['cargo', 'build', '--release', '--locked', '-p', 'polyspec-php-serialization-go', '--target', musl], ['cargo', 'CARGO_TARGET_DIR=var/release/target', 'PHP=', 'PHP_CONFIG=']);
+      assert.deepEqual(calls.filter((call) => call[0] === 'cargo'), builds);
       const stripped = calls.filter((call) => call[0] === 'llvm-strip');
-      assert.equal(stripped.length, 1, JSON.stringify(calls));
-      assert.equal(stripped[0]?.[1], '--strip-debug');
+      assert.equal(stripped.length, musl === undefined ? 1 : 2, JSON.stringify(calls));
+      for (const call of stripped) assert.equal(call[1], '--strip-debug');
       // No strip of PATH, which differs by machine.
       assert.deepEqual(calls.filter((call) => call[0] === 'strip'), []);
-      // Only the asset is left in its directory: the copy was renamed.
+      // Only the assets are left: the copies were renamed.
+      assert.equal(entries(path.join(box.dir, 'var/release/assets/go')), musl === undefined ? `${go}\n` : `${go}\n${go}_musl\n`);
       assert.equal(entries(path.dirname(asset)), 'libpolyspec_php_serialization_go.a\n');
+      if (musl !== undefined) {
+        assert.equal(readFileSync(path.join(box.dir, 'var/release/assets/go', `${go}_musl`, 'libpolyspec_php_serialization_go.a'), 'utf8'), 'stripped\n');
+        assert.equal(readFileSync(path.join(box.dir, 'var/release/target', musl, 'release/libpolyspec_php_serialization_go.a'), 'utf8'), 'musl library with debug sections\n');
+      }
     });
   }
 });
