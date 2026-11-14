@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e7c0f5b91861352f603ce4153fe17ca24f03e9ec96653c325e80cfe91e27be92 -->
+<!-- source-sha256: 292efc52d3ae139349a6855905eb911cf6c22b0b7a7427cdb91130ec34930378 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `package.json`과 `package-lock.json`이 kit 0.0.112를 pin한다(T2.7-1). Makefile이 실행하는 모든 utility가 그 release에 있고, `make workflows-test`, `layout-check`, `docs-check`, `rules-check`, `owner-validate`, `rebuild-check`, `language-check`, `suppression-check`, `link-check`, `release-coverage`, `typecheck`, `lint-ts`, `binding-features-test`가 그것으로 통과한다. `scripts/binding-features.test.mts`는 Makefile과 manifest의 복사본과 그 dry run을 함수 하나에서 만든다. 이전에는 두 시험이 같은 일곱 줄을 가져서 `make duplication-check`가 clone 하나로 실패했다.
 - 행 T2.7과 `config/release.json`의 `notReleased`에 있는 바인딩 manifest의 이유는, kit 0.0.112가 플랫폼별 자산을 만들지 않으므로(kit K1221) 이 저장소의 recipe가 바인딩의 플랫폼별 자산을 만들고 release workflow가 각 플랫폼의 runner를 적는다고 적는다. 이전에는 그 자산을 만들던 kit 0.0.111을 행이 기다리는 release로 적었다. `make release-coverage`와 `make docs-check`가 통과한다.
 - `Cargo.lock`은 `polyspec-binding-core`를 CI run의 모든 job이 통과한 binding의 branch `v1/rust-core` commit에 pin한다(T2.10, `cargo update -p polyspec-binding-core --precise`). lock에서 바뀐 것은 그 source 한 줄뿐이고, binding-core의 의존성은 그대로다. 이전에는 lock이 더 오래된 commit을 pin해서 더 새 binding의 `binding check`가 lock에 CK-20을 보고했다. 그 binding으로 `make bindings-check`는 finding을 보고하지 않고 scaffold 차이(CK-19)도 없으며, `make bindings`는 다섯 target을 모두 생성한다. 이전에는 binding이 case `an_integer_below_64_bits_is_refused`의 정수 때문에 go를 거부해서 `make bindings-go`가 실패했다. 생성된 파일은 여전히 추적하지 않는다. 생성된 코드가 `clippy.toml`로 clippy와 다섯 target의 시험을 통과하는지는 아직 실행하지 않았다(T2.9). 그래서 `AGENTS.md`와 `Makefile`은 `make test-bindings`가 CI의 target이 아닌 이유를 go의 거부가 아니라 그 run이 없다는 것으로 적는다.
 

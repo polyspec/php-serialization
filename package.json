@@ -28,7 +28,7 @@
     "url": "https://github.com/polyspec/php-serialization.git"
   },
   "devDependencies": {
-    "@polyspec/kit": "https://github.com/polyspec/kit/releases/download/v0.0.105/polyspec-kit-0.0.105.tgz",
+    "@polyspec/kit": "https://github.com/polyspec/kit/releases/download/v0.0.112/polyspec-kit-0.0.112.tgz",
     "@types/node": "26.6.5",
     "typescript": "7.0.2"
   }

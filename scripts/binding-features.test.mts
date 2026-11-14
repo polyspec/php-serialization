@@ -27,18 +27,23 @@ function features(text: string): string[] {
   return [...table.matchAll(/^([a-z][a-z0-9-]*) = /gm)].map((m) => m[1] ?? '').filter((name) => name !== 'default').sort();
 }
 
-test('each binding crate is built, and the workspace linted, with every feature of the manifests (binding GN-5)', (t) => {
-  const copy = mkdtempSync(join(tmpdir(), 'php-serialization-features-'));
+// A copy of the Makefile and the manifests that the recipes read, removed after the test, and the dry run of targets in it.
+function dryRunOfCopy(t: { after: (fn: () => void) => void }, prefix: string): (...targets: string[]) => string[] {
+  const copy = mkdtempSync(join(tmpdir(), prefix));
   t.after(() => { rmSync(copy, { recursive: true, force: true }); });
   for (const path of ['Makefile', 'packages/ts/package.json', 'packages/go/go.mod', ...CRATES.map((c) => c.manifest)]) {
     mkdirSync(join(copy, dirname(path)), { recursive: true });
     cpSync(join(root, path), join(copy, path));
   }
-  const targets = [...new Set(CRATES.map((c) => c.target)), 'lint-bindings'];
-  const lines = execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+  return (...targets) => execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+}
+
+test('each binding crate is built, and the workspace linted, with every feature of the manifests (binding GN-5)', (t) => {
+  const dryRun = dryRunOfCopy(t, 'php-serialization-features-');
+  const lines = dryRun(...new Set(CRATES.map((c) => c.target)), 'lint-bindings');
   const union = new Set<string>();
   for (const crate of CRATES) {
-    const declared = features(readFileSync(join(copy, crate.manifest), 'utf8'));
+    const declared = features(readFileSync(join(root, crate.manifest), 'utf8'));
     for (const name of declared) union.add(name);
     assert.ok(declared.includes('panic-test'), `${crate.manifest} declares no feature panic-test`);
     const built = lines.map((line) => crate.build.exec(line)?.[1]).filter((found) => found !== undefined);
@@ -51,13 +56,7 @@ test('each binding crate is built, and the workspace linted, with every feature 
 });
 
 test('only php-serialization-install-rust installs binding, and the binding recipes install packages offline (HR-89)', (t) => {
-  const copy = mkdtempSync(join(tmpdir(), 'php-serialization-offline-'));
-  t.after(() => { rmSync(copy, { recursive: true, force: true }); });
-  for (const path of ['Makefile', 'packages/ts/package.json', 'packages/go/go.mod', ...CRATES.map((c) => c.manifest)]) {
-    mkdirSync(join(copy, dirname(path)), { recursive: true });
-    cpSync(join(root, path), join(copy, path));
-  }
-  const dryRun = (...targets: string[]): string[] => execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+  const dryRun = dryRunOfCopy(t, 'php-serialization-offline-');
   const install = dryRun('php-serialization-install-rust');
   assert.ok(install.some((line) => line.endsWith('scripts/binding.mts install')), `make php-serialization-install-rust does not install binding:\n${install.join('\n')}`);
   const recipes = dryRun('test-python-binding', 'node-package', 'test-php', 'test-go', 'lint-bindings', 'check-declarations');
