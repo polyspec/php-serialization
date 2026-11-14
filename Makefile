@@ -190,7 +190,9 @@ PHP_CONFIG ?= $(VAR_TOOLS)/bin/php-config
 PHPUNIT ?= $(VAR_TOOLS)/bin/phpunit
 # The file name extension of a library that Cargo builds as a cdylib: dylib on macOS, so on Linux.
 CDYLIB := $(if $(filter Darwin,$(shell uname -s)),dylib,so)
-CARGO_TARGET := $(CURDIR)/target
+# The folder that cargo builds into: the CARGO_TARGET_DIR of the environment when it names one, so that a run can build on
+# another volume, and the target folder of the workspace otherwise.
+CARGO_TARGET := $(or $(CARGO_TARGET_DIR),$(CURDIR)/target)
 BINDINGS_VAR := $(CURDIR)/var/bindings
 # The case runners read contracts/php-serialize.json and contracts/host-values.json from this folder.
 CONTRACTS_ENV := PHP_SERIALIZATION_CONTRACTS=$(CURDIR)/contracts

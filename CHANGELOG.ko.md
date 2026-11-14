@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 65416cfb60ab3340f011197aaa00a90bcbe8ef9a2d464df24b91b229b9ed65ed -->
+<!-- source-sha256: 76fbf6ac6e641d8b7f97c70d9badc9fc45d0206a68a5f32aa6780a268118e436 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 환경의 `CARGO_TARGET_DIR`이 폴더를 적으면 바인딩 recipe가 cargo가 build한 라이브러리를 그 폴더에서 읽는다(T2.11). 이전에는 Makefile의 `CARGO_TARGET`이 항상 workspace의 target 폴더여서, `CARGO_TARGET_DIR=/other`이면 cargo는 `/other`에 build하는데 `make node-package`, `make test-php`, `make test-go`는 addon, 확장, 정적 라이브러리를 `target/debug`에서 읽어 실패했다. `make binding-features-test`의 새 시험이 `CARGO_TARGET_DIR`을 정한 dry run을 읽는다. 변경 이전에는 실패했고, 변경과 함께 파일은 3개 통과한다.
 - Linux host에서 `make release-go-static`이 그 arch의 musl target Go 라이브러리도 `RELEASE_ASSETS/go/linux_<arch>_musl/`에 만든다(T2.7-6; binding GN-19b). 이전에는 glibc 라이브러리만 만들어서, 릴리스가 `binding release-go-module`이 요구하는 다섯 라이브러리(`linux_amd64`, `linux_arm64`, `linux_amd64_musl`, `linux_arm64_musl`, `darwin_arm64`) 가운데 셋만 가졌고 그 명령은 실패했을 것이다. `rust-toolchain.toml`은 target `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, 그리고 `make node-package`와 `make release-npm`이 build하는 `wasm32-unknown-unknown`을 적는다. 이전에는 WASM target을 설치하는 파일이 없어서 새 toolchain은 WASM crate를 build할 수 없었다. `make release-test`: 바뀐 시험은 recipe 이전에 두 Linux host에서 실패했고, recipe와 함께 44개 통과한다.
 - `config/release.json`이 바인딩의 manifest를 릴리스한다(T2.7-5). 이전에는 모든 바인딩 manifest와 core crate가 `notReleased`에 있고 `packages`가 비어 있어서, 릴리스가 어떤 바인딩도 싣지 않았다. `packages/php-ext`의 Composer 패키지 `polyspec/php-serialization`은 릴리스의 패키지다(`archive`). 그 zip과 릴리스의 `packages.json`이 PIE가 확장을 가져오고 릴리스의 pre-packaged binary를 찾는 Composer 저장소다. core crate는 tag로 릴리스하고(`packages/rust/Cargo.toml`, `git-tag`), 모든 바인딩 crate, `packages/python/pyproject.toml`, `packages/ts/package.json`의 버전, 곧 플랫폼별 자산이 담는 버전은 릴리스의 버전이다(`version`). `packages/go/go.mod`는 `make release-go-module`이 Go module을 자기 tag로 싣기 때문에 `notReleased`에 남는다. 새 target `make release-candidate-assets VERSION=X.Y.Z`는 커밋된 HEAD의 archive를 tag 없이 만든다.
 - `make release-go-module TAG=vX.Y.Z`가 릴리스의 Go module을 싣는다(T2.7-4; binding GN-19f). 입력: 각 플랫폼의 라이브러리가 `RELEASE_ASSETS/go`에 있는 tag의 checkout. 이전에는 Go module의 consumer가 읽는 commit과 tag `packages/go/vX.Y.Z`를 만드는 recipe가 없었다. recipe는 Go 바인딩을 생성하고 `binding release-go-module --root <checkout> --tag <TAG> --libraries RELEASE_ASSETS/go --work RELEASE_TARGET/go-module`를 실행한 뒤, 명령이 출력한 reference `refs/tags/packages/go/<TAG>`를 `origin`에 push한다. 명령이 아무것도 출력하지 않으면(remote에 이미 tag가 있으면) 또는 실패하면 아무것도 push하지 않고, 다른 출력에는 실패한다. `TAG`가 없으면 2로 실패하고 아무것도 실행하지 않는다. `make release-test`: 새 시험이 있고 recipe가 없을 때 39개 통과, 5개 실패였고, recipe와 함께 44개 통과한다.

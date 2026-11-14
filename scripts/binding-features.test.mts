@@ -27,15 +27,16 @@ function features(text: string): string[] {
   return [...table.matchAll(/^([a-z][a-z0-9-]*) = /gm)].map((m) => m[1] ?? '').filter((name) => name !== 'default').sort();
 }
 
-// A copy of the Makefile and the manifests that the recipes read, removed after the test, and the dry run of targets in it.
-function dryRunOfCopy(t: { after: (fn: () => void) => void }, prefix: string): (...targets: string[]) => string[] {
+// A copy of the Makefile and the manifests that the recipes read, removed after the test, and the dry run of targets in it
+// with the variables `env` added to the environment.
+function dryRunOfCopy(t: { after: (fn: () => void) => void }, prefix: string, env: NodeJS.ProcessEnv = {}): (...targets: string[]) => string[] {
   const copy = mkdtempSync(join(tmpdir(), prefix));
   t.after(() => { rmSync(copy, { recursive: true, force: true }); });
   for (const path of ['Makefile', 'packages/ts/package.json', 'packages/go/go.mod', ...CRATES.map((c) => c.manifest)]) {
     mkdirSync(join(copy, dirname(path)), { recursive: true });
     cpSync(join(root, path), join(copy, path));
   }
-  return (...targets) => execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+  return (...targets) => execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '', ...env }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
 }
 
 test('each binding crate is built, and the workspace linted, with every feature of the manifests (binding GN-5)', (t) => {
@@ -64,4 +65,13 @@ test('only php-serialization-install-rust installs binding, and the binding reci
   assert.deepEqual(online, [], 'a binding recipe installs npm packages without --offline');
   const index = recipes.filter((line) => /\bpip install\b/.test(line) && !line.includes('--no-index') && !line.includes('--offline'));
   assert.deepEqual(index, [], 'a binding recipe installs Python packages from an index');
+});
+
+test('the binding recipes read the libraries that cargo builds from the CARGO_TARGET_DIR of the environment', (t) => {
+  const target = join(tmpdir(), 'php-serialization-cargo-target');
+  const dryRun = dryRunOfCopy(t, 'php-serialization-target-', { CARGO_TARGET_DIR: target });
+  const lines = dryRun('node-package', 'test-php', 'test-go');
+  for (const library of [`${target}/debug/libpolyspec_php_serialization_node.`, `extension=${target}/debug/libpolyspec_php_serialization.`, `CGO_LDFLAGS=-L${target}/debug `]) {
+    assert.ok(lines.some((line) => line.includes(library)), `no recipe reads ${library}:\n${lines.join('\n')}`);
+  }
 });
