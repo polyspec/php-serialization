@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: df82a419afa30364fcfb193cb5895107d1534e379ad84f8966c1c6dbb14c6730 -->
+<!-- source-sha256: 37b0e501f27a06114e9ec899744f0ac508cd541a07172ff62889844fdc341b78 -->
 # 개발 절차
 
 [English](AGENTS.md)
@@ -51,3 +51,5 @@
 
 - Own: GitHub workflow의 모든 job은 `ubuntu-26.04-arm`에서 실행한다. 모든 action은 `.github/actions`의 local action이거나 전체 commit으로 고정하고, 파일의 주석이 그 릴리스를 적는다. action 고정은 추적 파일이 적는 유일한 Git commit이다. 어떤 job과 step도 `timeout-minutes`를 두지 않는다. 모든 `run` step은 `Makefile`이 정의하는 make target 하나다. 그래서 Makefile의 설정이 CI의 모든 명령에 적용된다. workflow `ci`는 `main`의 push와 `workflow_dispatch`에서만 시작하고, 그 마지막 job `ci-passed`는 다른 모든 job 뒤에 실행되고, 그 job을 모두 needs에 두고, 각 job이 성공했을 때만 통과한다(`make ci-passed FAIL_SKIPPED=1`). 그래서 job 하나가 run의 결과를 말한다.
   Enforced by: `make workflows-test`
+- Own: kit은 플랫폼별 자산을 만들지 않으므로, 이 저장소의 recipe가 바인딩의 자산을 각각 자기 host의 플랫폼(`linux-x64-gnu`, `linux-arm64-gnu`, `darwin-arm64`; binding GN-19a)에 대해 만든다. 릴리스의 어떤 도구도 다른 플랫폼으로 컴파일하지 않기 때문이다. `make release-go-static`은 strip한 Go module의 정적 라이브러리를, `make release-wheel`은 abi3 wheel을, `make release-php-ext PHP=<php>`는 PIE가 찾는 이름의 PHP 확장을 만든다(binding GN-19b–GN-19d). 각 recipe는 한 줄에 표준 도구 하나를 `RELEASE_TARGET`으로 정한 `CARGO_TARGET_DIR`과 함께 실행하고, 끝난 파일을 `RELEASE_ASSETS`로 이름을 바꿔 넣는다. 그래서 자산은 개발 build의 어떤 것도 담지 않고, 자산 폴더는 반쯤 쓰인 파일을 담지 않는다. Go 라이브러리는 `rust-toolchain.toml`의 component `llvm-tools`의 `llvm-strip`으로 strip한다. `PATH`의 `strip`은 기계마다 다르기 때문이다.
+  Enforced by: `make release-test`

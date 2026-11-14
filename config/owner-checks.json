@@ -205,6 +205,16 @@
     },
     {
       "paths": [
+        "scripts/release.test.mts",
+        "Makefile",
+        "rust-toolchain.toml"
+      ],
+      "targets": [
+        "release-test"
+      ]
+    },
+    {
+      "paths": [
         "scripts/binding-features.test.mts",
         "Makefile",
         "packages/python/Cargo.toml",

@@ -34,7 +34,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage release-test typecheck contracts-check binding-features-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -55,7 +55,7 @@ CI_REPORT ?= var/report/ci-targets
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
-	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage
+	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext
 
 # ---- Install ----------------------------------------------------------------------------------------------------------------
 # The npm that devEngines of package.json names installs the lock, @polyspec/kit included, before the tools of the checkout
@@ -484,3 +484,84 @@ release-undraft: ## Make the draft release of TAG public
 
 release-coverage: ## Require every package file of the checkout to be classified in config/release.json; offline
 	$(NODE) $(KIT)/release.mjs coverage
+
+# ---- The per-platform assets of the bindings (binding GN-19 to GN-19g; row T2.7) -----------------------------------------
+# kit builds no per-platform asset, so the recipes of this repository build them. A recipe builds the asset of the platform
+# of its host, because no tool of the release compiles for another platform: it reads the host from rustc of the pinned
+# toolchain and writes into RELEASE_ASSETS, building with CARGO_TARGET_DIR set to RELEASE_TARGET, so that an asset holds
+# nothing of a development build. Each step is a line that starts a standard tool (GN-19).
+RELEASE_ASSETS ?= var/release/assets
+RELEASE_TARGET ?= var/release/target
+# release_host sets host to the Rust triple of the toolchain, platform to the name of its platform, which names its npm
+# platform package, go to the directory of the Go module of its platform and pie to the part of the name of a PHP
+# extension archive that names its platform (GN-19a), and ends the recipe $(1) with 2 on a host that is no platform of the
+# release.
+release_host = host=$$(rustc --print host-tuple) || exit 1; \
+	case "$$host" in \
+	x86_64-unknown-linux-gnu) platform=linux-x64-gnu go=linux_amd64 pie=x86_64-linux-glibc ;; \
+	aarch64-unknown-linux-gnu) platform=linux-arm64-gnu go=linux_arm64 pie=arm64-linux-glibc ;; \
+	aarch64-apple-darwin) platform=darwin-arm64 go=darwin_arm64 pie=arm64-darwin-bsdlibc ;; \
+	*) echo "$(1): the host $$host is no platform of the release: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin" >&2; exit 2 ;; \
+	esac
+
+# release-go-static builds the static library of the Go module (GN-19b) and strips the debug sections of a copy in
+# RELEASE_TARGET with the llvm-strip of the component llvm-tools of the toolchain (rust-toolchain.toml), never the strip of
+# PATH, which differs by machine. The stripped copy enters the assets under another name and is renamed there, so the
+# assets never hold a library that is half written or not stripped.
+release-go-static: ## Build and strip the static library of the Go module of the platform of the host into RELEASE_ASSETS/go
+	@$(call release_host,release-go-static); \
+	set -ex; \
+	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-go; \
+	copy=$(RELEASE_TARGET)/stripped/$$go; \
+	mkdir -p "$$copy"; \
+	cp $(RELEASE_TARGET)/release/libpolyspec_php_serialization_go.a "$$copy/libpolyspec_php_serialization_go.a"; \
+	"$$(rustc --print sysroot)/lib/rustlib/$$host/bin/llvm-strip" --strip-debug "$$copy/libpolyspec_php_serialization_go.a"; \
+	out=$(RELEASE_ASSETS)/go/$$go; \
+	mkdir -p "$$out"; \
+	cp "$$copy/libpolyspec_php_serialization_go.a" "$$out/.libpolyspec_php_serialization_go.a.part"; \
+	mv "$$out/.libpolyspec_php_serialization_go.a.part" "$$out/libpolyspec_php_serialization_go.a"
+
+# release-wheel builds the abi3 wheel of the platform of the host (GN-19c) from the generated Python binding, with the uv
+# of the checkout: maturin builds with --locked, and the time of the commit of HEAD dates the files of the wheel. One
+# wheel of a platform serves every supported Python.
+release-wheel: bindings-python ## Build the abi3 wheel of the platform of the host into RELEASE_ASSETS/wheel
+	@$(call release_host,release-wheel); \
+	set -ex; \
+	CARGO_TARGET_DIR=$(RELEASE_TARGET) MATURIN_PEP517_ARGS=--locked SOURCE_DATE_EPOCH=$$(git log -1 --format=%ct HEAD) $(UV) build --wheel --python python3 --out-dir $(RELEASE_ASSETS)/wheel packages/python
+
+# release-php-ext builds the PHP extension of the platform of the host for the minor of the PHP that PHP names (GN-19d)
+# from the generated PHP binding, with the php-config of PHP_CONFIG when the command line gives it, otherwise the one
+# beside that PHP. The recipe resolves both on PATH to absolute paths, because the build script of ext-php-rs refuses a
+# PHP that it cannot find by the path that PHP names. The cdylib is copied as polyspec_php_serialization.so into a
+# directory of RELEASE_TARGET for that PHP build, which must load it without a php.ini before it is packed, and the
+# archive takes the name by which PIE finds a pre-packaged binary: the version of the crate, the minor, the platform, and
+# debug and zts as that PHP reports them. An archive that an earlier run left is removed first, because zip adds to an
+# archive that exists. The archive enters the assets under another name and is renamed there.
+RELEASE_PHP_CONFIG = $(if $(filter command line,$(origin PHP_CONFIG)),$(PHP_CONFIG),$(PHP)-config)
+release-php-ext: bindings-php ## Build, load and pack the PHP extension of the platform of the host for the PHP of PHP into RELEASE_ASSETS/php-ext
+	@$(call release_host,release-php-ext); \
+	php=$$(command -v '$(PHP)') || { echo 'release-php-ext: no PHP $(PHP) on PATH' >&2; exit 2; }; \
+	case "$$php" in /*) ;; *) php=$(CURDIR)/$$php ;; esac; \
+	config=$$(command -v '$(RELEASE_PHP_CONFIG)') || { echo 'release-php-ext: no php-config $(RELEASE_PHP_CONFIG) on PATH' >&2; exit 2; }; \
+	case "$$config" in /*) ;; *) config=$(CURDIR)/$$config ;; esac; \
+	set -ex; \
+	PHP="$$php" PHP_CONFIG="$$config" CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-php-ext; \
+	version=$$(cargo pkgid -p $(CORE)-php-ext); version=$${version##*@}; \
+	minor=$$("$$php" -n -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;'); \
+	build=$$("$$php" -n -r 'echo PHP_DEBUG ? "-debug" : "", "-", PHP_ZTS ? "zts" : "nts";'); \
+	copy=$(abspath $(RELEASE_TARGET))/php-ext/php$$minor$$build; \
+	mkdir -p "$$copy"; \
+	cp $(RELEASE_TARGET)/release/libpolyspec_php_serialization.$(CDYLIB) "$$copy/polyspec_php_serialization.so"; \
+	"$$php" -n -d extension="$$copy/polyspec_php_serialization.so" -r 'exit(extension_loaded("polyspec_php_serialization") ? 0 : 1);'; \
+	name=php_polyspec_php_serialization-v$${version}_php$$minor-$$pie$$build.zip; \
+	rm -f "$$copy/$$name"; \
+	(cd "$$copy" && zip -q -9 -X "$$name" polyspec_php_serialization.so); \
+	out=$(RELEASE_ASSETS)/php-ext; \
+	mkdir -p "$$out"; \
+	cp "$$copy/$$name" "$$out/.$$name.part"; \
+	mv "$$out/.$$name.part" "$$out/$$name"
+
+# release-test runs the tests of the recipes of the per-platform assets (scripts/release.test.mts) against stand-ins of the
+# tools that they start; it reads the node and npm of var/tools.
+release-test: ## Run the tests of the recipes of the per-platform assets of the release; offline
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/release.test.mts
