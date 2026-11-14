@@ -55,7 +55,7 @@ CI_REPORT ?= var/report/ci-targets
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
-	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm release-go-module release-candidate-assets
+	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm release-go-module release-candidate-assets release-binding-check release-tag-output release-platform-assets install-wasm-bindgen
 
 # ---- Install ----------------------------------------------------------------------------------------------------------------
 # The npm that devEngines of package.json names installs the lock, @polyspec/kit included, before the tools of the checkout
@@ -645,6 +645,71 @@ release-go-module: bindings-go ## Make, prove and push the commit and the tag pa
 	"refs/tags/packages/go/$$TAG") set -x; git push origin "$$ref" ;; \
 	*) echo "release-go-module: binding printed $$ref, not refs/tags/packages/go/$$TAG" >&2; exit 1 ;; \
 	esac
+
+# release-binding-check runs the release check of binding on the contract (GN-19g), which the release workflow runs before it
+# builds an asset of a tag. It fails while a dependency line of polyspec-binding-core names the branch v1/rust-core (CK-70),
+# the development form that the binding crates use until they name a released tag of binding; CI builds the assets of a
+# commit without this check.
+release-binding-check: ## Run the release check of binding on packages/rust/interface.json; offline
+	$(BINDING) check $(CURDIR)/packages/rust/interface.json --release
+
+# release-tag-output gives the later jobs of the release workflow the tag and the version that release-tag wrote into the
+# environment of its job (TAG, VERSION), through the outputs of the step (GITHUB_OUTPUT); both are empty when the run
+# releases nothing.
+release-tag-output: ## Write TAG and VERSION into GITHUB_OUTPUT for the later jobs of the release workflow
+	@test -n "$$GITHUB_OUTPUT" || { echo 'release-tag-output: GITHUB_OUTPUT is not set; run it in the release workflow' >&2; exit 2; }
+	printf 'tag=%s\nversion=%s\n' "$$TAG" "$$VERSION" >> "$$GITHUB_OUTPUT"
+
+# release-platform-assets uploads the assets of each platform to the draft GitHub Release of TAG with gh (GN-19g), each under
+# the label polyspec-php-serialization-<runtime>-<version>-<platform>, or -php<X.Y>-<platform> for the PHP extension, and the
+# npm package without a platform under polyspec-php-serialization-ts-<version>: the wheel of each platform, the npm package
+# and its platform packages, and the PHP extension of each platform and PHP minor. The file keeps the name that its packer
+# gave, which PIE and the package managers read. It fails before an upload when an asset of a platform is missing or a file
+# names no platform. The Go libraries enter the commit of the Go module (release-go-module), not the release.
+release-platform-assets: ## Upload the per-platform assets of RELEASE_ASSETS to the draft release of TAG under their labels
+	@test -n "$$TAG" || { echo 'release-platform-assets: TAG is required, for example make release-platform-assets TAG=v0.0.1' >&2; exit 2; }
+	@set -e; version=$${TAG#v}; dir=$(RELEASE_ASSETS); p=polyspec-php-serialization; fail() { echo "release-platform-assets: $$1" >&2; exit 1; }; \
+	set --; wheels=0; npm=0; php=0; \
+	for file in "$$dir"/wheel/*.whl; do \
+	case "$$file" in \
+	*manylinux*_x86_64.whl) platform=linux-x64-gnu ;; \
+	*manylinux*_aarch64.whl) platform=linux-arm64-gnu ;; \
+	*macosx*_arm64.whl) platform=darwin-arm64 ;; \
+	*) fail "$$file is no wheel of a platform of the release" ;; \
+	esac; \
+	set -- "$$@" "$$file#$$p-python-$$version-$$platform"; wheels=$$((wheels + 1)); \
+	done; \
+	for file in "$$dir"/npm/*.tgz; do \
+	name=$$(basename "$$file" .tgz); \
+	case "$$name" in \
+	"$$p-$$version") label=$$p-ts-$$version ;; \
+	"$$p-linux-x64-gnu-$$version"|"$$p-linux-arm64-gnu-$$version"|"$$p-darwin-arm64-$$version") \
+	platform=$${name#$$p-}; label=$$p-ts-$$version-$${platform%-$$version} ;; \
+	*) fail "$$file is no npm package of the release $$version" ;; \
+	esac; \
+	set -- "$$@" "$$file#$$label"; npm=$$((npm + 1)); \
+	done; \
+	for file in "$$dir"/php-ext/*.zip; do \
+	name=$$(basename "$$file" .zip); \
+	case "$$name" in \
+	"php_polyspec_php_serialization-v$${version}_php"*-x86_64-linux-glibc-*) platform=linux-x64-gnu ;; \
+	"php_polyspec_php_serialization-v$${version}_php"*-arm64-linux-glibc-*) platform=linux-arm64-gnu ;; \
+	"php_polyspec_php_serialization-v$${version}_php"*-arm64-darwin-bsdlibc-*) platform=darwin-arm64 ;; \
+	*) fail "$$file is no PHP extension of the release $$version" ;; \
+	esac; \
+	minor=$${name#*-v$${version}_php}; minor=$${minor%%-*}; \
+	set -- "$$@" "$$file#$$p-php-ext-$$version-php$$minor-$$platform"; php=$$((php + 1)); \
+	done; \
+	test "$$wheels" -eq 3 || fail "$$dir/wheel holds $$wheels wheels, not one of each of the 3 platforms"; \
+	test "$$npm" -eq 4 || fail "$$dir/npm holds $$npm packages, not the package and one of each of the 3 platforms"; \
+	test "$$php" -gt 0 && test $$((php % 3)) -eq 0 || fail "$$dir/php-ext holds $$php extensions, not one of each of the 3 platforms for each PHP minor"; \
+	set -x; \
+	gh release upload "$$TAG" "$$@"
+
+# install-wasm-bindgen installs the wasm-bindgen CLI of mise.toml alone with the mise of var/tools at the digest of
+# mise.lock, for a job that needs no other tool of mise.toml, such as the job of the release that packs the npm package.
+install-wasm-bindgen: ## Install the wasm-bindgen CLI of mise.toml alone; ONLINE
+	$(ONLINE) $(MISE) install --locked github:wasm-bindgen/wasm-bindgen
 
 # release-test runs the tests of the recipes of the per-platform assets (scripts/release.test.mts) against stand-ins of the
 # tools that they start; it reads the node and npm of var/tools.

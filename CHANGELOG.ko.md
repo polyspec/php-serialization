@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 784de7a29622614ad623101d80c3baa8bb5a70eb726d3e27adc51e8b873a7699 -->
+<!-- source-sha256: ab2def603eadd2e7cd0cc61debc5ae626919dea69212717189dcbda4ecd19b74 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `make release-platform-assets TAG=vX.Y.Z`가 플랫폼별 자산을 draft GitHub Release에 label과 함께 올린다. kit은 이 일을 하지 않는다(T2.7-8; binding GN-19g). 각 플랫폼의 wheel은 `polyspec-php-serialization-python-<version>-<platform>`, npm 패키지는 `polyspec-php-serialization-ts-<version>`, 그 플랫폼 패키지는 `-<platform>`을 붙여, 각 플랫폼과 PHP minor의 PHP 확장은 `polyspec-php-serialization-php-ext-<version>-php<X.Y>-<platform>`으로 올린다. 각 파일은 packer가 준 이름을 지킨다. 플랫폼의 자산이 빠지거나 파일이 플랫폼을 적지 않으면 아무것도 올리지 않는다. `make release-tag-output`은 release workflow의 뒤 job을 위해 TAG와 VERSION을 step의 출력에 쓰고, `make release-binding-check`는 `binding check packages/rust/interface.json --release`를 실행하고, `make install-wasm-bindgen`은 mise.toml의 wasm-bindgen CLI만 설치한다. `make release-test`: 새 시험이 있고 target이 없을 때 44개 통과, 12개 실패였고, target과 함께 56개 통과한다.
 - 체크리스트에 열린 행 T2.7-7, 곧 플랫폼별 자산의 release workflow가 있고, 행 T2.7은 T2.7-1–T2.7-7을 그 부분으로 적는다. T2.7-7은 네 결정을 기다린다. binding GN-19a의 runner와 모든 job이 `ubuntu-26.04-arm`에서 실행한다는 규칙, kit이 하지 않는 일인 플랫폼별 자산을 label과 함께 GitHub Release에 붙이는 target, 확장의 PHP minor, 그리고 npm 패키지나 wheel을 릴리스 자산에서 설치하는 consumer가 자기 플랫폼의 자산을 찾는 방법이다.
 - 환경의 `CARGO_TARGET_DIR`이 폴더를 적으면 바인딩 recipe가 cargo가 build한 라이브러리를 그 폴더에서 읽는다(T2.11). 이전에는 Makefile의 `CARGO_TARGET`이 항상 workspace의 target 폴더여서, `CARGO_TARGET_DIR=/other`이면 cargo는 `/other`에 build하는데 `make node-package`, `make test-php`, `make test-go`는 addon, 확장, 정적 라이브러리를 `target/debug`에서 읽어 실패했다. `make binding-features-test`의 새 시험이 `CARGO_TARGET_DIR`을 정한 dry run을 읽는다. 변경 이전에는 실패했고, 변경과 함께 파일은 3개 통과한다.
 - Linux host에서 `make release-go-static`이 그 arch의 musl target Go 라이브러리도 `RELEASE_ASSETS/go/linux_<arch>_musl/`에 만든다(T2.7-6; binding GN-19b). 이전에는 glibc 라이브러리만 만들어서, 릴리스가 `binding release-go-module`이 요구하는 다섯 라이브러리(`linux_amd64`, `linux_arm64`, `linux_amd64_musl`, `linux_arm64_musl`, `darwin_arm64`) 가운데 셋만 가졌고 그 명령은 실패했을 것이다. `rust-toolchain.toml`은 target `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, 그리고 `make node-package`와 `make release-npm`이 build하는 `wasm32-unknown-unknown`을 적는다. 이전에는 WASM target을 설치하는 파일이 없어서 새 toolchain은 WASM crate를 build할 수 없었다. `make release-test`: 바뀐 시험은 recipe 이전에 두 Linux host에서 실패했고, recipe와 함께 44개 통과한다.
