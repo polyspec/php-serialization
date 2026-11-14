@@ -548,7 +548,9 @@ release-wheel: bindings-python ## Build the abi3 wheel of the platform of the ho
 # release-php-ext builds the PHP extension of the platform of the host for the minor of the PHP that PHP names (GN-19d)
 # from the generated PHP binding, with the php-config of PHP_CONFIG when the command line gives it, otherwise the one
 # beside that PHP. The recipe resolves both on PATH to absolute paths, because the build script of ext-php-rs refuses a
-# PHP that it cannot find by the path that PHP names. The cdylib is copied as polyspec_php_serialization.so into a
+# PHP that it cannot find by the path that PHP names. Each PHP minor and build builds in its own folder of RELEASE_TARGET,
+# because the extension is compiled against the headers of that PHP and a job builds the extension of 8.4 and of 8.5 with a
+# PHP of the same path, so that cargo would otherwise take the build of the first. The cdylib is copied as polyspec_php_serialization.so into a
 # directory of RELEASE_TARGET for that PHP build, which must load it without a php.ini before it is packed, and the
 # archive takes the name by which PIE finds a pre-packaged binary: the version of the crate, the minor, the platform, and
 # debug and zts as that PHP reports them. An archive that an earlier run left is removed first, because zip adds to an
@@ -561,13 +563,14 @@ release-php-ext: bindings-php ## Build, load and pack the PHP extension of the p
 	config=$$(command -v '$(RELEASE_PHP_CONFIG)') || { echo 'release-php-ext: no php-config $(RELEASE_PHP_CONFIG) on PATH' >&2; exit 2; }; \
 	case "$$config" in /*) ;; *) config=$(CURDIR)/$$config ;; esac; \
 	set -ex; \
-	PHP="$$php" PHP_CONFIG="$$config" CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-php-ext; \
-	version=$$(cargo pkgid -p $(CORE)-php-ext); version=$${version##*@}; \
 	minor=$$("$$php" -n -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;'); \
 	build=$$("$$php" -n -r 'echo PHP_DEBUG ? "-debug" : "", "-", PHP_ZTS ? "zts" : "nts";'); \
+	target=$(RELEASE_TARGET)/php$$minor$$build; \
+	PHP="$$php" PHP_CONFIG="$$config" CARGO_TARGET_DIR="$$target" cargo build --release --locked -p $(CORE)-php-ext; \
+	version=$$(cargo pkgid -p $(CORE)-php-ext); version=$${version##*@}; \
 	copy=$(abspath $(RELEASE_TARGET))/php-ext/php$$minor$$build; \
 	mkdir -p "$$copy"; \
-	cp $(RELEASE_TARGET)/release/libpolyspec_php_serialization.$(CDYLIB) "$$copy/polyspec_php_serialization.so"; \
+	cp "$$target/release/libpolyspec_php_serialization.$(CDYLIB)" "$$copy/polyspec_php_serialization.so"; \
 	"$$php" -n -d extension="$$copy/polyspec_php_serialization.so" -r 'exit(extension_loaded("polyspec_php_serialization") ? 0 : 1);'; \
 	name=php_polyspec_php_serialization-v$${version}_php$$minor-$$pie$$build.zip; \
 	rm -f "$$copy/$$name"; \

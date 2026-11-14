@@ -117,7 +117,7 @@ esac
   // The PHP of the case answers the code of -r: its minor, its build, and the load check, which reads the extension of -d.
   program(path.join(bin, 'php'), `${record}for code in "$@"; do :; done
 case "$code" in
-*PHP_MINOR_VERSION*) printf '%s' '${php.minor}' ;;
+*PHP_MINOR_VERSION*) if [ -f '${path.join(tmp, 'minor')}' ]; then cat '${path.join(tmp, 'minor')}'; else printf '%s' '${php.minor}'; fi ;;
 *PHP_ZTS*) printf '%s' '${php.debug === true ? '-debug' : ''}-${php.zts === true ? 'zts' : 'nts'}' ;;
 *extension_loaded*) ${php.loadFails === true ? 'exit 1' : 'case "$3" in extension=/*) test "$(cat "${3#extension=}")" = extension ;; *) exit 1 ;; esac'} ;;
 *) exit 9 ;;
@@ -320,7 +320,7 @@ test('release-php-ext builds, loads and packs the PHP extension under the name b
         const calls = box.calls();
         assert.deepEqual(calls.filter((call) => call[0] === 'cargo' && call[1] !== 'pkgid'), [
           ['cargo', 'build', '--release', '--locked', '-p', 'polyspec-php-serialization-php-ext'],
-          ['cargo', 'CARGO_TARGET_DIR=var/release/target', `PHP=${phpPath}`, `PHP_CONFIG=${phpPath}-config`],
+          ['cargo', `CARGO_TARGET_DIR=var/release/target/php${php.minor}${build}`, `PHP=${phpPath}`, `PHP_CONFIG=${phpPath}-config`],
         ]);
         // The load check runs on the copy that is packed, by its absolute path, without a php.ini; make names it under
         // the real path of its directory.
@@ -331,6 +331,19 @@ test('release-php-ext builds, loads and packs the PHP extension under the name b
       });
     }
   }
+});
+
+test('release-php-ext builds each PHP minor in its own target folder, so that one job packs the extension of 8.4 and 8.5', (t) => {
+  const box = sandbox(t, 'x86_64-unknown-linux-gnu');
+  const php = path.join(box.bin, 'php');
+  const first = make(box, [...GENERATED_PHP, 'release-php-ext', `PHP=${php}`]);
+  assert.equal(first.status, 0, `${first.stdout}${first.stderr}`);
+  // The PHP of the same path now reports the next minor, as the PHP of a runner does after setup-php switches it.
+  writeFileSync(path.join(path.dirname(box.dir), 'minor'), '8.5');
+  const second = make(box, [...GENERATED_PHP, 'release-php-ext', `PHP=${php}`]);
+  assert.equal(second.status, 0, `${second.stdout}${second.stderr}`);
+  assert.equal(entries(path.join(box.dir, 'var/release/assets/php-ext')), 'php_polyspec_php_serialization-v1.2.3_php8.4-x86_64-linux-glibc-nts.zip\nphp_polyspec_php_serialization-v1.2.3_php8.5-x86_64-linux-glibc-nts.zip\n');
+  assert.deepEqual(box.calls().filter((call) => call[0] === 'cargo' && call[1]?.startsWith('CARGO_TARGET_DIR=') === true).map((call) => call[1]), ['CARGO_TARGET_DIR=var/release/target/php8.4-nts', 'CARGO_TARGET_DIR=var/release/target/php8.5-nts']);
 });
 
 test('release-php-ext passes PHP_CONFIG and writes into RELEASE_ASSETS', (t) => {
