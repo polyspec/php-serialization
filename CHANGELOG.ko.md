@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 53362daa038c46317cada07a0539fd9693dfc2210c9f3b78242fd5f11d8c891a -->
+<!-- source-sha256: e7c0f5b91861352f603ce4153fe17ca24f03e9ec96653c325e80cfe91e27be92 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 행 T2.7과 `config/release.json`의 `notReleased`에 있는 바인딩 manifest의 이유는, kit 0.0.112가 플랫폼별 자산을 만들지 않으므로(kit K1221) 이 저장소의 recipe가 바인딩의 플랫폼별 자산을 만들고 release workflow가 각 플랫폼의 runner를 적는다고 적는다. 이전에는 그 자산을 만들던 kit 0.0.111을 행이 기다리는 release로 적었다. `make release-coverage`와 `make docs-check`가 통과한다.
 - `Cargo.lock`은 `polyspec-binding-core`를 CI run의 모든 job이 통과한 binding의 branch `v1/rust-core` commit에 pin한다(T2.10, `cargo update -p polyspec-binding-core --precise`). lock에서 바뀐 것은 그 source 한 줄뿐이고, binding-core의 의존성은 그대로다. 이전에는 lock이 더 오래된 commit을 pin해서 더 새 binding의 `binding check`가 lock에 CK-20을 보고했다. 그 binding으로 `make bindings-check`는 finding을 보고하지 않고 scaffold 차이(CK-19)도 없으며, `make bindings`는 다섯 target을 모두 생성한다. 이전에는 binding이 case `an_integer_below_64_bits_is_refused`의 정수 때문에 go를 거부해서 `make bindings-go`가 실패했다. 생성된 파일은 여전히 추적하지 않는다. 생성된 코드가 `clippy.toml`로 clippy와 다섯 target의 시험을 통과하는지는 아직 실행하지 않았다(T2.9). 그래서 `AGENTS.md`와 `Makefile`은 `make test-bindings`가 CI의 target이 아닌 이유를 go의 거부가 아니라 그 run이 없다는 것으로 적는다.
 
 - binding을 내려받는 것은 `make php-serialization-install-rust`뿐입니다(HR-89). 그 target은 `scripts/binding.mts install`을 실행하고, 이 명령은 binding을 `Cargo.lock`의 commit으로 clone하고 그 도구의 패키지를 `var/tools`의 npm으로 설치합니다. 스크립트의 다른 모든 명령은 `cargo metadata --offline`을 실행하고, binding이 설치되지 않았으면 `run make php-serialization-install-rust`로 실패합니다. 이전에는 첫 바인딩 recipe가 binding을 clone하고 기계의 npm으로 `npm ci`를 실행했으며, `cargo metadata`가 내려받을 수 있었습니다. `node-package`의 recipe는 `npm install --offline`을 실행합니다. 이전에는 `npm install`을 실행했습니다. 새 target `make ci-bindings`는 `CI_BINDINGS`(`lint-bindings`, `check-declarations`, `test-python-binding`, `test-node`, `test-wasm`, `test-php`, `test-go`)를 실패가 있어도 끝까지 실행해 CI 보고서에 씁니다. pin된 binding의 생성된 코드가 clippy에 실패하고 binding이 go를 거부하므로, `.github/workflows/ci.yml`의 어떤 job도 아직 그것을 실행하지 않습니다(T2.9). `make binding-features-test`의 새 시험은 설치와 바인딩 recipe의 dry run을 읽습니다. 변경 전의 Makefile에서는 `make php-serialization-install-rust does not install binding`으로 실패했고, 변경 후에는 그 파일이 2 passed, 0 failed입니다.
