@@ -55,7 +55,7 @@ CI_REPORT ?= var/report/ci-targets
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
-	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm release-go-module
+	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm release-go-module release-candidate-assets
 
 # ---- Install ----------------------------------------------------------------------------------------------------------------
 # The npm that devEngines of package.json names installs the lock, @polyspec/kit included, before the tools of the checkout
@@ -473,6 +473,12 @@ release-tools-path: ## Append var/tools/bin and the shims of mise to GITHUB_PATH
 release-assets: ## Build the archive of every package of TAG into var/release/assets; ONLINE
 	@test -n "$$TAG" || { echo "release-assets: TAG is required, for example make release-assets TAG=v0.0.1"; exit 1; }
 	RELEASE_ASSETS=var/release/assets $(ONLINE) $(NODE) $(KIT)/release.mjs assets "$$TAG"
+
+# release-candidate-assets builds the same archives from the committed HEAD at VERSION, without a tag, so that a change of
+# config/release.json is proved before a release.
+release-candidate-assets: ## Build the archive of every package of HEAD at VERSION into RELEASE_ASSETS without a tag; ONLINE
+	@test -n "$$VERSION" || { echo "release-candidate-assets: VERSION is required, for example make release-candidate-assets VERSION=0.0.1"; exit 1; }
+	RELEASE_ASSETS=$(RELEASE_ASSETS) $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets "$$VERSION"
 
 release-publish: ## Create the GitHub Release of TAG as a draft with its notes and the files of release-assets
 	@test -n "$$TAG" || { echo "release-publish: TAG is required, for example make release-publish TAG=v0.0.1"; exit 1; }

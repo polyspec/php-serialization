@@ -5,24 +5,32 @@
   "changelogTranslations": [
     "CHANGELOG.ko.md"
   ],
-  "packages": [],
+  "packages": [
+    {
+      "kind": "composer",
+      "directory": "packages/php-ext",
+      "name": "polyspec/php-serialization",
+      "product": "php-serialization",
+      "runtime": "php-ext"
+    }
+  ],
   "manifests": {
-    "package.json": "version"
+    "package.json": "version",
+    "packages/rust/Cargo.toml": "git-tag",
+    "packages/php-ext/composer.json": "archive",
+    "packages/php-ext/Cargo.toml": "version",
+    "packages/python/Cargo.toml": "version",
+    "packages/python/pyproject.toml": "version",
+    "packages/ts/Cargo.toml": "version",
+    "packages/ts/package.json": "version",
+    "packages/ts/wasm/Cargo.toml": "version",
+    "packages/go/internal/ffi/Cargo.toml": "version"
   },
   "notReleased": {
     "Cargo.toml": "the root Cargo workspace of the core crate and the binding crates (binding design L-2)",
     "legacy/packages/js/package.json": "the legacy language package of the transition, which is no release target until it is removed (docs/spec/php-serialize.md#transition)",
     "legacy/packages/python/pyproject.toml": "the legacy language package of the transition, which is no release target until it is removed (docs/spec/php-serialize.md#transition)",
-    "packages/go/go.mod": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/go/internal/ffi/Cargo.toml": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/php-ext/Cargo.toml": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/php-ext/composer.json": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/python/Cargo.toml": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/python/pyproject.toml": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/rust/Cargo.toml": "the core crate polyspec-php-serialization, publish = false: the bindings that packages/rust/interface.json generates build it from the source of the checkout (RQ-011), and no runtime installs it alone",
-    "packages/ts/Cargo.toml": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/ts/package.json": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z",
-    "packages/ts/wasm/Cargo.toml": "a binding package of binding (row T2.7): it enters the release once the generated bindings pass the contract, the package tests and the fuzz (RQ-011, V-6 (2)), the recipes of this repository build its platform assets (kit 0.0.112 builds none, K1221), and the Go module has its tag form, the release commit with packages/go/vX.Y.Z"
+    "packages/go/go.mod": "the Go module of the binding: make release-go-module carries it in a commit and the tag packages/go/vX.Y.Z of its own with the static library of each platform (binding GN-19f), which kit does not make, so goModules names no module and no tag of kit releases it"
   },
   "goModules": {},
   "annotatedTags": true,
