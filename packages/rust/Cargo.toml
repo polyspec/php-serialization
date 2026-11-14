@@ -1,6 +1,6 @@
 [package]
 name = "polyspec-php-serialization"
-version = "0.0.8"
+version = "0.0.9"
 edition = "2021"
 rust-version = "1.99.0"
 description = "The serialize format of PHP: its values, unserialize and serialize, byte for byte as PHP"
