@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: a72774c4673232be37ca6f41ce63ef7c1b7256ea271fa925ede1a543a93b9dfb -->
+<!-- source-sha256: af05afe4aaf88477795dbb26cc0f5b875ea01ecf7b07adee8af82807d215de1f -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- 바인딩의 손으로 쓴 case runner가 바인딩이 정한 것을 기대한다(T2.18). 오류를 내는 case는 binding GN-7a가 그 kind에 주는 class를 기대한다. `packages/rust/interface.json`에서 그 kind의 행이 적는 error unit(category value의 모든 kind는 `FormatError`)이고, 그런 행이 없는 kind는 그 category의 class다. 이전에는 Python, Node, WASM, PHP runner가 category의 class를 정확한 class로 요구했다. `StdClass` 생성자의 case는 속성을 생성자에 넘기고, 생성자가 그것을 판정한다(RQ-012). 이전에는 runner가 빈 객체를 만들고 속성을 채웠는데 그것을 판정하는 검사가 없어서 생성자의 어떤 case도 오류를 내지 않았다. Node와 WASM runner는 JavaScript 안전 정수 밖의 key `{"int": n}`을 그 원문의 텍스트로 읽는다. 이전에는 `array_key_max`의 key를 반올림해서 거부했다. PHP runner는 값에 PHP 형식이 없는 case 넷에서 실패하기 전에 `serialize`의 모든 case를 실행하고 그 넷의 이름을 적는다(RQ-015). 이전에는 첫 case에서 멈췄다. `make test-python-binding`: 이전 실패 69개와 오류 1개, 이후 실패 1개. `make test-node`: 이전 1324개 중 5개 실패, 이후 1개. `make test-wasm`: 이전 1323개 중 5개 실패, 이후 1개. `make test-php`: 이전에는 contract case가 오류를 내는 첫 case에서 실패했고, 이후에는 RQ-015의 넷 밖의 모든 case가 통과한다. Python, Node, WASM에 남은 실패는 자기를 담는 list다. 바인딩은 그 list를 자리마다 새 handle로 설명하므로 core가 순환을 보지 못하고, 값을 `unsupported_value`가 아니라 `depth`로 거부한다(T2.19).
 
 ## 0.0.10
 

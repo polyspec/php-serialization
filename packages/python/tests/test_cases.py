@@ -7,7 +7,9 @@ bytes and texts their hex, a list the map of its items under the keys 0 to n-1, 
 object numbered by their first place, which give their number alone at every later place. A case names a reference or
 an object again by its id alone, and gives n nested lists or objects as one with repeat (binding G-5). A reference and
 an object with an id are made empty at their first place and filled after, so that a later place inside their own
-value names them. A case that arms fault injection
+value names them, and serialize judges what they hold. The cases of the constructor of StdClass pass the properties to
+the constructor, which judges them (RQ-012). A case that raises expects the class that binding GN-7a gives its kind: the error unit that the row
+of the kind in packages/rust/interface.json names, else the class of its category. A case that arms fault injection
 points runs armed: the runner makes the value first, arms the faults for the member with _arm_faults of the native
 module, the entry point of the feature fault-test (binding GN-5, GN-8a), calls the member at once and requires
 _fault_left to be empty after the expected failure.
@@ -18,6 +20,7 @@ import datetime
 import json
 import math
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -26,6 +29,12 @@ import polyspec.php_serialization as lib
 from polyspec.php_serialization import _native
 
 CONTRACTS = Path(os.environ["PHP_SERIALIZATION_CONTRACTS"])
+# The interface contract of the bindings, which names the class of each kind of error.
+INTERFACE = json.loads(
+    (CONTRACTS.parent / "packages" / "rust" / "interface.json").read_text(
+        encoding="utf-8"
+    )
+)
 
 # The cases of deep nest 4096 lists or objects (RQ-006), and the canonical forms recurse once or twice per level.
 sys.setrecursionlimit(20_000)
@@ -34,6 +43,21 @@ sys.setrecursionlimit(20_000)
 def read(name: str) -> dict:
     with (CONTRACTS / name).open(encoding="utf-8") as file:
         return json.load(file)
+
+
+def error_class(kind: str, category: str) -> type:
+    """The class of an error of the kind (binding GN-7a): the error unit that the row of the kind in errors.kinds of
+    packages/rust/interface.json names in class, else the class of its category. The kind of a row is the snake_case
+    of the last segment of its variant (binding CK-22)."""
+    for row in INTERFACE["errors"]["kinds"]:
+        last = row["variant"].rsplit("::", 1)[-1]
+        if re.sub(r"(?<!^)(?=[A-Z])", "_", last).lower() != kind:
+            continue
+        if "class" not in row:
+            break
+        unit = next(u for u in INTERFACE["units"] if u["id"] == row["class"])
+        return getattr(lib, "".join(word.capitalize() for word in unit["name"]))
+    return getattr(lib, INTERFACE["errors"]["classes"][category]["python"])
 
 
 def float_text(value) -> str:
@@ -297,10 +321,7 @@ class ContractCaseTest(unittest.TestCase):
         with self.assertRaises(Exception) as caught:
             call()
         error = caught.exception
-        self.assertIs(
-            type(error),
-            getattr(lib, f"PHPSerialization{raises['category'].capitalize()}Error"),
-        )
+        self.assertIs(type(error), error_class(raises["kind"], raises["category"]))
         self.assertEqual(error.kind, raises["kind"])
         self.assertEqual(error.status, raises["status"])
         if raises["message"] is not None:
@@ -369,12 +390,19 @@ class ContractCaseTest(unittest.TestCase):
         for case in group:
             with self.subTest(case=case["id"]):
                 value = {"kind": "object", "value": case["properties"]}
+
+                def construct(case=case):
+                    return lib.StdClass(
+                        {
+                            key_of(key): from_case(item)
+                            for key, item in case["properties"]
+                        }
+                    )
+
                 if "raises" in case:
-                    self.check_raises(case, lambda value=value: from_case(value))
+                    self.check_raises(case, construct)
                     continue
-                self.assertEqual(
-                    canonical_host(from_case(value)), canonical_case(value)
-                )
+                self.assertEqual(canonical_host(construct()), canonical_case(value))
 
     def test_reference(self) -> None:
         group = self.host["reference.constructor"] + self.host["reference.value"]

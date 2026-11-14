@@ -9,7 +9,10 @@
 // items under the keys 0 to n-1, and a reference and an object numbered by their first place, which give their number
 // alone at every later place. A case names a reference or an object again by its id alone, and gives n nested lists or
 // objects as one with repeat (binding G-5). A reference and an object with an id are made empty at their first place
-// and filled after, so that a later place inside their own value names them.
+// and filled after, so that a later place inside their own value names them, and
+// serialize judges what they hold, and the cases of the constructor of StdClass pass the properties to the constructor,
+// which judges them (RQ-012). A case that raises expects the class that binding GN-7a gives its kind: the error unit
+// that the row of the kind in packages/rust/interface.json names, else the class of its category.
 // A case that arms fault injection points runs armed: the runner makes the value first, arms the faults for the
 // member with the entry point __armFaults of the feature fault-test (binding GN-5, GN-8a), calls the member at once
 // and requires __faultLeft to be empty after the expected failure.
@@ -19,7 +22,13 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 const contracts = process.env.PHP_SERIALIZATION_CONTRACTS ?? '';
-const read = (name) => JSON.parse(readFileSync(join(contracts, name), 'utf8'));
+// A key {"int": n} whose integer is outside the safe integers of JavaScript keeps the text of its source, which a number
+// would round (array_key_max).
+const read = (name) =>
+  JSON.parse(readFileSync(join(contracts, name), 'utf8'), (field, value, context) =>
+    field === 'int' && typeof value === 'number' && !Number.isSafeInteger(value) ? context.source : value);
+// The interface contract of the bindings, which names the class of each kind of error.
+const iface = JSON.parse(readFileSync(join(contracts, '..', 'packages', 'rust', 'interface.json'), 'utf8'));
 
 const hex = (bytes) => Buffer.from(bytes).toString('hex');
 const fromHex = (text) => new Uint8Array(Buffer.from(text, 'hex'));
@@ -249,18 +258,33 @@ function fromCase(lib, value, references = new Map(), objects = new Map()) {
   }
 }
 
-function raises(lib, kase, call) {
-  const category = kase.raises.category[0].toUpperCase() + kase.raises.category.slice(1);
+// The class of an error of the kind (binding GN-7a): the error unit that the row of the kind in errors.kinds of
+// packages/rust/interface.json names in class, else the class of its category. The kind of a row is the snake_case of
+// the last segment of its variant (binding CK-22).
+function errorClass(lib, kind, category, target) {
+  for (const row of iface.errors.kinds) {
+    const last = row.variant.split('::').at(-1);
+    if (last.replace(/(?<!^)(?=[A-Z])/g, '_').toLowerCase() !== kind) continue;
+    if (row.class === undefined) break;
+    const unit = iface.units.find((candidate) => candidate.id === row.class);
+    return lib[unit.name.map((word) => word[0].toUpperCase() + word.slice(1)).join('')];
+  }
+  return lib[iface.errors.classes[category][target]];
+}
+
+function raises(lib, kase, call, target) {
+  const expected = errorClass(lib, kase.raises.kind, kase.raises.category, target);
+  assert.ok(expected !== undefined, `${kase.id}: the binding has the class of ${kase.raises.kind}`);
   assert.throws(call, (error) =>
-    error.constructor === lib[`PhpSerialization${category}Error`] &&
+    error.constructor === expected &&
     error.kind === kase.raises.kind &&
     error.status === kase.raises.status &&
     (kase.raises.message === null || error.message === kase.raises.message), kase.id);
 }
 
-// Runs every group of the cases that packages/rust/interface.json links, against the binding lib; faults gives the
-// object that holds __armFaults and __faultLeft of the binding (binding GN-5).
-export function run(lib, faults) {
+// Runs every group of the cases that packages/rust/interface.json links, against the binding lib of the target (node or
+// wasm); faults gives the object that holds __armFaults and __faultLeft of the binding (binding GN-5).
+export function run(lib, faults, target) {
   const php = read('php-serialize.json');
   const host = read('host-values.json');
 
@@ -272,7 +296,7 @@ export function run(lib, faults) {
         const call = () => lib.unserialize(fromHex(kase.data.hex));
         count += 1;
         if (kase.raises !== undefined) {
-          raises(lib, kase, call);
+          raises(lib, kase, call, target);
           continue;
         }
         const result = call();
@@ -292,13 +316,13 @@ export function run(lib, faults) {
         const entries = await faults();
         const value = fromCase(lib, kase.value);
         const armed = entries.__armFaults('serialize', JSON.stringify(kase.faults));
-        raises(lib, kase, () => lib.serialize(value));
+        raises(lib, kase, () => lib.serialize(value), target);
         assert.deepEqual(entries.__faultLeft(armed), [], kase.id);
         continue;
       }
       const call = () => lib.serialize(fromCase(lib, kase.value));
       if (kase.raises !== undefined) {
-        raises(lib, kase, call);
+        raises(lib, kase, call, target);
         continue;
       }
       const written = call();
@@ -319,9 +343,9 @@ export function run(lib, faults) {
 
   test('StdClass', () => {
     for (const kase of [...host['std_class.constructor'], ...host['std_class.properties']]) {
-      const call = () => fromCase(lib, { kind: 'object', value: kase.properties });
+      const call = () => new lib.StdClass(new Map(kase.properties.map(([key, item]) => [hostKey(key), fromCase(lib, item)])));
       if (kase.raises !== undefined) {
-        raises(lib, kase, call);
+        raises(lib, kase, call, target);
         continue;
       }
       assert.deepEqual(canonicalHost(lib, call()), canonicalCase({ kind: 'object', value: kase.properties }), kase.id);
@@ -332,7 +356,7 @@ export function run(lib, faults) {
     for (const kase of [...host['reference.constructor'], ...host['reference.value']]) {
       const call = () => new lib.Reference(fromCase(lib, kase.value));
       if (kase.raises !== undefined) {
-        raises(lib, kase, call);
+        raises(lib, kase, call, target);
         continue;
       }
       assert.deepEqual(canonicalHost(lib, call().value), canonicalCase(kase.value), kase.id);

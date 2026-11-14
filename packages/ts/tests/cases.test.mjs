@@ -8,4 +8,4 @@ import { run } from './cases.mjs';
 const require = createRequire(import.meta.url);
 const platform = `${process.platform}-${process.arch}${process.platform === 'linux' ? '-gnu' : ''}`;
 
-run(lib, () => Promise.resolve(require(`@polyspec/php-serialization-${platform}`)));
+run(lib, () => Promise.resolve(require(`@polyspec/php-serialization-${platform}`)), 'node');

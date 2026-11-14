@@ -4,4 +4,4 @@
 import * as lib from '@polyspec/php-serialization/wasm';
 import { run } from './cases.mjs';
 
-run(lib, () => import(new URL('./php_serialization_wasm.js', import.meta.resolve('@polyspec/php-serialization/wasm')).href));
+run(lib, () => import(new URL('./php_serialization_wasm.js', import.meta.resolve('@polyspec/php-serialization/wasm')).href), 'wasm');
