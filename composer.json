@@ -1,0 +1,15 @@
+{
+    "name": "polyspec/php-serialization-development",
+    "description": "The development tools of the repository: PHPUnit, which runs the generated tests and the contract cases of the PHP extension",
+    "type": "project",
+    "license": "BSD-3-Clause",
+    "require-dev": {
+        "phpunit/phpunit": "^13"
+    },
+    "config": {
+        "allow-plugins": false,
+        "platform": {
+            "php": "8.4.1"
+        }
+    }
+}

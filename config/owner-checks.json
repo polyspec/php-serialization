@@ -214,6 +214,15 @@
     },
     {
       "paths": [
+        "composer.json",
+        "composer.lock"
+      ],
+      "targets": [
+        "test-php"
+      ]
+    },
+    {
+      "paths": [
         "scripts/binding-features.test.mts",
         "Makefile",
         "packages/python/Cargo.toml",

@@ -233,6 +233,27 @@ function phpMinorFindings(file: string, text: string, minors: string[]): string[
   return found;
 }
 
+// The targets of the binding tests that the job bindings of the workflow ci runs through make ci-bindings: the lint and the
+// declarations of the bindings, and the tests of each of the five targets of the contract (binding BD-27).
+const BINDING_TESTS = ['lint-bindings', 'check-declarations', 'test-python-binding', 'test-node', 'test-wasm', 'test-php', 'test-go'];
+
+/**
+ * The findings of the binding tests of the workflow ci: a job bindings runs `make ci-bindings`, ci-passed needs it, and
+ * CI_BINDINGS of the Makefile names the targets of BINDING_TESTS, so that no binding goes out as an asset untested.
+ */
+function bindingJobFindings(file: string, text: string, makefile: string): string[] {
+  const jobs = jobsOf(text);
+  const found: string[] = [];
+  const job = jobs.get('bindings');
+  if (job === undefined) found.push(`${file}: has no job bindings`);
+  else if (!job.some((line) => valueOf(line, 'run') === 'make ci-bindings')) found.push(`${file}: the job bindings does not run make ci-bindings`);
+  const needs = (jobs.get(LAST) ?? []).map((line) => valueOf(line, 'needs')).find((value) => value !== undefined) ?? '';
+  if (!/^\[(.*)\]$/.exec(needs)?.[1]?.split(',').map((name) => name.trim()).includes('bindings')) found.push(`${file}: the job ${LAST} does not need the job bindings`);
+  const listed = /^CI_BINDINGS := (.*)$/m.exec(makefile)?.[1]?.split(/ +/) ?? [];
+  if ([...listed].sort().join(' ') !== [...BINDING_TESTS].sort().join(' ')) found.push(`Makefile: CI_BINDINGS is ${listed.join(' ') || 'empty'}, not ${BINDING_TESTS.join(' ')}`);
+  return found;
+}
+
 /** The findings of a workflow that must call assets.yml: one of its jobs uses it (binding GN-19i). */
 function callFindings(file: string, text: string): string[] {
   const calls = [...jobsOf(text).values()].some((lines) => lines.some((line) => /^ {4}uses: \.\/\.github\/workflows\/assets\.yml$/.test(line)));
@@ -409,6 +430,15 @@ test('the job platform builds the extension for each PHP minor of config/toolcha
   assert.deepEqual(phpMinorFindings(ASSETS, sample.replace(/ {6}- run: make release-php-ext PHP=php\n$/, ''), ['8.4', '8.5']), [`${ASSETS}: the job platform builds the extension for PHP 8.4, not for the minors 8.4, 8.5 of config/toolchain.json`]);
 });
 
+test('the workflow ci runs the binding tests of the five targets in a job that ci-passed needs', () => {
+  const makefile = `CI_BINDINGS := ${BINDING_TESTS.join(' ')}\n`;
+  const good = `${GOOD}  bindings:\n    runs-on: ubuntu-26.04-arm\n    steps:\n      - run: make ci-bindings\n${LAST_JOB.replace('needs: [shared, rust]', 'needs: [shared, rust, bindings]')}`;
+  assert.deepEqual(bindingJobFindings(CI, good, makefile), []);
+  assert.deepEqual(bindingJobFindings(CI, GOOD + LAST_JOB, makefile), [`${CI}: has no job bindings`, `${CI}: the job ${LAST} does not need the job bindings`]);
+  assert.deepEqual(bindingJobFindings(CI, good.replace('run: make ci-bindings', 'run: make docs-check'), makefile), [`${CI}: the job bindings does not run make ci-bindings`]);
+  assert.deepEqual(bindingJobFindings(CI, good, makefile.replace(' test-go', '')), [`Makefile: CI_BINDINGS is ${BINDING_TESTS.filter((name) => name !== 'test-go').join(' ')}, not ${BINDING_TESTS.join(' ')}`]);
+});
+
 /** The PHP minors of the extension that config/toolchain.json names (phpExtension.minors). */
 function phpMinors(): string[] {
   const toolchain: unknown = JSON.parse(readFileSync(join(root, 'config/toolchain.json'), 'utf8'));
@@ -449,5 +479,6 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   found.push(...platformFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8')));
   found.push(...phpMinorFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), phpMinors()));
   for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
+  found.push(...bindingJobFindings(CI, readFileSync(join(root, CI), 'utf8'), readFileSync(join(root, 'Makefile'), 'utf8')));
   assert.deepEqual(found, []);
 });

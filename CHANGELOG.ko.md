@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: ba2b8b2fe94d8818f2f7a2a7145cedb98ebe420db323e9910d8c50b00a720872 -->
+<!-- source-sha256: 6f1beebfb27f945802f1ca0b5496aae1d71fe11dfd7dbb9ae672cd6a67d64b72 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- workflow `ci`가 새 job `bindings`에서 다섯 target의 바인딩 시험을 실행하고(`make ci-bindings`: `lint-bindings`, `check-declarations`, `test-python-binding`, `test-node`, `test-wasm`, `test-php`, `test-go`), `ci-passed`가 그것을 needs에 둔다(T2.9). 이전에는 어떤 job도 그것을 실행하지 않아서, 릴리스는 어떤 run도 시험하지 않은 바인딩을 asset으로 내보낼 수 있었다. `make workflows-test`는 그 job과 needs, 목록 `CI_BINDINGS`를 요구한다. job이 없을 때 실패했고(10 passed, 1 failed: job `bindings`가 없고 `ci-passed`가 그것을 needs에 두지 않음), 있을 때 11 passed다.
+- `make check-declarations`가 생성된 각 선언 파일을 `tsc --ignoreConfig`로 검사한다(T2.9). 이전에는 TypeScript 7이 루트의 `tsconfig.json` 옆에서 명령줄의 파일을 거부했으므로(TS5112) target이 선언을 검사하기 전에 실패했다.
+- 저장소의 개발 project인 루트 `composer.json`이 PHPUnit을 요구하고(`^13`, `composer.lock`에서 13.4.7, platform PHP 8.4.1), `make install-php-tools`가 그것을 `vendor`에 설치한다. `make install`과 job `bindings`가 그것을 실행하고, `PHPUNIT`는 `vendor/bin/phpunit`이다(T2.9). 이전에는 `make test-php`가 실행하는 PHPUnit을 설치하는 target이 없었다. `make php-tools-lock`이 lock을 다시 쓴다. `config/release.json`은 `composer.json`을 `notReleased`에 적는다.
 
 ## 0.0.10
 

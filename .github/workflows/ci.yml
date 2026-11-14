@@ -132,6 +132,37 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
+  # The bindings of the five targets of the contract (binding BD-27): the lint of the binding crates, the declarations of the
+  # Node and WASM bindings, and the tests that binding generates and the contract cases of Python, Node, WASM, PHP and Go on
+  # the standard runner of each language, so that no binding goes out as an asset untested. The job installs every tool of
+  # mise.toml, the PHP of .php-version that the extension is built against, the crates of Cargo.lock and the PHPUnit of
+  # composer.lock.
+  bindings:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version-file: .php-version
+          tools: none
+          coverage: none
+      - uses: ./.github/actions/bootstrap
+      - name: install the tools of mise.toml and the PHP of .php-version
+        run: make install-tools
+      - name: install the Rust toolchain and the locked crates
+        run: make php-serialization-install-rust
+      - name: install PHPUnit
+        run: make install-php-tools
+      - name: the binding tests of the five targets
+        run: make ci-bindings
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: report-bindings
+          path: var/report/ci-targets/
+          if-no-files-found: ignore
+
   # The assets of each platform of the bindings, built from the commit of the run with the matrix of the release (binding
   # GN-19a, GN-19i), so that an asset that does not build stops the release before a tag exists.
   assets:
@@ -142,7 +173,7 @@ jobs:
   # workflows-test fails this workflow when ci-passed is not its last job or when needs leaves a job out.
   ci-passed:
     if: ${{ always() }}
-    needs: [shared, fuzz, ts, python, rust, assets]
+    needs: [shared, fuzz, ts, python, rust, bindings, assets]
     runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

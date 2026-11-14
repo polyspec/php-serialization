@@ -39,14 +39,14 @@ CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
 CI_RUST := lint-rust test-rust bindings-check
-# The targets of the binding tests, which no job of ci.yml runs yet (row T2.9): no run has shown that the generated code
-# of the pinned binding passes clippy with clippy.toml and the tests of the five targets, so a job of them could fail ci-passed
-# for a defect of binding. Their job installs every tool of mise.toml (make install-tools), PHPUnit and the crates and
-# binding of make php-serialization-install-rust, and runs make ci-bindings.
+# The targets of the binding tests, which the job bindings of ci.yml runs with make ci-bindings (row T2.9): the release
+# ships the bindings of the five targets as assets, so ci-passed requires their lint and their tests. The job installs every
+# tool of mise.toml (make install-tools), the crates of make php-serialization-install-rust and the PHPUnit of
+# make install-php-tools.
 CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
 CI_REPORT ?= var/report/ci-targets
 
-.PHONY: bootstrap install install-tools install-packages toolchain-lock php-serialization-install-python link unlink link-check \
+.PHONY: bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
@@ -75,6 +75,7 @@ install: ## Install the tools, the packages, the Python package and the links of
 	$(MAKE) --no-print-directory install-tools
 	$(MAKE) --no-print-directory php-serialization-install-python
 	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory install-php-tools
 
 # The home and the cache of the Composer that install-tools and install-symbols run, the folders of var/tools that kit 0.0.98
 # set (kit K1095).
@@ -88,6 +89,16 @@ endif
 
 install-packages: ## Install the packages of package-lock.json with the npm of var/tools, which reads .npmrc; ONLINE
 	$(ONLINE) $(NPM) ci
+
+# The PHPUnit of composer.lock, which make test-php runs (PHPUNIT): the root composer.json is the development project of the
+# repository and declares nothing else, and its platform is the lowest PHP minor of the extension, so that the lock installs
+# on every PHP that the extension supports. install-php-tools installs it into vendor; php-tools-lock writes the lock again.
+COMPOSER := $(VAR_TOOLS)/mise/shims/composer
+install-php-tools: ## Install the PHPUnit of composer.lock into vendor; ONLINE
+	$(COMPOSER_TOOL_ENV) $(ONLINE) $(COMPOSER) install --no-interaction --no-progress
+
+php-tools-lock: ## Write composer.lock for the require-dev of composer.json without installing; ONLINE
+	$(COMPOSER_TOOL_ENV) $(ONLINE) $(COMPOSER) update --no-interaction --no-progress --no-install
 
 # mise locks a pypi: tool with uv and the Python of PATH, so it first locks and installs uv and python, then locks every tool
 # with that Python as UV_PYTHON, for each platform that has their archive.
@@ -187,7 +198,7 @@ WASM_BINDGEN ?= $(VAR_TOOLS)/mise/shims/wasm-bindgen
 MATURIN ?= $(VAR_TOOLS)/mise/shims/maturin
 PHP ?= $(VAR_TOOLS)/bin/php
 PHP_CONFIG ?= $(VAR_TOOLS)/bin/php-config
-PHPUNIT ?= $(VAR_TOOLS)/bin/phpunit
+PHPUNIT ?= $(CURDIR)/vendor/bin/phpunit
 # The file name extension of a library that Cargo builds as a cdylib: dylib on macOS, so on Linux.
 CDYLIB := $(if $(filter Darwin,$(shell uname -s)),dylib,so)
 # The folder that cargo builds into: the CARGO_TARGET_DIR of the environment when it names one, so that a run can build on
@@ -225,9 +236,11 @@ binding-features-test: ## Run the test of the features of the binding recipes; o
 lint-bindings: bindings ## Run clippy on the binding crates with every warning an error, after make bindings; offline
 	cargo clippy --workspace --locked --offline --all-targets --features $(TEST_FEATURES) -- -D warnings
 
+# check-declarations checks each generated declaration file alone with --ignoreConfig: TypeScript 7 refuses files on the
+# command line beside the tsconfig.json of the root (TS5112), and the declarations are checked without its settings.
 check-declarations: bindings-node bindings-wasm ## Check the generated declarations of the Node and WASM bindings with tsc; offline
-	$(NODE) node_modules/typescript/bin/tsc --noEmit --strict packages/ts/generated/index.d.ts
-	$(NODE) node_modules/typescript/bin/tsc --noEmit --strict packages/ts/wasm/generated/index.d.ts
+	$(NODE) node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict packages/ts/generated/index.d.ts
+	$(NODE) node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict packages/ts/wasm/generated/index.d.ts
 
 # The wheel, installed into a virtual environment of the Python of mise.toml; the generated tests (binding G-5) and the
 # contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
@@ -382,7 +395,7 @@ ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
 ci-rust: ## Run the targets of the Rust CI job past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_RUST)
 
-ci-bindings: ## Run the targets of the binding tests past failures into CI_REPORT, the job that waits for row T2.9
+ci-bindings: ## Run the targets of the binding tests past failures into CI_REPORT, the job bindings of ci.yml
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_BINDINGS)
 
 check: ## Run the targets of every CI job once into var/report/full-run
