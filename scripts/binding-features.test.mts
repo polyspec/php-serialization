@@ -49,3 +49,20 @@ test('each binding crate is built, and the workspace linted, with every feature 
   assert.equal(lint.length, 1, `make lint-bindings runs clippy once:\n${lines.join('\n')}`);
   assert.deepEqual(lint[0]?.split(',').sort(), [...union].sort(), `make lint-bindings lints with ${lint[0] ?? ''}, the manifests declare ${[...union].sort().join(',')}`);
 });
+
+test('only php-serialization-install-rust installs binding, and the binding recipes install packages offline (HR-89)', (t) => {
+  const copy = mkdtempSync(join(tmpdir(), 'php-serialization-offline-'));
+  t.after(() => { rmSync(copy, { recursive: true, force: true }); });
+  for (const path of ['Makefile', 'packages/ts/package.json', 'packages/go/go.mod', ...CRATES.map((c) => c.manifest)]) {
+    mkdirSync(join(copy, dirname(path)), { recursive: true });
+    cpSync(join(root, path), join(copy, path));
+  }
+  const dryRun = (...targets: string[]): string[] => execFileSync('make', ['--dry-run', '--no-print-directory', ...targets], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+  const install = dryRun('php-serialization-install-rust');
+  assert.ok(install.some((line) => /scripts\/binding\.mts install$/.test(line)), `make php-serialization-install-rust does not install binding:\n${install.join('\n')}`);
+  const recipes = dryRun('test-python-binding', 'node-package', 'test-php', 'test-go', 'lint-bindings', 'check-declarations');
+  const online = recipes.filter((line) => /\bnpm (?:install|ci)\b/.test(line) && !line.includes('--offline'));
+  assert.deepEqual(online, [], 'a binding recipe installs npm packages without --offline');
+  const index = recipes.filter((line) => /\bpip install\b/.test(line) && !line.includes('--no-index') && !line.includes('--offline'));
+  assert.deepEqual(index, [], 'a binding recipe installs Python packages from an index');
+});
