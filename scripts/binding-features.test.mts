@@ -58,8 +58,8 @@ test('each binding crate is built, and the workspace linted, with every feature 
 
 // The release of binding that the repository uses: its tag, and the asset of its GitHub Release that holds the npm
 // package of the tool (binding CK-70, CK-20).
-const BINDING_TAG = 'v0.0.1';
-const BINDING_ASSET = `https://github.com/polyspec/binding/releases/download/${BINDING_TAG}/polyspec-binding-0.0.1.tgz`;
+const BINDING_TAG = 'v0.0.2';
+const BINDING_ASSET = `https://github.com/polyspec/binding/releases/download/${BINDING_TAG}/polyspec-binding-0.0.2.tgz`;
 
 test('every dependency line on polyspec-binding-core names the tag of the release of binding, which Cargo.lock pins (binding CK-70)', () => {
   for (const manifest of ['packages/rust/Cargo.toml', ...CRATES.map((crate) => crate.manifest)]) {
@@ -80,6 +80,8 @@ test('the binding recipes run the tool of the npm package that package.json name
   assert.ok(check.some((line) => line.startsWith('/') && line.endsWith('/node_modules/.bin/binding check packages/rust/interface.json')), `make bindings-check does not run the binding of node_modules by its absolute path:\n${check.join('\n')}`);
   const install = dryRunOfCopy(t, 'php-serialization-install-')('php-serialization-install-rust');
   assert.ok(!install.some((line) => line.includes('scripts/binding.mts')), `make php-serialization-install-rust still installs binding from a checkout:\n${install.join('\n')}`);
+  // binding reads the crates with cargo metadata --locked --offline, so the install fetches the crates of Cargo.lock.
+  assert.ok(install.some((line) => line.endsWith('cargo fetch --locked')), `make php-serialization-install-rust does not fetch the crates of Cargo.lock:\n${install.join('\n')}`);
 });
 
 test('the binding recipes install packages offline (HR-89)', (t) => {
