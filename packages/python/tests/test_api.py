@@ -3,7 +3,9 @@ run against the installed Python package.
 
 The groups forms, deep, rejected and stricter of the legacy tests are the groups of contracts/php-serialize.json, which
 test_cases.py runs; this module holds the values that a Python program builds (RQ-004, RQ-009, RQ-012), the values that
-the format refuses (RQ-003, RQ-006, RQ-009, RQ-012) and a large record, with the bytes of the legacy tests. A refusal
+the format refuses (RQ-003, RQ-006, RQ-009, RQ-012) and a large record, with the bytes of the legacy tests. The legacy
+package wrote an instance of a subclass of float as its float; the binding refuses it with unsupported_value, as
+RQ-012 states after binding GN-6e. A refusal
 is the class of its category and its kind (RQ-010): every kind of php-serialization is of the category value, so its
 class is PHPSerializationValueError, a ValueError (binding E-2).
 """
@@ -32,10 +34,6 @@ class ApiTest(unittest.TestCase):
         )
 
     def test_built_values(self) -> None:
-        class Shown(float):
-            def __repr__(self) -> str:
-                return "shown"
-
         built = (
             (1, b"i:1;"),
             (1.0, b"d:1;"),
@@ -49,7 +47,6 @@ class ApiTest(unittest.TestCase):
             (lib.StdClass({5: "a", "5": "b"}), b'O:8:"stdClass":1:{s:1:"5";s:1:"b";}'),
             (lib.StdClass({b"a": 1, "a": 2}), b'O:8:"stdClass":1:{s:1:"a";i:2;}'),
             ({"1" * 5000: 1}, b'a:1:{s:5000:"' + b"1" * 5000 + b'";i:1;}'),
-            (Shown(1.5), b"d:1.5;"),
         )
         for value, written in built:
             with self.subTest(written=written[:40]):
@@ -58,12 +55,19 @@ class ApiTest(unittest.TestCase):
     def test_unrepresentable(self) -> None:
         cycle: list = []
         cycle.append(cycle)
+
+        class Shown(float):
+            def __repr__(self) -> str:
+                return "shown"
+
         deepest: object = lib.StdClass({})
         for _ in range(4096):
             deepest = [deepest]
         refused = (
             ("\ud800", "invalid_text"),
             (object(), "unsupported_value"),
+            # RQ-012: a subclass of float is no value of PHP (binding GN-6e).
+            (Shown(1.5), "unsupported_value"),
             (2**63, "int_range"),
             (cycle, "unsupported_value"),
             (deepest, "depth"),
