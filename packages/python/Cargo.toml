@@ -21,7 +21,7 @@ thrown-count-test = []
 
 [dependencies]
 polyspec-php-serialization = { path = "../rust" }
-polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", tag = "v0.0.3", features = ["construct", "lock"] }
+polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", tag = "v0.0.4", features = ["construct", "lock"] }
 pyo3 = { version = "=0.30.1", features = ["abi3-py314", "extension-module"] }
 
 [lints]

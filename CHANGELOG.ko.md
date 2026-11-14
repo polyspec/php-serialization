@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: d7d148441379a183bc78ed912333a5b4e1c942853c9984776de1ef2ad83b5b32 -->
+<!-- source-sha256: 1438ca8dbc746e64b4fa0c34b9d72805ef0eac95e3ddae7efca45ca2bf47d601 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -9,6 +9,7 @@
 
 ## 0.0.9
 
+- binding 0.0.4가 0.0.3을 대신한다(T2.15). devDependency `@polyspec/binding`은 GitHub Release `v0.0.4`의 asset `polyspec-binding-0.0.4.tgz`를 `package-lock.json`의 integrity와 함께 가리키고, `polyspec-binding-core`에 대한 모든 의존 줄은 `Cargo.lock`이 pin하는 tag `v0.0.4`를 가리킨다. binding 0.0.4는 생성된 Go 바인딩의 helper, Python 바인딩의 out 인자 변환, npm 12의 출력을 읽는 release recipe `release-npm`을 고친다. `binding scaffold`는 추적 파일을 바꾸지 않고, `binding check packages/rust/interface.json --release`와 `make bindings-check`는 finding을 보고하지 않는다. `make binding-features-test`: v0.0.4를 가리키는 시험은 v0.0.3의 pin에서 실패했고(3 passed, 2 failed) v0.0.4의 pin에서 통과한다.
 - 각 플랫폼의 자산을 만드는 release recipe를 binding이 생성한다(T2.15; binding GN-19h, CK-94). devDependency `@polyspec/binding`은 GitHub Release `v0.0.3`의 asset `polyspec-binding-0.0.3.tgz`를 가리키고, `polyspec-binding-core`에 대한 모든 의존 줄은 `Cargo.lock`이 pin하는 tag `v0.0.3`을 가리키며, `make release-recipes`는 `binding release-recipes`로 `packages/release.mk`를 쓴다. `Makefile`은 `BINDING_RUN`과 `BINDING_DEP`를 정의한 뒤 그 파일을 include한다. 그 파일과 npm 플랫폼 패키지의 폴더 `packages/ts/npm/`은 ignore된다. 이 저장소가 손으로 옮긴 recipe(`release-go-static`, `release-wheel`, `release-php-ext`, `release-npm-platform`, `release-npm`, `release-go-module`, `release-binding-check`, `release-platform-assets`, `install-wasm-bindgen`)와 그 시험 `scripts/release.test.mts`, `make release-test`는 삭제했다. 생성된 recipe는 빌드 전에 binding을 생성하고, PHP 빌드에 `config/toolchain.json`이 이제 고정하는 LLVM 21의 libclang과 clang을 주며(`make install-llvm`), napi 폴더를 npm 패키지 안에 둔다. `binding check packages/rust/interface.json --release`: 손으로 옮긴 recipe가 있을 때 CK-94의 finding 10개를 보고했고, 없을 때 하나도 보고하지 않는다.
 - 릴리스가 각 플랫폼의 자산을 빌드하고 올린다(T2.7-7; binding GN-19a, GN-19i). 새 workflow `assets.yml`은 job `platform`에서 `ubuntu-26.04`, `ubuntu-26.04-arm`, `macos-15`마다 Go module의 정적 라이브러리, wheel, PHP 8.4와 8.5의 PHP 확장, npm 플랫폼 패키지를 빌드하고, job `npm`에서 npm 패키지를 빌드한다. `ci.yml`은 그것을 호출하고 `ci-passed`는 그것을 needs에 둔다. `release.yml`은 job `tag`, `assets`(tag에 대해, `make release-binding-check` 뒤), `release`를 갖는다. `release`는 자산을 내려받고, `make release-go-module`로 Go module을 옮기고, 릴리스를 공개하기 전에 `make release-platform-assets`로 자산을 올린다. job `platform`은 모든 job이 `ubuntu-26.04-arm`에서 실행한다는 규칙의 유일한 예외다. 플랫폼의 자산은 그 플랫폼에서만 link되고 load되기 때문이다. `make workflows-test`는 matrix의 runner, `assets.yml`의 호출, 생성된 recipe의 target을 검사한다. `assets.yml`이 없을 때 7 passed, 1 failed였고, 있을 때 8 passed다.
 

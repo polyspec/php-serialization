@@ -58,8 +58,8 @@ test('each binding crate is built, and the workspace linted, with every feature 
 
 // The release of binding that the repository uses: its tag, and the asset of its GitHub Release that holds the npm
 // package of the tool (binding CK-70, CK-20).
-const BINDING_TAG = 'v0.0.3';
-const BINDING_ASSET = `https://github.com/polyspec/binding/releases/download/${BINDING_TAG}/polyspec-binding-0.0.3.tgz`;
+const BINDING_TAG = 'v0.0.4';
+const BINDING_ASSET = `https://github.com/polyspec/binding/releases/download/${BINDING_TAG}/polyspec-binding-0.0.4.tgz`;
 
 test('every dependency line on polyspec-binding-core names the tag of the release of binding, which Cargo.lock pins (binding CK-70)', () => {
   for (const manifest of ['packages/rust/Cargo.toml', ...CRATES.map((crate) => crate.manifest)]) {
