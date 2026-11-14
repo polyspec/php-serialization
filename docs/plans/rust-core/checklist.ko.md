@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 1937761c1b5b3a7353b960e8630c630642296f548603a8775d1615db2d94ef84 -->
+<!-- source-sha256: f1981a8e7610e94e7dcc68fade5ddbb87ab4ee7346a068b5e7fd6259572bf7a5 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -34,3 +34,4 @@
 | T2.18 | 바인딩의 손으로 쓴 case runner와 API 시험이 명세와 binding이 정한 것을 기대해서, job `bindings`가 runner가 아니라 바인딩의 결함을 보고한다. 오류를 내는 case는 binding GN-7a의 class(그 kind의 행이 적는 error unit, 없으면 그 category의 class)를 기대한다. `StdClass` 생성자의 case는 속성을 생성자에 넘긴다(RQ-012). Node와 WASM runner는 JavaScript 안전 정수 밖의 key `{"int": n}`을 그 텍스트로 읽는다. PHP runner는 RQ-015의 case 넷에서 실패하기 전에 모든 case를 실행한다. 내장 타입의 Python subclass는 `unsupported_value`로 거부한다(RQ-012, binding GN-6e). Red: 0.0.10 버전 커밋에서 job `bindings`의 실행(Python 실패 69개와 오류 1개, Node 5개와 WASM 5개 시험 실패, PHP 실패 2개). 검증 명령은 자기를 담는 list(T2.19)와 RQ-015의 case 넷에서 아직 실패한다 | `packages/python/tests`, `packages/ts/tests`, `packages/php-ext/tests`, `docs/spec/php-serialize.md` | `make test-python-binding`, `make test-node`, `make test-wasm`, `make test-php` | [v] |
 | T2.19 | 자기를 담는 언어의 list나 map은 모든 바인딩에서 `unsupported_value`로 거부한다(RQ-012). core는 handle이 이미 열린 배열을 거부하지만, pin한 binding 0.0.5의 바인딩은 Python `list`나 `dict`와 JavaScript `Array`나 `Map`을 자리마다 새 handle로 설명한다(GN-6af는 instance마다 handle 하나를 value class에만 준다). 그래서 core가 순환을 보지 못하고 순회가 깊이 제한에서 `depth`로 끝난다. 순회가 container를 가진 동안 그것에 handle 하나를 주는 binding 릴리스를 기다리고, 그 뒤 그것을 pin한다. Red: `test_api.py`의 `test_unrepresentable`과 `api.mjs`의 `unrepresentable`(Node와 WASM)이 `depth`로 실패한다 | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml` | `make test-python-binding`, `make test-node`, `make test-wasm` | [ ] |
 | T2.20 | PHP 계약 runner는 PHP로 표현할 수 있는 모든 host 값을 실행하고 PHP 형식이 없는 값이 정확히 네 개인지 확인한다. 생성된 PHP case-test 시험은 그 넷을 실행하여 오류 class와 kind를 확인한다(RQ-015). 표현할 수 없는 case가 빠지거나 바뀌거나 추가되면 허용하지 않는다. 잡힌 panic-test 진단은 PHPUnit 종료 결과로 처리되지 않은 panic과 구분한다 | `packages/php-ext/tests/CasesTest.php`, `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make test-php` | [o] |
+| T2.21 | 명세는 interface가 php_value case group을 alias에 연결하고 생성된 바인딩 시험이 실행한다고 적는다. case 선언이 이미 그 alias와 group을 적고 있기 때문이다 | `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make text-absent FILE=docs/spec/php-serialize.md TEXT='The interface contract does not link this group yet'` | [v] |
