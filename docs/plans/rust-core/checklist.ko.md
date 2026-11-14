@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: d91678c07ecdc17763d4750f94ed6c9bb5b79f16713c78e79487e3b6979c90ed -->
+<!-- source-sha256: 6f75be6a7a21fb30eedb1ae834c2ef9cf29b451d54dcab3f5765b0d525deb514 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -21,4 +21,4 @@
 | T2.8 | GitHub workflow가 polyspec 저장소의 규칙을 지키고, 스크립트 시험이 그것을 검사한다. 모든 job은 `ubuntu-26.04-arm`에서 실행하고, 모든 action은 local action이거나 릴리스를 적은 주석과 함께 전체 commit으로 고정하고, 어떤 job도 `timeout-minutes`를 두지 않고, 모든 `run` step은 `Makefile`이 정의하는 make target 하나이고, workflow `ci`는 `main`의 push와 `workflow_dispatch`에서만 시작하고, 그 마지막 job `ci-passed`는 다른 모든 job을 needs에 두고 각 job이 성공했을 때만 통과한다. 미확인: `ubuntu-26.04-arm`에서 job을 실행한 CI run이 아직 없다 | `scripts/workflows.test.mts`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.github/actions/bootstrap`, `Makefile`, `AGENTS.md` | `make workflows-test` | [o] |
 | T2.9 | binding의 end-to-end 검사가 이 저장소의 다섯 target에서 통과한다. 행 T2.10 이전에 `Cargo.lock`이 pin한 binding에서는 하나도 검증하지 못했다. php, python, node, wasm의 생성된 코드는 `clippy.toml`이 금지하는 `Result::ok`와 `Result::unwrap_or`를 불렀고 PHP crate에는 쓰이지 않는 method가 있어서, 시험이 실행되기 전에 각 바인딩 crate의 clippy가 실패했다. 그리고 binding은 case `an_integer_below_64_bits_is_refused`의 64 bit 아래 정수가 Go의 정수 범위 밖이라서 go를 거부했다. 행 T2.10이 pin하는 binding은 go를 포함한 다섯 target을 생성한다. 검사는 그 binding에서 다시 실행하며, 그 clippy 결과는 아직 알지 못한다. 같은 검사가 `.github/workflows/ci.yml`의 `make ci-bindings` job의 근거이며, 이 행은 target들이 통과하면 그 job을 추가한다 | `var/report/e2e/php-serialization.json` of binding, which is not tracked | `make e2e` of binding | [ ] |
 | T2.10 | `Cargo.lock`이 `polyspec-binding-core`를 CI run의 모든 job이 통과한 binding의 branch `v1/rust-core` commit에 pin하고, `make bindings`가 그것으로 다섯 target을 생성한다. 이전에는 lock이 더 오래된 commit을 pin해서, 더 새 binding의 `binding check`가 lock에 CK-20을 보고했고, binding이 go를 거부해서 `make bindings-go`가 실패했다 | `Cargo.lock` | `make bindings-check`, `make bindings` | [o] |
-| T2.11 | 환경의 `CARGO_TARGET_DIR`이 폴더를 적으면 바인딩 recipe가 cargo가 build한 라이브러리를 그 폴더에서 읽어서, run이 다른 volume에서 build한다. Makefile의 `CARGO_TARGET`은 그 폴더이고, 없으면 workspace의 target 폴더다. Red 먼저 | `Makefile`, `scripts/binding-features.test.mts` | `make binding-features-test` | [~] |
+| T2.11 | 환경의 `CARGO_TARGET_DIR`이 폴더를 적으면 바인딩 recipe가 cargo가 build한 라이브러리를 그 폴더에서 읽어서, run이 다른 volume에서 build한다. Makefile의 `CARGO_TARGET`은 그 폴더이고, 없으면 workspace의 target 폴더다. Red 먼저 | `Makefile`, `scripts/binding-features.test.mts` | `make binding-features-test` | [o] |
