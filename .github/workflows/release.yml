@@ -6,7 +6,39 @@
 # tip of its push; a commit whose top version is tagged elsewhere ends green with nothing to release, and a top version that no
 # run released fails and names its version commit. A concurrency group of the job tag runs one release of the repository at a
 # time. A dispatch of the workflow with the id of a successful CI run releases the commit of that run. The run is the evidence;
-# the release runs no test again. Its jobs:
+# the release runs no test again. The jobs:
+#   tag      release-tag requires a completed successful push or dispatch run RUN of ci.yml on main whose commit is on
+#            origin/main, reads X.Y.Z from the change log of that commit, creates and pushes the annotated tag vX.Y.Z, or passes
+#            for a tag there already, and appends TAG and VERSION to GITHUB_ENV; release-tag-output gives them to the later
+#            jobs. A tag pushed with the token of the run starts no run.
+#   assets   assets.yml builds the assets of each platform from the tree of the tag on the runner of that platform, after the
+#            release check of binding (binding GN-19a, GN-19g, GN-19i).
+#   release  on the tree of the tag: release-tools installs the tools that config/release.json needs, release-tools-path puts
+#            them on the PATH of the later steps, release-assets builds the archive of every package of kit, the artifacts of
+#            the job assets join var/release/assets, release-go-module makes, proves and pushes the commit and the tag
+#            packages/go/vX.Y.Z of the Go module with the libraries of every platform, release-publish creates the GitHub
+#            Release of the tag as a draft with its notes and the archives, release-platform-assets uploads the assets of each
+#            platform under their labels, and release-undraft makes the release public.
+# A failed step leaves the release a draft and fails the run.
+name: release
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run:
+        description: The id of the successful CI run of main whose commit is released
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
   tag:
     # A workflow_run starts the release for a successful push or dispatch run of CI alone. The concurrency group is the job's,
     # so a run whose job is skipped never replaces the pending release of a version commit.

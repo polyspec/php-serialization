@@ -106,6 +106,23 @@ function findings(file: string, text: string, targets: Set<string>, actions: Set
   return found;
 }
 
+/**
+ * The findings of the top-level keys of a workflow: the keys at the start of a line are name, on and jobs, and permissions
+ * when it has them, and nothing else, and no line before jobs: is indented as a job, so that GitHub reads the file as a
+ * workflow. A workflow that GitHub cannot read fails every run of every event without running a job.
+ */
+function topLevelFindings(file: string, text: string): string[] {
+  const lines = text.split('\n');
+  const keys = lines.filter((line) => /^[A-Za-z_-]+:/.test(line)).map((line) => line.replace(/:.*$/, ''));
+  const found: string[] = [];
+  for (const key of ['name', 'on', 'jobs']) if (!keys.includes(key)) found.push(`${file}: has no top-level key ${key}`);
+  for (const key of keys) if (!['name', 'on', 'permissions', 'concurrency', 'env', 'jobs'].includes(key)) found.push(`${file}: has the top-level key ${key}, which a workflow does not take`);
+  const jobs = lines.indexOf('jobs:');
+  const before = (jobs < 0 ? lines : lines.slice(0, jobs)).findIndex((line, index) => /^ {2}[A-Za-z0-9_-]+: *$/.test(line) && !lines.slice(0, index).some((earlier) => /^[A-Za-z_-]+:/.test(earlier)));
+  if (before >= 0) found.push(`${file}:${String(before + 1)}: a job comes before the top-level keys`);
+  return found;
+}
+
 /** The findings of the triggers of the workflow ci: the keys of its block `on:` are push, of main alone, and workflow_dispatch. */
 function triggerFindings(file: string, text: string): string[] {
   const lines = text.split('\n');
@@ -251,6 +268,13 @@ test('each broken rule of a workflow is a finding', () => {
   assert.deepEqual(broken('run: make docs-check', 'run: make docs-check\n          make release-tag'), [`${CI}:16: the run step continues on a later line`]);
 });
 
+test('a workflow without its top-level keys is a finding', () => {
+  assert.deepEqual(topLevelFindings(CI, GOOD), []);
+  const cut = `# The checkout.\n  shared:\n    runs-on: ubuntu-26.04-arm\n`;
+  assert.deepEqual(topLevelFindings(RELEASE, cut), [`${RELEASE}: has no top-level key name`, `${RELEASE}: has no top-level key on`, `${RELEASE}: has no top-level key jobs`, `${RELEASE}:2: a job comes before the top-level keys`]);
+  assert.deepEqual(topLevelFindings(CI, GOOD.replace('jobs:\n', 'job:\n')), [`${CI}: has no top-level key jobs`, `${CI}: has the top-level key job, which a workflow does not take`]);
+});
+
 test('each trigger of the workflow ci other than a push of main and workflow_dispatch is a finding', () => {
   assert.deepEqual(triggerFindings(CI, GOOD.replace('on:\n', 'on:\n  pull_request:\n')), [`${CI}: starts on pull_request, push, workflow_dispatch, not on push and workflow_dispatch alone`]);
   assert.deepEqual(triggerFindings(CI, GOOD.replace('  workflow_dispatch:\n', '')), [`${CI}: starts on push, not on push and workflow_dispatch alone`]);
@@ -367,6 +391,7 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   const targets = new Set([...makeTargets(readFileSync(join(root, 'Makefile'), 'utf8')), ...recipes]);
   const actions = new Set([...actionFiles.map((file) => `./${dirname(file)}`), `./${ASSETS}`]);
   const found = [...workflows, ...actionFiles].flatMap((file) => findings(file, readFileSync(join(root, file), 'utf8'), targets, actions));
+  for (const file of workflows) found.push(...topLevelFindings(file, readFileSync(join(root, file), 'utf8')));
   found.push(...triggerFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...lastJobFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...platformFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8')));
