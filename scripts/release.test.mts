@@ -12,6 +12,14 @@ import { test, type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/** The value of `key` of the JSON object of the text `text`, or undefined when the text holds no object. */
+function field(text: string, key: string): unknown {
+  const json: unknown = JSON.parse(text);
+  return typeof json === 'object' && json !== null ? Object.entries(json).find(([name]) => name === key)?.[1] : undefined;
+}
+
+// The version of the npm package, which its platform packages share.
+const VERSION = String(field(readFileSync(path.join(ROOT, 'packages/ts/package.json'), 'utf8'), 'version'));
 
 // The platforms of a release (GN-19a): the Rust triple of the host, the directory of the Go module that holds its
 // library and the part of the name of a PHP extension archive that names the platform.
@@ -126,6 +134,35 @@ printf 'zip of %s\\n' "$5" > "$4"
 while [ "$1" != --out-dir ]; do shift; done
 mkdir -p "$2" && printf 'wheel\\n' > "$2/polyspec_php_serialization-1.2.3-cp314-abi3-platform.whl"
 `);
+  // The napi CLI of the root package.json, by its bin link: build writes the addon of the platform of --target into
+  // --output-dir, create-npm-dirs writes the package of each platform of the configuration into --npm-dir, and artifacts
+  // copies the addon into it. Each records the configuration that --config-path names.
+  program(path.join(dir, 'node_modules/.bin/napi'), `${record}option() { while [ $# -gt 1 ] && [ "$1" != "$name" ]; do shift; done; [ "$1" = "$name" ] && printf '%s' "$2"; }
+platform() { case "$1" in
+x86_64-unknown-linux-gnu) echo linux-x64-gnu ;; aarch64-unknown-linux-gnu) echo linux-arm64-gnu ;; aarch64-apple-darwin) echo darwin-arm64 ;; esac; }
+command=$1
+name=--config-path; config=$(option "$@")
+[ -n "$config" ] && printf 'napi-config\\t%s\\n' "$(cat "$config")" >> '${calls}'
+name=--output-dir; addons=$(option "$@")
+name=--npm-dir; npm=$(option "$@")
+case "$command" in
+build) name=--target; triple=$(option "$@"); mkdir -p "$addons" && printf 'addon\\n' > "$addons/php-serialization.$(platform "$triple").node" ;;
+create-npm-dirs) for triple in $(sed 's/.*\\[//; s/\\].*//; s/[",]/ /g' "$config"); do p=$(platform "$triple"); mkdir -p "$npm/$p"; printf '{"name":"@polyspec/php-serialization-%s","version":"${VERSION}","main":"php-serialization.%s.node","files":["php-serialization.%s.node"]}\\n' "$p" "$p" "$p" > "$npm/$p/package.json"; done ;;
+artifacts) for folder in "$npm"/*; do cp "$addons/php-serialization.$(basename "$folder").node" "$folder/"; done ;;
+*) exit 9 ;;
+esac
+`);
+  // The wasm-bindgen of WASM_BINDGEN: it prints the release of packages/ts/wasm/Cargo.toml of the copy and writes the
+  // files of the binding.
+  program(path.join(bin, 'wasm-bindgen'), `${record}case "$1" in --version) echo 'wasm-bindgen 0.2.999'; exit 0 ;; esac
+while [ "$1" != --out-dir ]; do shift; done
+mkdir -p "$2" && for file in php_serialization_wasm.js php_serialization_wasm.d.ts php_serialization_wasm_bg.wasm; do printf 'bound\\n' > "$2/$file"; done
+`);
+  // The generated files of the npm package, which the generation of the Node and the WASM binding write.
+  for (const file of ['generated/index.cjs', 'generated/index.mjs', 'generated/index.d.ts', 'wasm/generated/index.mjs', 'wasm/generated/index.d.ts', 'wasm/generated/state.mjs', 'wasm/generated/lib.rs']) {
+    mkdirSync(path.dirname(path.join(dir, 'packages/ts', file)), { recursive: true });
+    writeFileSync(path.join(dir, 'packages/ts', file), `${file}\n`);
+  }
   // The commit of HEAD, whose time is the SOURCE_DATE_EPOCH of a wheel.
   const gitEnv = { ...cleanEnv(), GIT_AUTHOR_DATE: COMMIT_DATE, GIT_COMMITTER_DATE: COMMIT_DATE, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.invalid', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.invalid' };
   execFileSync('git', ['init', '-q', dir], { env: gitEnv });
@@ -326,4 +363,88 @@ test('release-php-ext fails with 2 on a host that is no platform of the release,
   assert.equal(ran.status, 2, `${ran.stdout}${ran.stderr}`);
   assert.match(ran.stderr, /release-php-ext: the host x86_64-apple-darwin is no platform of the release/);
   assert.deepEqual(box.calls().filter((call) => call[0] !== 'rustc'), []);
+});
+
+// ---- release-npm-platform and release-npm (GN-19e, GN-3c) ----------------------------------------------------------
+
+// The generation of the Node and the WASM binding are prerequisites; a case marks them as done, so make runs the recipe
+// alone.
+const GENERATED_NODE = ['-o', 'bindings-node', '-o', 'bindings-wasm'];
+
+/** The files of the npm archive `file` and the text of its package.json. */
+function archive(file: string): { files: string[]; manifest: string } {
+  const files = spawnSync('tar', ['-tzf', file], { encoding: 'utf8' }).stdout.split('\n').filter((line) => line !== '').sort();
+  return { files, manifest: spawnSync('tar', ['-xzOf', file, 'package/package.json'], { encoding: 'utf8' }).stdout };
+}
+
+test('release-npm-platform builds the addon of the host with the napi CLI and packs its platform package', async (t) => {
+  for (const { triple, platform } of PLATFORMS) {
+    await t.test(triple, (t2) => {
+      const box = sandbox(t2, triple);
+      const ran = make(box, [...GENERATED_NODE, 'release-npm-platform']);
+      assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
+      const assets = path.join(box.dir, 'var/release/assets/npm');
+      assert.equal(entries(assets), `polyspec-php-serialization-${platform}-${VERSION}.tgz\n`);
+      const { files, manifest } = archive(path.join(assets, `polyspec-php-serialization-${platform}-${VERSION}.tgz`));
+      assert.deepEqual(files, [`package/package.json`, `package/php-serialization.${platform}.node`]);
+      assert.equal(field(manifest, 'name'), `@polyspec/php-serialization-${platform}`);
+      const work = path.join(realpathSync(box.dir), 'var/release/target/npm', platform);
+      assert.deepEqual(box.calls().filter((call) => call[0] === 'napi'), [
+        ['napi', 'build', '--platform', '--release', '--no-js', '--manifest-path', 'packages/ts/Cargo.toml', '--package-json-path', 'packages/ts/package.json', '--target-dir', 'var/release/target', '--output-dir', `${work}/addons`, '--target', triple, '--', '--locked'],
+        ['napi', 'create-npm-dirs', '--package-json-path', 'packages/ts/package.json', '--config-path', `${work}/napi.json`, '--npm-dir', `${work}/npm`],
+        ['napi', 'artifacts', '--package-json-path', 'packages/ts/package.json', '--config-path', `${work}/napi.json`, '--output-dir', `${work}/addons`, '--npm-dir', `${work}/npm`],
+      ]);
+      // The configuration of the run names the triple of the host alone.
+      assert.deepEqual(box.calls().filter((call) => call[0] === 'napi-config'), [['napi-config', `{"targets":["${triple}"]}`], ['napi-config', `{"targets":["${triple}"]}`]]);
+    });
+  }
+});
+
+test('release-npm-platform fails with 2 on a host that is no platform of the release, and builds nothing', (t) => {
+  const box = sandbox(t, 'x86_64-unknown-freebsd');
+  const ran = make(box, [...GENERATED_NODE, 'release-npm-platform']);
+  assert.equal(ran.status, 2, `${ran.stdout}${ran.stderr}`);
+  assert.match(ran.stderr, /release-npm-platform: the host x86_64-unknown-freebsd is no platform of the release/);
+  assert.deepEqual(box.calls().filter((call) => call[0] !== 'rustc'), []);
+});
+
+test('release-npm packs @polyspec/php-serialization with the platform packages in optionalDependencies of a copy of its manifest', (t) => {
+  const box = sandbox(t, 'x86_64-unknown-linux-gnu');
+  const ran = make(box, [...GENERATED_NODE, 'release-npm', `WASM_BINDGEN=${path.join(box.bin, 'wasm-bindgen')}`]);
+  assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
+  const assets = path.join(box.dir, 'var/release/assets/npm');
+  assert.equal(entries(assets), `polyspec-php-serialization-${VERSION}.tgz\n`);
+  const { files, manifest } = archive(path.join(assets, `polyspec-php-serialization-${VERSION}.tgz`));
+  assert.deepEqual(files, [
+    'package/generated/index.cjs', 'package/generated/index.d.ts', 'package/generated/index.mjs', 'package/package.json',
+    'package/wasm/generated/index.d.ts', 'package/wasm/generated/index.mjs',
+    'package/wasm/generated/php_serialization_wasm.d.ts', 'package/wasm/generated/php_serialization_wasm.js', 'package/wasm/generated/php_serialization_wasm_bg.wasm',
+    'package/wasm/generated/state.mjs',
+  ]);
+  assert.deepEqual(field(manifest, 'optionalDependencies'), {
+    '@polyspec/php-serialization-linux-x64-gnu': VERSION, '@polyspec/php-serialization-linux-arm64-gnu': VERSION, '@polyspec/php-serialization-darwin-arm64': VERSION,
+  });
+  // The tracked manifest names no platform package.
+  assert.equal(field(readFileSync(path.join(box.dir, 'packages/ts/package.json'), 'utf8'), 'optionalDependencies'), undefined);
+  assert.deepEqual(box.calls().filter((call) => call[0] === 'cargo'), [
+    ['cargo', 'build', '--release', '--locked', '-p', 'polyspec-php-serialization-wasm', '--target', 'wasm32-unknown-unknown'],
+    ['cargo', 'CARGO_TARGET_DIR=var/release/target', 'PHP=', 'PHP_CONFIG='],
+  ]);
+});
+
+test('release-npm fails on a wasm-bindgen of another release than the crate, and builds nothing', (t) => {
+  const box = sandbox(t, 'x86_64-unknown-linux-gnu');
+  writeFileSync(path.join(box.dir, 'packages/ts/wasm/Cargo.toml'), '[dependencies]\nwasm-bindgen = "=0.2.1"\n');
+  const ran = make(box, [...GENERATED_NODE, 'release-npm', `WASM_BINDGEN=${path.join(box.bin, 'wasm-bindgen')}`]);
+  assert.notEqual(ran.status, 0, `${ran.stdout}${ran.stderr}`);
+  assert.deepEqual(box.calls().filter((call) => call[0] === 'cargo'), []);
+});
+
+test('release-npm-platform and release-npm generate the Node and the WASM binding first', async (t) => {
+  await t.test('release-npm-platform', (t2) => {
+    generatesFirst(t2, 'release-npm-platform', 'node', (line) => line.includes(' build --platform --release '));
+  });
+  await t.test('release-npm', (t2) => {
+    generatesFirst(t2, 'release-npm', 'wasm', (line) => line.includes('cargo build --release --locked -p polyspec-php-serialization-wasm'));
+  });
 });

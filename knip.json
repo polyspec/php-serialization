@@ -12,6 +12,7 @@
   ],
   "ignoreDependencies": [
     "@polyspec/kit",
-    "@polyspec/php-serialization"
+    "@polyspec/php-serialization",
+    "@napi-rs/cli"
   ]
 }

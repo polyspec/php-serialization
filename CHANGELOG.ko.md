@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 554632977619ebf8b91e6ed9ffc1d1a24719eff92da60b72aba4234b443f5a89 -->
+<!-- source-sha256: aa7f37a3e59ade88f8c35fc7a20b215b1591b292b166642e586f3d4c9bc87f30 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `make release-npm-platform`과 `make release-npm`이 릴리스의 npm 패키지를 build하고 묶는다(T2.7-3; binding GN-19e, GN-3c). 이전에는 그것을 묶는 recipe가 없었다. `release-npm-platform`은 새로 정확히 고정한 devDependency `@napi-rs/cli` 3.10.12의 napi CLI로 host의 addon을 build하고, host만 적은 실행의 설정으로 `napi create-npm-dirs`와 `napi artifacts`가 플랫폼 패키지를 쓰게 한 뒤 `RELEASE_ASSETS/npm/polyspec-php-serialization-<platform>-<version>.tgz`를 묶는다. `release-npm`은 생성된 Node loader, release build한 WASM 바인딩, 그리고 세 플랫폼 패키지를 패키지 버전으로 담은 `optionalDependencies`를 가진 사본에서 `RELEASE_ASSETS/npm/polyspec-php-serialization-<version>.tgz`를 묶고, 추적되는 manifest에는 플랫폼 패키지가 없다. 다른 host는 2로 실패하고, crate와 다른 release의 wasm-bindgen은 아무것도 build하기 전에 실패한다. `knip.json`은 Makefile만 실행하는 `@napi-rs/cli`를 적는다. `make release-test`: 새 시험이 있고 recipe가 없을 때 29개 통과, 9개 실패였고, recipe와 함께 38개 통과한다.
 - `make release-go-static`, `make release-wheel`, `make release-php-ext PHP=<php>`가 릴리스의 host에서 바인딩의 플랫폼별 자산을 만든다(T2.7-2; binding GN-19–GN-19d). 이전에는 그것을 만드는 recipe가 없었고, kit 0.0.112는 아무것도 만들지 않는다. `release-go-static`은 Go 정적 라이브러리를 `RELEASE_TARGET`에 build하고, 이제 `rust-toolchain.toml`이 적는 component `llvm-tools`의 `llvm-strip`으로 사본을 strip한 뒤 `RELEASE_ASSETS/go/<linux_amd64|linux_arm64|darwin_arm64>/libpolyspec_php_serialization_go.a`로 이름을 바꾼다. `release-wheel`은 Python 바인딩을 생성하고 uv, lock된 maturin, HEAD의 commit 시각으로 abi3 wheel을 만든다. `release-php-ext`는 PHP 바인딩을 생성하고, 절대 경로로 푼 PHP와 php-config로 확장을 build하고, php.ini 없이 load한 뒤 `php_polyspec_php_serialization-v<version>_php<X.Y>-<PIE name part>[-debug]-<zts|nts>.zip`으로 묶는다. 다른 host는 2로 실패하고 아무것도 build하지 않는다. `make release-test`(`scripts/release.test.mts`, 공유 CI group의 target)는 rustc, cargo, llvm-strip, PHP, zip, uv의 대역으로 recipe를 실행한다. recipe 이전에는 2개 통과, 26개 실패였고, recipe와 함께 28개 통과한다.
 - `package.json`과 `package-lock.json`이 kit 0.0.112를 pin한다(T2.7-1). Makefile이 실행하는 모든 utility가 그 release에 있고, `make workflows-test`, `layout-check`, `docs-check`, `rules-check`, `owner-validate`, `rebuild-check`, `language-check`, `suppression-check`, `link-check`, `release-coverage`, `typecheck`, `lint-ts`, `binding-features-test`가 그것으로 통과한다. `scripts/binding-features.test.mts`는 Makefile과 manifest의 복사본과 그 dry run을 함수 하나에서 만든다. 이전에는 두 시험이 같은 일곱 줄을 가져서 `make duplication-check`가 clone 하나로 실패했다.
 - 행 T2.7과 `config/release.json`의 `notReleased`에 있는 바인딩 manifest의 이유는, kit 0.0.112가 플랫폼별 자산을 만들지 않으므로(kit K1221) 이 저장소의 recipe가 바인딩의 플랫폼별 자산을 만들고 release workflow가 각 플랫폼의 runner를 적는다고 적는다. 이전에는 그 자산을 만들던 kit 0.0.111을 행이 기다리는 release로 적었다. `make release-coverage`와 `make docs-check`가 통과한다.
