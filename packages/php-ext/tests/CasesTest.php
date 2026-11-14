@@ -16,8 +16,8 @@ use Polyspec\PhpSerialization as P;
  * the same PHP object at each place of its id, which a later place names by its id alone; n nested objects are one
  * object with repeat (binding G-5). A top value that is a
  * reference has no PHP form, since PHP passes a value and not a reference, and neither has a reference that holds a
- * reference or an integer outside 64 bits; the runner runs every other case first and then fails, naming each such
- * case (RQ-015). A case that arms fault injection points
+ * reference or an integer outside 64 bits; the generated case-test suite executes these four cases, and this runner
+ * requires that no other case lacks a PHP form (RQ-015). A case that arms fault injection points
  * runs armed: the runner makes the value first, arms the faults for the member with Internal\armFaults, the entry point
  * of the feature fault-test (binding GN-5, GN-8a), calls the member at once and requires Internal\faultLeft to be
  * empty after the expected failure. A case that raises expects the class that binding GN-7a gives its kind: the error
@@ -129,7 +129,7 @@ final class CasesTest extends TestCase
 
     /**
      * The cell of a reference of the cases, made at its first place. A reference that holds a reference has no PHP
-     * form, since PHP binds the two places to one value, and the runner fails on it.
+     * form, since PHP binds the two places to one value; the generated case-test suite executes it.
      *
      * @param array<string, mixed> $item
      * @param array<int, mixed> $cells
@@ -148,7 +148,7 @@ final class CasesTest extends TestCase
     }
 
     // An integer of the cases outside the safe integers of JavaScript is its decimal text. One outside 64 bits, which
-    // the cases of int_range give, has no PHP form, since PHP has no such integer, and the runner fails on it.
+    // the cases of int_range give, has no PHP form, since PHP has no such integer; the generated case-test suite executes it.
     private static function integer(string $text): int
     {
         $int = filter_var($text, FILTER_VALIDATE_INT);
@@ -242,8 +242,8 @@ final class CasesTest extends TestCase
             $cells = [];
             try {
                 $value = self::fromCase($case['value'], $cells);
-            } catch (\UnexpectedValueException $error) {
-                $noForm[] = $case['id'] . ': ' . $error->getMessage();
+            } catch (\UnexpectedValueException) {
+                $noForm[] = $case['id'];
                 continue;
             }
             if (isset($case['faults'])) {
@@ -264,7 +264,12 @@ final class CasesTest extends TestCase
             self::assertSame(\serialize($value), $written, $case['id']);
         }
         self::assertGreaterThan(0, $count);
-        // RQ-015: every other case ran first; a case whose value has no PHP form fails here and is not skipped.
-        self::assertSame([], $noForm, 'the cases whose value has no PHP form (RQ-015)');
+        // RQ-015: the generated suite executes exactly these four through case-test; every other case runs above.
+        self::assertSame([
+            'a_top_reference_is_refused',
+            'a_reference_in_a_reference_is_refused',
+            'an_integer_above_64_bits_is_refused',
+            'an_integer_below_64_bits_is_refused',
+        ], $noForm, 'the cases whose value has no PHP form (RQ-015)');
     }
 }

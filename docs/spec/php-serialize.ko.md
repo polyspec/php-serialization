@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: 3fbd6aaa925a254fb6062f10a0ac817d3fb8d4116a91eb48107e2a45b7efa86b -->
+<!-- source-sha256: e9e8417202122130527803cd9c9d290178a1856b699dad4bb5da4bab43dbf928 -->
 # PHP serialize 계약
 
 [English](php-serialize.md)
@@ -32,7 +32,7 @@
   |---|---|---|---|---|---|
   | `internal` | `serialize` | `broken` | `internal` | RQ-010 | task나 thread를 시작하지 않는다. 호출은 그 entry point의 thread에서 돈다 |
 
-- **RQ-015**: PHP에는 64-bit 밖의 정수가 없고, PHP는 참조가 아니라 값을 넘기며, 참조의 두 자리를 한 값에 묶습니다. 그래서 `contracts/host-values.json`의 case 넷은 손으로 쓴 runner `packages/php-ext/tests/CasesTest.php`가 바인딩에 줄 PHP 값이 없습니다: group `serialize`의 `a_top_reference_is_refused`와 `a_reference_in_a_reference_is_refused`, 그리고 group `php_value`의 `int_range` case 둘인 `an_integer_above_64_bits_is_refused`와 `an_integer_below_64_bits_is_refused`입니다. runner는 다른 모든 case를 먼저 실행한 뒤 실패하며 그 넷의 이름을 적고, 건너뛰지 않습니다. 건너뛴 case는 실행된 case로 읽히고, 계약의 모든 case는 모든 target의 결과로 남아야 하기 때문입니다(binding BD-27). 그 실패는 이 runner가 그 case에 닿지 않는다는 기록입니다. binding이 PHP용으로 생성하는 시험은 그 case에 닿습니다. 그 시험은 PHP가 설명할 host 값을, 정수는 십진 토큰으로, 시험용으로만 빌드되는 확장의 feature `case-test` 진입점에 넘깁니다(binding GN-13).
+- **RQ-015**: PHP에는 64-bit 밖의 정수가 없고, PHP는 참조가 아니라 값을 넘기며, 참조의 두 자리를 한 값에 묶습니다. 그래서 `contracts/host-values.json`의 case 넷은 손으로 쓴 runner `packages/php-ext/tests/CasesTest.php`가 바인딩에 줄 PHP 값이 없습니다: group `serialize`의 `a_top_reference_is_refused`와 `a_reference_in_a_reference_is_refused`, 그리고 group `php_value`의 `int_range` case 둘인 `an_integer_above_64_bits_is_refused`와 `an_integer_below_64_bits_is_refused`입니다. runner는 표현할 수 있는 모든 case를 실행하고 PHP 형식이 없는 case가 정확히 이 넷인지 확인합니다. case가 빠지거나 바뀌거나 추가되면 이 검사가 실패합니다. 생성된 PHPUnit 시험은 확장의 시험 전용 feature `case-test` 진입점으로 이 넷을 실행합니다. PHP가 설명할 host 값을, 정수는 십진 토큰으로 넘기고 오류 class와 kind를 확인합니다(binding GN-13). `make test-php`는 두 시험 모음을 모두 실행하므로 PHP 표현을 만들어 내거나 case를 건너뛰지 않고 계약의 모든 case를 실행한 시험 결과로 남깁니다(binding BD-27).
 
 <a id="refused"></a>
 ## 일부러 거부하는 입력
