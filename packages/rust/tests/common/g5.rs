@@ -1,8 +1,21 @@
 //! A value of php_value in the case convention of binding G-5, `{"kind", "value"}`, as a language describes it to
 //! from_host: a handle is the index of a JSON node that the host keeps (RQ-012).
 
-use binding_core::{Handle, HostValue, HostValues, Key, KeyedMap, Raised};
+use binding_core::{Handle, HostValue, HostValues, Key, KeyedMap, Native, NativeObject, Raised};
 use serde_json::Value;
+
+/// What the host keeps for a value of a language that a core may keep, and for an exception that the language raised.
+/// It holds nothing: the JSON node stays in the host, and two are the same object when they are one allocation
+/// (binding U-7 (d)).
+#[derive(Debug)]
+struct Kept;
+
+impl NativeObject for Kept {}
+
+/// The exception of the language for a defect of a case (RQ-012).
+fn raised() -> Raised {
+    Raised::from_generated(Native::new(Kept))
+}
 
 /// The handles of references start here, apart from the handles of the nodes.
 const REFERENCES: u64 = 1 << 40;
@@ -271,10 +284,10 @@ impl Host {
         self.nodes.push(sort.clone());
         let handle = Handle::new(length(self.nodes.len() - 1));
         match sort.as_str() {
-            Some("callable") => Ok(HostValue::Callable(handle)),
+            Some("callable") => Ok(HostValue::Callable(Native::new(Kept))),
             Some("date") => Ok(HostValue::Date(handle)),
             Some("object") => Ok(HostValue::Object {
-                handle,
+                native: Native::new(Kept),
                 type_name: String::from("Other"),
                 json_serializable: false,
             }),
@@ -324,7 +337,7 @@ impl HostValues for Host {
         // A case that names no such item is a defect of the case, which the language would raise as its exception.
         match self.list_item(list, index) {
             Ok(item) => Ok(item),
-            Err(_defect) => Err(Raised::from_generated(list)),
+            Err(_defect) => Err(raised()),
         }
     }
 
@@ -332,11 +345,11 @@ impl HostValues for Host {
         // A case that names no such pair is a defect of the case, which the language would raise as its exception.
         match self.pair(map, at) {
             Ok(pair) => Ok(pair),
-            Err(_defect) => Err(Raised::from_generated(map)),
+            Err(_defect) => Err(raised()),
         }
     }
 
-    fn read(&mut self, value: Handle) -> Result<HostValue, Raised> {
-        Err(Raised::from_generated(value))
+    fn read(&mut self, _value: Handle) -> Result<HostValue, Raised> {
+        Err(raised())
     }
 }

@@ -2,11 +2,14 @@
   "name": "polyspec/php-serialization",
   "description": "The php-serialization library of polyspec as a PHP extension",
   "type": "php-ext",
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "require": {
     "php": ">=8.4"
   },
   "php-ext": {
-    "extension-name": "polyspec_php_serialization"
+    "extension-name": "polyspec_php_serialization",
+    "download-url-method": [
+      "pre-packaged-binary"
+    ]
   }
 }

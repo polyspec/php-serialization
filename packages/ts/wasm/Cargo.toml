@@ -4,6 +4,7 @@ name = "polyspec-php-serialization-wasm"
 version = "0.0.6"
 edition = "2021"
 rust-version = "1.99.0"
+license = "BSD-3-Clause"
 publish = false
 
 [lib]
@@ -15,6 +16,7 @@ crate-type = ["cdylib"]
 panic-test = []
 fault-test = ["polyspec-php-serialization/fault-test"]
 codec-test = []
+thrown-count-test = []
 
 [dependencies]
 polyspec-php-serialization = { path = "../../rust" }

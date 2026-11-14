@@ -163,7 +163,7 @@ BINDING := $(NODE) scripts/binding.mts
 # generate yet fails with its name (binding GN-1c) and the targets that build on another target still run.
 BINDING_TARGETS := php python node wasm go
 BINDING_PHONY = $(foreach target,$(BINDING_TARGETS),bindings-$(target))
-bindings: $(BINDING_PHONY) ## Write the generated sources of the five targets with binding: the untracked generated folders and the tracked Go files zz_generated_*.go (binding GN-3); offline
+bindings: $(BINDING_PHONY) ## Write the generated sources of the five targets with binding: the generated folders and the Go files zz_generated_*.go, none of them tracked (binding GN-3, GN-15g); offline
 $(BINDING_PHONY):
 	$(BINDING) generate --root . --target $(@:bindings-%=%)
 

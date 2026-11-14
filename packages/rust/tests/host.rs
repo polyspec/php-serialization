@@ -2,8 +2,21 @@
 //! over a language that a table of values stands for: a handle is the index of a value in the table.
 
 use binding_core::HostValues;
-use binding_core::{Failure, Handle, HostText, HostValue, Key, KeyedMap, Raised, ValueKind};
+use binding_core::{
+    Failure, Handle, HostText, HostValue, Key, KeyedMap, Native, NativeObject, Raised, ValueKind,
+};
 use polyspec_php_serialization::{check_reference, check_std_class, from_host, serialize, Error};
+
+/// What the stand-in language keeps for an exception that it raised: the handle of the value whose answer raised it.
+#[derive(Debug)]
+struct Thrown(Handle);
+
+impl NativeObject for Thrown {}
+
+/// The exception of the stand-in language for the value of a handle (RQ-012).
+fn raised(handle: Handle) -> Raised {
+    Raised::from_generated(Native::new(Thrown(handle)))
+}
 
 /// Whether the stand-in language has a float type apart from its integer type (PHP, Python) or one number type
 /// (JavaScript), which decides whether a number is described as a float or as an untyped number (U-7 (f)).
@@ -122,9 +135,9 @@ impl HostValues for Host {
         match self.get(list) {
             Lang::List(items) => match items.get(index_of(index)) {
                 Some(item) => Ok(self.describe(*item)),
-                None => Err(Raised::from_generated(list)),
+                None => Err(raised(list)),
             },
-            _ => Err(Raised::from_generated(list)),
+            _ => Err(raised(list)),
         }
     }
 
@@ -133,17 +146,17 @@ impl HostValues for Host {
             Lang::Map(entries) | Lang::PhpArray(entries) | Lang::StdClass(entries) => {
                 match entries.get(index_of(index)) {
                     Some((key, value)) => Ok((self.describe(*key), self.describe(*value))),
-                    None => Err(Raised::from_generated(map)),
+                    None => Err(raised(map)),
                 }
             }
-            _ => Err(Raised::from_generated(map)),
+            _ => Err(raised(map)),
         }
     }
 
     fn read(&mut self, value: Handle) -> Result<HostValue, Raised> {
         match self.get(value) {
             Lang::Instance(_, content) => Ok(self.describe(content)),
-            _ => Err(Raised::from_generated(value)),
+            _ => Err(raised(value)),
         }
     }
 }
@@ -370,7 +383,7 @@ fn a_raised_exception_goes_back() {
     };
     let top = host.describe(0);
     assert!(
-        matches!(from_host(&mut host, top), Err(Failure::Raised(raised)) if raised.handle() == handle(0))
+        matches!(from_host(&mut host, top), Err(Failure::Raised(raised)) if raised.native().downcast::<Thrown>().map(|thrown| thrown.0) == Some(handle(0)))
     );
 }
 
