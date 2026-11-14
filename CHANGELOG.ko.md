@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: d4752ce93ad50cae1cb545232b5785d23463c8c26b3bbfeef63ca95efb368694 -->
+<!-- source-sha256: f90a9f51cf7f2bb2415ecae045d1c72201c0d03286f94e5904c49606be9d43a5 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,10 +7,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.8
+
 - release recipe의 시험은 make에게 case가 이름 붙인 변수와 프로세스의 `HOME`, `TMPDIR`만 준다(T2.16). 이전에는 sandbox가 프로세스의 환경을 복사했고 make는 그것을 Makefile의 변수로 읽으므로, `GITHUB_OUTPUT`을 설정하는 CI runner에서는 `GITHUB_OUTPUT`이 없는 `release-tag-output`의 case가 2 대신 0으로 끝났다. `make release-test`: `GITHUB_OUTPUT`을 설정하면 변경 전에 56 passed, 1 failed였다. `GITHUB_OUTPUT`, `GITHUB_ENV`, `GITHUB_PATH`, `TAG`, `VERSION`, `CARGO_TARGET_DIR`, `PHP`, `PHP_CONFIG`, `RELEASE_TARGET`, `RELEASE_ASSETS`를 설정하면 변경 전에 24 passed, 33 failed였고 변경 후에 57 passed였다. 설정하지 않으면 57 passed였다.
-
-## 0.0.7
-
 - `polyspec-binding-core`에 대한 모든 의존 줄이 binding의 tag `v0.0.2`를 가리키고 `Cargo.lock`이 그것을 pin하며, `package.json`은 도구를 GitHub Release `v0.0.2`의 asset `polyspec-binding-0.0.2.tgz`로 가리키고 `package-lock.json`이 그것을 integrity로 pin한다(T2.12). binding 0.0.1에서는 asset의 도구가 자기 commit을 몰라 check가 CK-20의 finding 하나를 여전히 보고했다. binding 0.0.2는 자기 version의 tag를 받아들이므로, `binding check packages/rust/interface.json --release`와 `make bindings-check`는 finding을 보고하지 않고, `binding scaffold`는 추적 파일을 바꾸지 않으며, `make bindings`는 다섯 target을 생성한다. 시험은 이제 `make php-serialization-install-rust`가 `cargo fetch --locked`를 실행하는 것도 요구한다. binding이 crate를 `cargo metadata --locked --offline`로 읽기 때문이다. `make binding-features-test`: v0.0.2를 가리키는 시험은 v0.0.1의 pin에서 실패하고 v0.0.2의 pin에서 통과한다.
 - `polyspec-binding-core`에 대한 모든 의존 줄이 binding의 tag `v0.0.1`을 가리키고 `Cargo.lock`이 그것을 pin하며, 도구 `binding`은 `package.json`이 GitHub Release `v0.0.1`의 asset `polyspec-binding-0.0.1.tgz`로 가리키고 `package-lock.json`이 integrity로 pin하는 npm 패키지 `@polyspec/binding`이다(T2.12; binding CK-70, CK-20). 이전에는 줄들이 branch `v1/rust-core`를 가리켰고 `scripts/binding.mts`가 `Cargo.lock`의 commit의 checkout에서 도구를 clone했다. 그 script는 삭제했다. 이제 `binding check packages/rust/interface.json --release`는 CK-70의 finding을 보고하지 않는다. CK-20의 finding은 하나 남는다. asset에 `archive-commit`이 없어 asset의 도구는 자기 commit을 모르므로, crate의 모든 Git pin이 그 도구에게 finding이다. 이것은 binding 0.0.1의 결함이고, binding의 릴리스가 자기 version의 tag를 받아들일 때까지 이 행은 열려 있다. `make binding-features-test`: 새 테스트는 변경 전에 실패하고 변경 후에 통과한다.
 - `make release-php-ext`가 각 PHP minor와 build를 자기 폴더 `RELEASE_TARGET/php<X.Y><build>`에서 빌드한다(T2.7-9). 이전에는 같은 경로의 PHP로 빌드한 8.4와 8.5의 확장이 하나의 cargo target을 함께 써서 두 번째 minor가 첫 minor의 빌드를 묶었다. `make release-test`: 새 테스트는 변경 전에 실패하고 변경 후에 통과한다.

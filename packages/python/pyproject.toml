@@ -5,7 +5,7 @@ build-backend = "maturin"
 
 [project]
 name = "polyspec-php-serialization"
-version = "0.0.7"
+version = "0.0.8"
 requires-python = ">=3.14"
 license = "BSD-3-Clause"
 

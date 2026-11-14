@@ -1,6 +1,6 @@
 {
   "name": "@polyspec/php-serialization",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "The php-serialization library of polyspec for Node and the browser",
   "license": "BSD-3-Clause",
   "type": "module",

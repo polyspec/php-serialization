@@ -1,6 +1,6 @@
 {
   "name": "@polyspec/php-serialization-workspace",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": true,
   "description": "The workspace of the PHP serialize format for Node.js and Python",
   "type": "module",

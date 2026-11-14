@@ -1141,7 +1141,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-php-serialization"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "base64 0.22.1",
  "libtest-mimic",
@@ -1153,7 +1153,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-php-serialization-go"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "polyspec-binding-core",
  "polyspec-php-serialization",
@@ -1161,7 +1161,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-php-serialization-node"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "napi",
  "napi-build",
@@ -1172,7 +1172,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-php-serialization-php-ext"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "ext-php-rs",
  "polyspec-binding-core",
@@ -1181,7 +1181,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-php-serialization-python"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "polyspec-binding-core",
  "polyspec-php-serialization",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-php-serialization-wasm"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "js-sys",
  "polyspec-binding-core",
