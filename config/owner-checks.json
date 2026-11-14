@@ -196,7 +196,6 @@
         "packages/php-ext/**",
         "packages/go/**",
         "packages/rust/interface.json",
-        "scripts/binding.mts",
         "Cargo.lock"
       ],
       "targets": [

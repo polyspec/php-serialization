@@ -105,13 +105,12 @@ php-serialization-install-python: ## Make legacy/packages/python/.venv and insta
 	$(ONLINE) $(UV) pip install --python legacy/packages/python/.venv/bin/python --link-mode copy --no-deps legacy/packages/python
 	$(MAKE) --no-print-directory link
 
-# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup, fetches the crates of the root
-# Cargo.lock and installs binding at the commit of Cargo.lock into var/binding (scripts/binding.mts), so that every Rust
-# recipe and every binding recipe runs with --locked and offline.
-php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml, fetch the locked crates and install binding at the commit of Cargo.lock; ONLINE
+# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
+# Cargo.lock, so that every Rust recipe and every binding recipe runs with --locked and offline. The tool binding is the npm
+# package of package.json, which make install-packages installs.
+php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
 	$(ONLINE) cargo fetch --locked
-	$(ONLINE) $(NODE) scripts/binding.mts install
 
 # The local links of 0.0.x development: the git-ignored .links of the main checkout names the checkouts that provide packages.
 link: ## Link the packages to the checkouts of .links; offline
@@ -163,8 +162,9 @@ lint-rust: ## Lint the Rust crate with cargo clippy ([workspace.lints] of Cargo.
 	cargo fmt -p $(CORE) --check
 
 # ---- Bindings -----------------------------------------------------------------------------------------------------------------
-# binding runs at the commit of polyspec-binding-core that Cargo.lock pins (scripts/binding.mts).
-BINDING := $(NODE) scripts/binding.mts
+# binding is the npm package @polyspec/binding of package.json, the asset of the GitHub Release of the tag that every
+# dependency line on polyspec-binding-core names, so that the tool and the crate are one release (binding CK-20, CK-70).
+BINDING := $(CURDIR)/node_modules/.bin/binding
 
 # bindings generates the five targets, each in its own target bindings-<target>, so that a target that binding does not
 # generate yet fails with its name (binding GN-1c) and the targets that build on another target still run.
@@ -650,9 +650,8 @@ release-go-module: bindings-go ## Make, prove and push the commit and the tag pa
 	esac
 
 # release-binding-check runs the release check of binding on the contract (GN-19g), which the release workflow runs before it
-# builds an asset of a tag. It fails while a dependency line of polyspec-binding-core names the branch v1/rust-core (CK-70),
-# the development form that the binding crates use until they name a released tag of binding; CI builds the assets of a
-# commit without this check.
+# builds an asset of a tag: every dependency line on polyspec-binding-core names the tag of a release of binding (CK-70);
+# CI builds the assets of a commit without this check.
 release-binding-check: ## Run the release check of binding on packages/rust/interface.json; offline
 	$(BINDING) check $(CURDIR)/packages/rust/interface.json --release
 
