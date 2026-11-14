@@ -27,12 +27,12 @@ ryu = "=1.0.23"
 # kind interface that the generated bindings read (binding design T-3, E-1, E-1c). The git source is the binding
 # repository on the branch that every repository uses; Cargo.lock pins its commit, so the generated binding crates and
 # this crate share one binding_core.
-polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", tag = "v0.0.2" }
+polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", tag = "v0.0.3" }
 
 [dev-dependencies]
 # The tests raise a callback exception as a binding does, which only the feature construct allows, and arm the fault
 # injection points of a case as a generated binding test does (fault-test).
-polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", tag = "v0.0.2", features = ["construct", "fault-test"] }
+polyspec-binding-core = { git = "https://github.com/polyspec/binding.git", tag = "v0.0.3", features = ["construct", "fault-test"] }
 # A fault injection point is live only with the feature fault-test of this crate (binding GN-5), so the tests depend on
 # the crate itself with that feature, and `cargo test` turns it on for them alone.
 polyspec-php-serialization = { path = ".", features = ["fault-test"] }

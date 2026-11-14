@@ -132,12 +132,17 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
+  # The assets of each platform of the bindings, built from the commit of the run with the matrix of the release (binding
+  # GN-19a, GN-19i), so that an asset that does not build stops the release before a tag exists.
+  assets:
+    uses: ./.github/workflows/assets.yml
+
   # The result of the run: the job runs after every other job, also after a failed or cancelled one, and make ci-passed
   # passes only when each job of needs has the result success; a skipped job fails it (FAIL_SKIPPED=1). make
   # workflows-test fails this workflow when ci-passed is not its last job or when needs leaves a job out.
   ci-passed:
     if: ${{ always() }}
-    needs: [shared, fuzz, ts, python, rust]
+    needs: [shared, fuzz, ts, python, rust, assets]
     runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

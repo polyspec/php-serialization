@@ -1,0 +1,125 @@
+# The assets of each platform of the bindings of php-serialization (binding GN-19a, GN-19i). The workflow ci calls it for the
+# commit of its run, and the workflow release calls it for the tree of the tag that it releases, with release true, which runs
+# the release check of binding before a job builds (make release-binding-check).
+#
+# The job platform runs on the runner of its platform, ubuntu-26.04, ubuntu-26.04-arm or macos-15, the one exception to the
+# runner rule of AGENTS.md: the asset of a platform is linked and loaded only on that platform, because no tool of the release
+# compiles for another platform (make workflows-test checks the three entries). Each job writes the release recipes of the
+# contract with the binding of package.json (make release-recipes, packages/release.mk), then builds the static library of
+# the Go module, the abi3 wheel, the PHP extension for PHP 8.4 and for PHP 8.5 and the npm platform package of its platform;
+# the job npm packs the npm package itself with the wasm-bindgen of mise.toml. Each uploads var/release/assets as an
+# artifact, which the workflow release downloads. Each run step is one make target, and the build steps after the first run
+# also after a failed one, so one run names every asset that does not build.
+name: assets
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: The tag whose tree the jobs build; empty builds the commit of the calling run
+        required: false
+        type: string
+        default: ''
+      release:
+        description: Whether each job runs the release check of binding before it builds
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64-gnu
+            runner: ubuntu-26.04
+          - platform: linux-arm64-gnu
+            runner: ubuntu-26.04-arm
+          - platform: darwin-arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    steps:
+      # actions/checkout v7.0.1: the tree of the tag, or of the commit of the calling run.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/bootstrap
+      # The Rust toolchain of rust-toolchain.toml with its musl targets and llvm-tools, and the locked crates.
+      - name: install the Rust toolchain and the locked crates
+        run: make php-serialization-install-rust
+      # The uv and the Python of mise.toml, with which uv builds the wheel.
+      - name: install uv and Python
+        run: make install-tools TOOLS="uv python"
+      - name: write the release recipes
+        run: make release-recipes
+      - name: run the release check of binding
+        if: ${{ inputs.release }}
+        run: make release-binding-check
+      - name: build the static library of the Go module
+        run: make release-go-static
+      - name: build the wheel
+        if: ${{ !cancelled() }}
+        run: make release-wheel
+      # The LLVM of config/toolchain.json, whose libclang and clang the bindgen of ext-php-rs uses.
+      - name: install the LLVM of config/toolchain.json
+        if: ${{ !cancelled() }}
+        run: make install-llvm
+      # shivammathur/setup-php 2.40.0: each PHP minor that the extension supports, with its php-config, which the build of the
+      # extension reads; make release-php-ext PHP=php resolves php on PATH, and each minor builds in its own target folder.
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        if: ${{ !cancelled() }}
+        with:
+          php-version: '8.4'
+          tools: none
+          coverage: none
+      - name: build the PHP extension for PHP 8.4
+        if: ${{ !cancelled() }}
+        run: make release-php-ext PHP=php
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        if: ${{ !cancelled() }}
+        with:
+          php-version: '8.5'
+          tools: none
+          coverage: none
+      - name: build the PHP extension for PHP 8.5
+        if: ${{ !cancelled() }}
+        run: make release-php-ext PHP=php
+      - name: build the npm platform package
+        if: ${{ !cancelled() }}
+        run: make release-npm-platform
+      # actions/upload-artifact v7.0.1: the assets of the platform.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ !cancelled() }}
+        with:
+          name: assets-${{ matrix.platform }}
+          path: var/release/assets/
+          if-no-files-found: error
+
+  npm:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/bootstrap
+      - name: install the Rust toolchain and the locked crates
+        run: make php-serialization-install-rust
+      - name: write the release recipes
+        run: make release-recipes
+      - name: install the wasm-bindgen of mise.toml
+        run: make install-wasm-bindgen
+      - name: run the release check of binding
+        if: ${{ inputs.release }}
+        run: make release-binding-check
+      - name: pack the npm package
+        run: make release-npm
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ !cancelled() }}
+        with:
+          name: assets-npm
+          path: var/release/assets/
+          if-no-files-found: error

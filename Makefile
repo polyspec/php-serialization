@@ -34,7 +34,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage release-test typecheck contracts-check binding-features-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -55,7 +55,7 @@ CI_REPORT ?= var/report/ci-targets
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
-	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm release-go-module release-candidate-assets release-binding-check release-tag-output release-platform-assets install-wasm-bindgen
+	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-candidate-assets release-recipes release-tag-output
 
 # ---- Install ----------------------------------------------------------------------------------------------------------------
 # The npm that devEngines of package.json names installs the lock, @polyspec/kit included, before the tools of the checkout
@@ -493,167 +493,20 @@ release-undraft: ## Make the draft release of TAG public
 release-coverage: ## Require every package file of the checkout to be classified in config/release.json; offline
 	$(NODE) $(KIT)/release.mjs coverage
 
-# ---- The per-platform assets of the bindings (binding GN-19 to GN-19g; row T2.7) -----------------------------------------
-# kit builds no per-platform asset, so the recipes of this repository build them. A recipe builds the asset of the platform
-# of its host, because no tool of the release compiles for another platform: it reads the host from rustc of the pinned
-# toolchain and writes into RELEASE_ASSETS, building with CARGO_TARGET_DIR set to RELEASE_TARGET, so that an asset holds
-# nothing of a development build. Each step is a line that starts a standard tool (GN-19).
+# ---- The per-platform assets of the bindings (binding GN-19 to GN-19i) ------------------------------------------------------
+# binding writes the release recipes of the contract into packages/release.mk (binding release-recipes, GN-19h), which is
+# generated and not tracked, so that every repository runs the same recipes of the binding that it pins and keeps no copy
+# (CK-94): release-go-static, release-wheel, release-php-ext, release-npm-platform, release-npm, release-go-module,
+# release-binding-check, release-platform-assets, install-llvm and install-wasm-bindgen. The recipes read the variables below,
+# which the Makefile defines before it includes the file. The include is optional, because a checkout holds no file until
+# make release-recipes writes it, and a run of a recipe of the file without it fails with no rule of the target.
+BINDING_RUN := $(BINDING)
+BINDING_DEP :=
 RELEASE_ASSETS ?= var/release/assets
-RELEASE_TARGET ?= var/release/target
-# release_host sets host to the Rust triple of the toolchain, platform to the name of its platform, which names its npm
-# platform package, go to the directory of the Go module of its platform, pie to the part of the name of a PHP extension
-# archive that names its platform (GN-19a) and, on Linux, musl to the musl triple of its arch, whose Go library the same
-# host builds (GN-19b); it ends the recipe $(1) with 2 on a host that is no platform of the release.
-release_host = host=$$(rustc --print host-tuple) || exit 1; \
-	case "$$host" in \
-	x86_64-unknown-linux-gnu) platform=linux-x64-gnu go=linux_amd64 pie=x86_64-linux-glibc musl=x86_64-unknown-linux-musl ;; \
-	aarch64-unknown-linux-gnu) platform=linux-arm64-gnu go=linux_arm64 pie=arm64-linux-glibc musl=aarch64-unknown-linux-musl ;; \
-	aarch64-apple-darwin) platform=darwin-arm64 go=darwin_arm64 pie=arm64-darwin-bsdlibc musl= ;; \
-	*) echo "$(1): the host $$host is no platform of the release: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin" >&2; exit 2 ;; \
-	esac
+release-recipes: ## Write packages/release.mk, the release recipes of the contract, with the binding of package.json; offline
+	$(BINDING) release-recipes --root $(CURDIR)
 
-# release-go-static builds the static library of the Go module (GN-19b), on a Linux host also the one of the musl target of
-# its arch into linux_<arch>_musl, because binding release-go-module requires the libraries of five Go platforms. It strips
-# the debug sections of a copy of each in RELEASE_TARGET with the llvm-strip of the component llvm-tools of the toolchain
-# (rust-toolchain.toml), never the strip of PATH, which differs by machine. A stripped copy enters the assets under another
-# name and is renamed there, so the assets never hold a library that is half written or not stripped.
-release-go-static: ## Build and strip the static libraries of the Go module of the platform of the host into RELEASE_ASSETS/go
-	@$(call release_host,release-go-static); \
-	set -ex; \
-	publish() { \
-	copy=$(RELEASE_TARGET)/stripped/$$2; \
-	mkdir -p "$$copy"; \
-	cp "$$1/libpolyspec_php_serialization_go.a" "$$copy/libpolyspec_php_serialization_go.a"; \
-	"$$(rustc --print sysroot)/lib/rustlib/$$host/bin/llvm-strip" --strip-debug "$$copy/libpolyspec_php_serialization_go.a"; \
-	out=$(RELEASE_ASSETS)/go/$$2; \
-	mkdir -p "$$out"; \
-	cp "$$copy/libpolyspec_php_serialization_go.a" "$$out/.libpolyspec_php_serialization_go.a.part"; \
-	mv "$$out/.libpolyspec_php_serialization_go.a.part" "$$out/libpolyspec_php_serialization_go.a"; \
-	}; \
-	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-go; \
-	publish $(RELEASE_TARGET)/release "$$go"; \
-	if [ -n "$$musl" ]; then \
-	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-go --target "$$musl"; \
-	publish "$(RELEASE_TARGET)/$$musl/release" "$${go}_musl"; \
-	fi
-
-# release-wheel builds the abi3 wheel of the platform of the host (GN-19c) from the generated Python binding, with the uv
-# of the checkout: maturin builds with --locked, and the time of the commit of HEAD dates the files of the wheel. One
-# wheel of a platform serves every supported Python.
-release-wheel: bindings-python ## Build the abi3 wheel of the platform of the host into RELEASE_ASSETS/wheel
-	@$(call release_host,release-wheel); \
-	set -ex; \
-	CARGO_TARGET_DIR=$(RELEASE_TARGET) MATURIN_PEP517_ARGS=--locked SOURCE_DATE_EPOCH=$$(git log -1 --format=%ct HEAD) $(UV) build --wheel --python python3 --out-dir $(RELEASE_ASSETS)/wheel packages/python
-
-# release-php-ext builds the PHP extension of the platform of the host for the minor of the PHP that PHP names (GN-19d)
-# from the generated PHP binding, with the php-config of PHP_CONFIG when the command line gives it, otherwise the one
-# beside that PHP. The recipe resolves both on PATH to absolute paths, because the build script of ext-php-rs refuses a
-# PHP that it cannot find by the path that PHP names. Each PHP minor and build builds in its own folder of RELEASE_TARGET,
-# because the extension is compiled against the headers of that PHP and a job builds the extension of 8.4 and of 8.5 with a
-# PHP of the same path, so that cargo would otherwise take the build of the first. The cdylib is copied as polyspec_php_serialization.so into a
-# directory of RELEASE_TARGET for that PHP build, which must load it without a php.ini before it is packed, and the
-# archive takes the name by which PIE finds a pre-packaged binary: the version of the crate, the minor, the platform, and
-# debug and zts as that PHP reports them. An archive that an earlier run left is removed first, because zip adds to an
-# archive that exists. The archive enters the assets under another name and is renamed there.
-RELEASE_PHP_CONFIG = $(if $(filter command line,$(origin PHP_CONFIG)),$(PHP_CONFIG),$(PHP)-config)
-release-php-ext: bindings-php ## Build, load and pack the PHP extension of the platform of the host for the PHP of PHP into RELEASE_ASSETS/php-ext
-	@$(call release_host,release-php-ext); \
-	php=$$(command -v '$(PHP)') || { echo 'release-php-ext: no PHP $(PHP) on PATH' >&2; exit 2; }; \
-	case "$$php" in /*) ;; *) php=$(CURDIR)/$$php ;; esac; \
-	config=$$(command -v '$(RELEASE_PHP_CONFIG)') || { echo 'release-php-ext: no php-config $(RELEASE_PHP_CONFIG) on PATH' >&2; exit 2; }; \
-	case "$$config" in /*) ;; *) config=$(CURDIR)/$$config ;; esac; \
-	set -ex; \
-	minor=$$("$$php" -n -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;'); \
-	build=$$("$$php" -n -r 'echo PHP_DEBUG ? "-debug" : "", "-", PHP_ZTS ? "zts" : "nts";'); \
-	target=$(RELEASE_TARGET)/php$$minor$$build; \
-	PHP="$$php" PHP_CONFIG="$$config" CARGO_TARGET_DIR="$$target" cargo build --release --locked -p $(CORE)-php-ext; \
-	version=$$(cargo pkgid -p $(CORE)-php-ext); version=$${version##*@}; \
-	copy=$(abspath $(RELEASE_TARGET))/php-ext/php$$minor$$build; \
-	mkdir -p "$$copy"; \
-	cp "$$target/release/libpolyspec_php_serialization.$(CDYLIB)" "$$copy/polyspec_php_serialization.so"; \
-	"$$php" -n -d extension="$$copy/polyspec_php_serialization.so" -r 'exit(extension_loaded("polyspec_php_serialization") ? 0 : 1);'; \
-	name=php_polyspec_php_serialization-v$${version}_php$$minor-$$pie$$build.zip; \
-	rm -f "$$copy/$$name"; \
-	(cd "$$copy" && zip -q -9 -X "$$name" polyspec_php_serialization.so); \
-	out=$(RELEASE_ASSETS)/php-ext; \
-	mkdir -p "$$out"; \
-	cp "$$copy/$$name" "$$out/.$$name.part"; \
-	mv "$$out/.$$name.part" "$$out/$$name"
-
-# The platforms of the npm package, by the names of their platform packages (GN-19a), and the napi CLI of the devDependency
-# @napi-rs/cli of the root package.json, by its bin link.
-RELEASE_NPM_PLATFORMS := linux-x64-gnu linux-arm64-gnu darwin-arm64
-NAPI := $(CURDIR)/node_modules/.bin/napi
-# release_pack packs the npm package of the folder $(1) with npm pack --ignore-scripts into the fresh folder $(2), and
-# renames each archive into RELEASE_ASSETS/npm from a copy of another name, so the assets never hold a half written archive.
-release_pack = (cd $(1) && $(NPM) pack --ignore-scripts --pack-destination $(2)); \
-	mkdir -p $(RELEASE_ASSETS)/npm; \
-	for file in $(2)/*.tgz; do \
-	name=$$(basename "$$file"); \
-	cp "$$file" "$(RELEASE_ASSETS)/npm/.$$name.part"; \
-	mv "$(RELEASE_ASSETS)/npm/.$$name.part" "$(RELEASE_ASSETS)/npm/$$name"; \
-	done
-
-# release-npm-platform builds the Node addon of the platform of the host and packs its npm platform package (GN-19e) with
-# the napi CLI: napi build writes the addon, and create-npm-dirs and artifacts write the package of the platform with a
-# configuration of the run that names the triple of the host alone, because napi artifacts fails for a configured platform
-# whose addon another runner builds.
-release-npm-platform: bindings-node ## Build the Node addon of the platform of the host and pack its npm platform package into RELEASE_ASSETS/npm
-	@$(call release_host,release-npm-platform); \
-	work=$(abspath $(RELEASE_TARGET))/npm/$$platform; \
-	set -ex; \
-	rm -rf "$$work"; \
-	mkdir -p "$$work/pack"; \
-	printf '{"targets":["%s"]}\n' "$$host" > "$$work/napi.json"; \
-	$(NAPI) build --platform --release --no-js --manifest-path packages/ts/Cargo.toml --package-json-path packages/ts/package.json --target-dir $(RELEASE_TARGET) --output-dir "$$work/addons" --target "$$host" -- --locked; \
-	$(NAPI) create-npm-dirs --package-json-path packages/ts/package.json --config-path "$$work/napi.json" --npm-dir "$$work/npm"; \
-	$(NAPI) artifacts --package-json-path packages/ts/package.json --config-path "$$work/napi.json" --output-dir "$$work/addons" --npm-dir "$$work/npm"; \
-	$(call release_pack,"$$work/npm/$$platform","$$work/pack")
-
-# release-npm packs @polyspec/php-serialization itself (GN-19e, GN-3c) from a copy of the files that its package.json
-# names: the generated Node loader, and the WASM binding that cargo builds for release and the wasm-bindgen of
-# WASM_BINDGEN binds, which must be the release of the wasm-bindgen crate (GN-18). The manifest of the copy names the
-# platform package of each platform of the release at the version of the package in optionalDependencies; the tracked
-# manifest names none.
-release-npm: bindings-node bindings-wasm ## Pack the npm package with its WASM binding and its platform packages in optionalDependencies into RELEASE_ASSETS/npm
-	test "$$($(WASM_BINDGEN) --version)" = "wasm-bindgen $(WASM_BINDGEN_RELEASE)"
-	@work=$(abspath $(RELEASE_TARGET))/npm/package; \
-	set -ex; \
-	rm -rf "$$work"; \
-	mkdir -p "$$work/package/generated" "$$work/package/wasm/generated" "$$work/pack"; \
-	cp packages/ts/generated/index.cjs packages/ts/generated/index.mjs packages/ts/generated/index.d.ts "$$work/package/generated/"; \
-	cp packages/ts/wasm/generated/*.mjs packages/ts/wasm/generated/*.d.ts "$$work/package/wasm/generated/"; \
-	CARGO_TARGET_DIR=$(RELEASE_TARGET) cargo build --release --locked -p $(CORE)-wasm --target wasm32-unknown-unknown; \
-	$(WASM_BINDGEN) --target web --out-dir "$$work/package/wasm/generated" --out-name php_serialization_wasm $(RELEASE_TARGET)/wasm32-unknown-unknown/release/polyspec_php_serialization_wasm.wasm; \
-	$(NODE) -e 'const fs = require("fs"); const [from, to, ...platforms] = process.argv.slice(1); const p = JSON.parse(fs.readFileSync(from, "utf8")); p.optionalDependencies = Object.fromEntries(platforms.map(platform => [`$${p.name}-$${platform}`, p.version])); fs.writeFileSync(to, JSON.stringify(p, null, 2) + "\n");' packages/ts/package.json "$$work/package/package.json" $(RELEASE_NPM_PLATFORMS); \
-	$(call release_pack,"$$work/package","$$work/pack")
-
-# release-go-module carries the Go module of the release TAG (GN-19f): on the checkout of that tag, after the generation of
-# the Go binding, binding release-go-module checks the library of each platform in RELEASE_ASSETS/go (GN-19b), proves a
-# commit that adds the generated files and the libraries to the tree of the tag with a consumer, and creates the annotated
-# tag packages/go/<TAG> at it, keeping its index, its repositories and the caches of Go in a folder of the run. The
-# command pushes nothing: the recipe pushes the reference that it prints, and nothing when it prints none, because the
-# remote holds that tag already. The folder of the run is made writable before it is removed, since Go writes its module
-# cache read-only.
-release-go-module: bindings-go ## Make, prove and push the commit and the tag packages/go/TAG of the Go module with the libraries of RELEASE_ASSETS/go
-	@test -n "$$TAG" || { echo 'release-go-module: TAG is required, for example make release-go-module TAG=v0.0.1' >&2; exit 2; }
-	@work=$(abspath $(RELEASE_TARGET))/go-module; \
-	set -e; \
-	if [ -d "$$work" ]; then chmod -R u+w "$$work"; rm -rf "$$work"; fi; \
-	mkdir -p "$$work"; \
-	echo "$(BINDING) release-go-module --root $(CURDIR) --tag $$TAG --libraries $(abspath $(RELEASE_ASSETS))/go --work $$work"; \
-	ref=$$($(BINDING) release-go-module --root $(CURDIR) --tag "$$TAG" --libraries $(abspath $(RELEASE_ASSETS))/go --work "$$work"); \
-	case "$$ref" in \
-	'') echo "release-go-module: the remote holds the tag packages/go/$$TAG already" ;; \
-	"refs/tags/packages/go/$$TAG") set -x; git push origin "$$ref" ;; \
-	*) echo "release-go-module: binding printed $$ref, not refs/tags/packages/go/$$TAG" >&2; exit 1 ;; \
-	esac
-
-# release-binding-check runs the release check of binding on the contract (GN-19g), which the release workflow runs before it
-# builds an asset of a tag: every dependency line on polyspec-binding-core names the tag of a release of binding (CK-70);
-# CI builds the assets of a commit without this check.
-release-binding-check: ## Run the release check of binding on packages/rust/interface.json; offline
-	$(BINDING) check $(CURDIR)/packages/rust/interface.json --release
+-include packages/release.mk
 
 # release-tag-output gives the later jobs of the release workflow the tag and the version that release-tag wrote into the
 # environment of its job (TAG, VERSION), through the outputs of the step (GITHUB_OUTPUT); both are empty when the run
@@ -661,59 +514,3 @@ release-binding-check: ## Run the release check of binding on packages/rust/inte
 release-tag-output: ## Write TAG and VERSION into GITHUB_OUTPUT for the later jobs of the release workflow
 	@test -n "$$GITHUB_OUTPUT" || { echo 'release-tag-output: GITHUB_OUTPUT is not set; run it in the release workflow' >&2; exit 2; }
 	printf 'tag=%s\nversion=%s\n' "$$TAG" "$$VERSION" >> "$$GITHUB_OUTPUT"
-
-# release-platform-assets uploads the assets of each platform to the draft GitHub Release of TAG with gh (GN-19g), each under
-# the label polyspec-php-serialization-<runtime>-<version>-<platform>, or -php<X.Y>-<platform> for the PHP extension, and the
-# npm package without a platform under polyspec-php-serialization-ts-<version>: the wheel of each platform, the npm package
-# and its platform packages, and the PHP extension of each platform and PHP minor. The file keeps the name that its packer
-# gave, which PIE and the package managers read. It fails before an upload when an asset of a platform is missing or a file
-# names no platform. The Go libraries enter the commit of the Go module (release-go-module), not the release.
-release-platform-assets: ## Upload the per-platform assets of RELEASE_ASSETS to the draft release of TAG under their labels
-	@test -n "$$TAG" || { echo 'release-platform-assets: TAG is required, for example make release-platform-assets TAG=v0.0.1' >&2; exit 2; }
-	@set -e; version=$${TAG#v}; dir=$(RELEASE_ASSETS); p=polyspec-php-serialization; fail() { echo "release-platform-assets: $$1" >&2; exit 1; }; \
-	set --; wheels=0; npm=0; php=0; \
-	for file in "$$dir"/wheel/*.whl; do \
-	case "$$file" in \
-	*manylinux*_x86_64.whl) platform=linux-x64-gnu ;; \
-	*manylinux*_aarch64.whl) platform=linux-arm64-gnu ;; \
-	*macosx*_arm64.whl) platform=darwin-arm64 ;; \
-	*) fail "$$file is no wheel of a platform of the release" ;; \
-	esac; \
-	set -- "$$@" "$$file#$$p-python-$$version-$$platform"; wheels=$$((wheels + 1)); \
-	done; \
-	for file in "$$dir"/npm/*.tgz; do \
-	name=$$(basename "$$file" .tgz); \
-	case "$$name" in \
-	"$$p-$$version") label=$$p-ts-$$version ;; \
-	"$$p-linux-x64-gnu-$$version"|"$$p-linux-arm64-gnu-$$version"|"$$p-darwin-arm64-$$version") \
-	platform=$${name#$$p-}; label=$$p-ts-$$version-$${platform%-$$version} ;; \
-	*) fail "$$file is no npm package of the release $$version" ;; \
-	esac; \
-	set -- "$$@" "$$file#$$label"; npm=$$((npm + 1)); \
-	done; \
-	for file in "$$dir"/php-ext/*.zip; do \
-	name=$$(basename "$$file" .zip); \
-	case "$$name" in \
-	"php_polyspec_php_serialization-v$${version}_php"*-x86_64-linux-glibc-*) platform=linux-x64-gnu ;; \
-	"php_polyspec_php_serialization-v$${version}_php"*-arm64-linux-glibc-*) platform=linux-arm64-gnu ;; \
-	"php_polyspec_php_serialization-v$${version}_php"*-arm64-darwin-bsdlibc-*) platform=darwin-arm64 ;; \
-	*) fail "$$file is no PHP extension of the release $$version" ;; \
-	esac; \
-	minor=$${name#*-v$${version}_php}; minor=$${minor%%-*}; \
-	set -- "$$@" "$$file#$$p-php-ext-$$version-php$$minor-$$platform"; php=$$((php + 1)); \
-	done; \
-	test "$$wheels" -eq 3 || fail "$$dir/wheel holds $$wheels wheels, not one of each of the 3 platforms"; \
-	test "$$npm" -eq 4 || fail "$$dir/npm holds $$npm packages, not the package and one of each of the 3 platforms"; \
-	test "$$php" -gt 0 && test $$((php % 3)) -eq 0 || fail "$$dir/php-ext holds $$php extensions, not one of each of the 3 platforms for each PHP minor"; \
-	set -x; \
-	gh release upload "$$TAG" "$$@"
-
-# install-wasm-bindgen installs the wasm-bindgen CLI of mise.toml alone with the mise of var/tools at the digest of
-# mise.lock, for a job that needs no other tool of mise.toml, such as the job of the release that packs the npm package.
-install-wasm-bindgen: ## Install the wasm-bindgen CLI of mise.toml alone; ONLINE
-	$(ONLINE) $(MISE) install --locked github:wasm-bindgen/wasm-bindgen
-
-# release-test runs the tests of the recipes of the per-platform assets (scripts/release.test.mts) against stand-ins of the
-# tools that they start; it reads the node and npm of var/tools.
-release-test: ## Run the tests of the recipes of the per-platform assets of the release; offline
-	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/release.test.mts

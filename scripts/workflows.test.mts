@@ -1,11 +1,15 @@
 // The rules of the GitHub workflows of this repository (AGENTS.md, "CI and release"), checked on the tracked files of
 // .github and on the Makefile:
 //
-//   - every job runs on ubuntu-26.04-arm;
+//   - every job runs on ubuntu-26.04-arm, except the job platform of assets.yml, which runs on the runner of each platform
+//     of the release, ubuntu-26.04, ubuntu-26.04-arm or macos-15, because the asset of a platform is linked and loaded only
+//     on that platform: no tool of the release compiles for another platform (binding GN-19a);
+//   - the workflows ci and release call assets.yml, which builds the assets of each platform (binding GN-19i);
 //   - every action is a local action of .github/actions or is pinned by its full commit, and a comment of the file names
 //     its release, `# <owner>/<repository> <release>`;
 //   - no job and no step sets timeout-minutes;
-//   - every run step is one make target that the Makefile defines, with arguments NAME=value or one expression alone,
+//   - every run step is one make target that the Makefile or the release recipes that it includes (packages/release.mk,
+//     which binding release-recipes writes) define, with arguments NAME=value or one expression alone,
 //     so that the settings and the checks of the Makefile apply to every command of CI;
 //   - the workflow ci starts on a push of main and on workflow_dispatch alone;
 //   - the last job of the workflow ci is ci-passed, which runs after every other job, also after a failed one
@@ -16,7 +20,8 @@
 // continues on a later line is a finding.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +30,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const RUNNER = 'ubuntu-26.04-arm';
 const CI = '.github/workflows/ci.yml';
 const RELEASE = '.github/workflows/release.yml';
+const ASSETS = '.github/workflows/assets.yml';
+// The runner of each platform of the release, on which the job platform of assets.yml builds the assets of that platform
+// (binding GN-19a).
+const PLATFORM_RUNNERS: Record<string, string> = { 'linux-x64-gnu': 'ubuntu-26.04', 'linux-arm64-gnu': 'ubuntu-26.04-arm', 'darwin-arm64': 'macos-15' };
+const MATRIX_RUNNER = '${{ matrix.runner }}';
 const LAST = 'ci-passed';
 
 // A run step: make, one target, then arguments NAME=value, NAME="words" for a list such as the tools of a job, or
@@ -64,7 +74,8 @@ function findings(file: string, text: string, targets: Set<string>, actions: Set
     const runner = valueOf(line, 'runs-on');
     if (runner !== undefined) {
       runners += 1;
-      if (runner !== RUNNER) found.push(`${at}: runs on ${runner}, not on ${RUNNER}`);
+      // The runner of the matrix is judged by platformFindings, in the job platform of assets.yml alone.
+      if (runner !== RUNNER && !(file === ASSETS && runner === MATRIX_RUNNER)) found.push(`${at}: runs on ${runner}, not on ${RUNNER}`);
     }
     const uses = valueOf(line, 'uses');
     if (uses !== undefined) {
@@ -89,7 +100,9 @@ function findings(file: string, text: string, targets: Set<string>, actions: Set
       if (deeper) found.push(`${at}: the run step continues on a later line`);
     }
   });
-  if (file.includes('/workflows/') && runners === 0) found.push(`${file}: names no runner`);
+  // A workflow whose every job calls another workflow names no runner of its own.
+  const calls = lines.some((line) => /^ {4}uses: \.\/\.github\/workflows\//.test(line));
+  if (file.includes('/workflows/') && runners === 0 && !calls) found.push(`${file}: names no runner`);
   return found;
 }
 
@@ -149,6 +162,42 @@ function lastJobFindings(file: string, text: string): string[] {
   if (value('RESULTS') !== '${{ toJSON(needs) }}') found.push(`${file}: the job ${LAST} does not pass RESULTS, the JSON of its needs`);
   if (!lines.some((line) => valueOf(line, 'run') === `make ${LAST} FAIL_SKIPPED=1`)) found.push(`${file}: the job ${LAST} does not run make ${LAST} FAIL_SKIPPED=1`);
   return found;
+}
+
+/**
+ * The findings of the runners of assets.yml: the job platform runs on the runner of its matrix, whose entries are the
+ * platforms of the release, each with its runner, and no other job runs on a runner of the matrix.
+ */
+function platformFindings(file: string, text: string): string[] {
+  const found: string[] = [];
+  const jobs = jobsOf(text);
+  for (const [name, lines] of jobs) {
+    if (name !== 'platform' && lines.some((line) => valueOf(line, 'runs-on') === MATRIX_RUNNER)) found.push(`${file}: the job ${name} runs on the runner of a matrix`);
+  }
+  const lines = jobs.get('platform');
+  if (lines === undefined) return [...found, `${file}: has no job platform`];
+  if (!lines.some((line) => valueOf(line, 'runs-on') === MATRIX_RUNNER)) found.push(`${file}: the job platform does not run on ${MATRIX_RUNNER}`);
+  const entries: Record<string, string> = {};
+  let platform: string | undefined;
+  for (const line of lines) {
+    const named = valueOf(line, 'platform');
+    if (named !== undefined && line.trim().startsWith('- ')) platform = named;
+    const runner = valueOf(line, 'runner');
+    if (runner !== undefined && platform !== undefined) {
+      entries[platform] = runner;
+      platform = undefined;
+    }
+  }
+  const byPlatform = (left: [string, string], right: [string, string]): number => left[0].localeCompare(right[0]);
+  if (JSON.stringify(Object.entries(entries).sort(byPlatform)) !== JSON.stringify(Object.entries(PLATFORM_RUNNERS).sort(byPlatform)))
+    found.push(`${file}: the job platform runs on ${JSON.stringify(entries)}, not on ${JSON.stringify(PLATFORM_RUNNERS)}`);
+  return found;
+}
+
+/** The findings of a workflow that must call assets.yml: one of its jobs uses it (binding GN-19i). */
+function callFindings(file: string, text: string): string[] {
+  const calls = [...jobsOf(text).values()].some((lines) => lines.some((line) => /^ {4}uses: \.\/\.github\/workflows\/assets\.yml$/.test(line)));
+  return calls ? [] : [`${file}: no job calls ./${ASSETS}`];
 }
 
 const TARGETS = new Set(['docs-check', 'release-tag', 'ci-passed']);
@@ -250,16 +299,77 @@ test('the Makefile rules name their targets', () => {
   assert.deepEqual([...makeTargets('A := b\n.PHONY: x\nx y: z\n\trun: it\nbindings-%: w\ntest-php: export PHP := php\n')].sort(), ['test-php', 'x', 'y']);
 });
 
-test('the workflows and the actions of the repository keep the rules', () => {
+const PLATFORM = `name: assets
+jobs:
+  platform:
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x64-gnu
+            runner: ubuntu-26.04
+          - platform: linux-arm64-gnu
+            runner: ubuntu-26.04-arm
+          - platform: darwin-arm64
+            runner: macos-15
+    runs-on: \${{ matrix.runner }}
+    steps:
+      - run: make docs-check
+  npm:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - run: make docs-check
+`;
+
+test('the job platform of assets.yml alone runs on the runner of each platform of the release', () => {
+  assert.deepEqual(findings(ASSETS, PLATFORM, TARGETS, ACTIONS), []);
+  assert.deepEqual(platformFindings(ASSETS, PLATFORM), []);
+  const broken = (from: string, to: string): string[] => {
+    assert.ok(PLATFORM.includes(from), `the sample holds no ${from}`);
+    const text = PLATFORM.replace(from, to);
+    return [...findings(ASSETS, text, TARGETS, ACTIONS), ...platformFindings(ASSETS, text)];
+  };
+  // The runner of a matrix in another workflow is a runner that is not ubuntu-26.04-arm.
+  assert.deepEqual(findings(CI, PLATFORM, TARGETS, ACTIONS), [`${CI}:13: runs on \${{ matrix.runner }}, not on ${RUNNER}`]);
+  assert.deepEqual(broken('runner: ubuntu-26.04\n', 'runner: ubuntu-24.04\n'), [`${ASSETS}: the job platform runs on {"linux-x64-gnu":"ubuntu-24.04","linux-arm64-gnu":"ubuntu-26.04-arm","darwin-arm64":"macos-15"}, not on ${JSON.stringify(PLATFORM_RUNNERS)}`]);
+  assert.deepEqual(broken('          - platform: darwin-arm64\n            runner: macos-15\n', ''), [`${ASSETS}: the job platform runs on {"linux-x64-gnu":"ubuntu-26.04","linux-arm64-gnu":"ubuntu-26.04-arm"}, not on ${JSON.stringify(PLATFORM_RUNNERS)}`]);
+  assert.deepEqual(broken('    runs-on: ${{ matrix.runner }}', '    runs-on: macos-15'), [`${ASSETS}:13: runs on macos-15, not on ${RUNNER}`, `${ASSETS}: the job platform does not run on ${MATRIX_RUNNER}`]);
+  assert.deepEqual(broken('  npm:\n    runs-on: ubuntu-26.04-arm', '  npm:\n    runs-on: ${{ matrix.runner }}'), [`${ASSETS}: the job npm runs on the runner of a matrix`]);
+  assert.deepEqual(platformFindings(ASSETS, PLATFORM.replace('  platform:', '  build:')), [`${ASSETS}: the job build runs on the runner of a matrix`, `${ASSETS}: has no job platform`]);
+});
+
+test('a workflow that calls assets.yml has no finding of the call, and one that does not is a finding', () => {
+  const calling = `${GOOD}  assets:\n    uses: ./.github/workflows/assets.yml\n`;
+  assert.deepEqual(callFindings(CI, calling), []);
+  assert.deepEqual(findings(CI, calling, TARGETS, new Set([...ACTIONS, `./${ASSETS}`])), []);
+  assert.deepEqual(callFindings(CI, GOOD), [`${CI}: no job calls ./${ASSETS}`]);
+});
+
+/**
+ * The targets of the release recipes that binding release-recipes writes for the contract, which the Makefile includes
+ * (binding GN-19h). The file is generated and not tracked, so the test writes it into a folder of its own with the binding
+ * of package.json and reads the targets from there.
+ */
+function releaseRecipeTargets(t: { after: (fn: () => void) => void }): Set<string> {
+  const out = mkdtempSync(join(tmpdir(), 'php-serialization-recipes-'));
+  t.after(() => { rmSync(out, { recursive: true, force: true }); });
+  execFileSync(join(root, 'node_modules/.bin/binding'), ['release-recipes', '--root', root, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  return makeTargets(readFileSync(join(out, 'packages/release.mk'), 'utf8'));
+}
+
+test('the workflows and the actions of the repository keep the rules', (t) => {
   const tracked = execFileSync('git', ['-C', root, 'ls-files', '-z', '--', '.github'], { encoding: 'utf8' }).split('\0').filter((file) => file !== '');
   const workflows = tracked.filter((file) => /^\.github\/workflows\/[^/]+\.yml$/.test(file));
   const actionFiles = tracked.filter((file) => /^\.github\/actions\/[^/]+\/action\.yml$/.test(file));
   assert.deepEqual(tracked.filter((file) => !workflows.includes(file) && !actionFiles.includes(file)), [], 'a tracked file of .github is no workflow and no action');
-  for (const file of [CI, RELEASE]) assert.ok(workflows.includes(file), `${file} is not tracked`);
-  const targets = makeTargets(readFileSync(join(root, 'Makefile'), 'utf8'));
-  const actions = new Set(actionFiles.map((file) => `./${dirname(file)}`));
+  for (const file of [CI, RELEASE, ASSETS]) assert.ok(workflows.includes(file), `${file} is not tracked`);
+  const recipes = releaseRecipeTargets(t);
+  assert.ok(recipes.has('release-go-static'), `the release recipes define no target release-go-static: ${[...recipes].join(', ')}`);
+  const targets = new Set([...makeTargets(readFileSync(join(root, 'Makefile'), 'utf8')), ...recipes]);
+  const actions = new Set([...actionFiles.map((file) => `./${dirname(file)}`), `./${ASSETS}`]);
   const found = [...workflows, ...actionFiles].flatMap((file) => findings(file, readFileSync(join(root, file), 'utf8'), targets, actions));
   found.push(...triggerFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...lastJobFindings(CI, readFileSync(join(root, CI), 'utf8')));
+  found.push(...platformFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8')));
+  for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
   assert.deepEqual(found, []);
 });

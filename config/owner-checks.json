@@ -204,12 +204,12 @@
     },
     {
       "paths": [
-        "scripts/release.test.mts",
         "Makefile",
-        "rust-toolchain.toml"
+        "rust-toolchain.toml",
+        "config/toolchain.json"
       ],
       "targets": [
-        "release-test"
+        "bindings-check"
       ]
     },
     {
