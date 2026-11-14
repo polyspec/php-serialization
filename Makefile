@@ -55,7 +55,7 @@ CI_REPORT ?= var/report/ci-targets
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
-	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm
+	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-test release-go-static release-wheel release-php-ext release-npm-platform release-npm release-go-module
 
 # ---- Install ----------------------------------------------------------------------------------------------------------------
 # The npm that devEngines of package.json names installs the lock, @polyspec/kit included, before the tools of the checkout
@@ -608,6 +608,27 @@ release-npm: bindings-node bindings-wasm ## Pack the npm package with its WASM b
 	$(WASM_BINDGEN) --target web --out-dir "$$work/package/wasm/generated" --out-name php_serialization_wasm $(RELEASE_TARGET)/wasm32-unknown-unknown/release/polyspec_php_serialization_wasm.wasm; \
 	$(NODE) -e 'const fs = require("fs"); const [from, to, ...platforms] = process.argv.slice(1); const p = JSON.parse(fs.readFileSync(from, "utf8")); p.optionalDependencies = Object.fromEntries(platforms.map(platform => [`$${p.name}-$${platform}`, p.version])); fs.writeFileSync(to, JSON.stringify(p, null, 2) + "\n");' packages/ts/package.json "$$work/package/package.json" $(RELEASE_NPM_PLATFORMS); \
 	$(call release_pack,"$$work/package","$$work/pack")
+
+# release-go-module carries the Go module of the release TAG (GN-19f): on the checkout of that tag, after the generation of
+# the Go binding, binding release-go-module checks the library of each platform in RELEASE_ASSETS/go (GN-19b), proves a
+# commit that adds the generated files and the libraries to the tree of the tag with a consumer, and creates the annotated
+# tag packages/go/<TAG> at it, keeping its index, its repositories and the caches of Go in a folder of the run. The
+# command pushes nothing: the recipe pushes the reference that it prints, and nothing when it prints none, because the
+# remote holds that tag already. The folder of the run is made writable before it is removed, since Go writes its module
+# cache read-only.
+release-go-module: bindings-go ## Make, prove and push the commit and the tag packages/go/TAG of the Go module with the libraries of RELEASE_ASSETS/go
+	@test -n "$$TAG" || { echo 'release-go-module: TAG is required, for example make release-go-module TAG=v0.0.1' >&2; exit 2; }
+	@work=$(abspath $(RELEASE_TARGET))/go-module; \
+	set -e; \
+	if [ -d "$$work" ]; then chmod -R u+w "$$work"; rm -rf "$$work"; fi; \
+	mkdir -p "$$work"; \
+	echo "$(BINDING) release-go-module --root $(CURDIR) --tag $$TAG --libraries $(abspath $(RELEASE_ASSETS))/go --work $$work"; \
+	ref=$$($(BINDING) release-go-module --root $(CURDIR) --tag "$$TAG" --libraries $(abspath $(RELEASE_ASSETS))/go --work "$$work"); \
+	case "$$ref" in \
+	'') echo "release-go-module: the remote holds the tag packages/go/$$TAG already" ;; \
+	"refs/tags/packages/go/$$TAG") set -x; git push origin "$$ref" ;; \
+	*) echo "release-go-module: binding printed $$ref, not refs/tags/packages/go/$$TAG" >&2; exit 1 ;; \
+	esac
 
 # release-test runs the tests of the recipes of the per-platform assets (scripts/release.test.mts) against stand-ins of the
 # tools that they start; it reads the node and npm of var/tools.
