@@ -584,7 +584,7 @@ release-tag-output: ## Write TAG and VERSION into GITHUB_OUTPUT for the later jo
 # step does not receive in its environment. ci-release-release builds and publishes the release of TAG: the tools of
 # release-tools join PATH for its later lines (RELEASE_PATH, in the order that release-tools-path gives them), the
 # artifacts of the job assets, which the workflow downloads into var/release/downloaded before this step, join
-# var/release/assets after release-assets, and the commit of the Go module carries the identity of GITHUB_ACTOR, the
+# var/release/assets with their folders (go, npm, php-ext, wheel, which release-platform-assets reads) after release-assets, and the commit of the Go module carries the identity of GITHUB_ACTOR, the
 # actor of the run.
 RELEASE_PATH = PATH="$(VAR_TOOLS)/bin:$(VAR_TOOLS)/mise/shims:$$PATH"
 RELEASE_IDENTITY = GIT_AUTHOR_NAME="$${GITHUB_ACTOR:?}" GIT_AUTHOR_EMAIL="$${GITHUB_ACTOR:?}@users.noreply.github.com" \
@@ -599,7 +599,7 @@ ci-release-release: ## The job release of release.yml: build, carry and publish 
 	$(MAKE) --no-print-directory release-zip
 	$(MAKE) --no-print-directory release-tools
 	$(RELEASE_PATH) $(MAKE) --no-print-directory release-assets
-	mkdir -p var/release/assets && cp var/release/downloaded/* var/release/assets/
+	mkdir -p var/release/assets && cp -R var/release/downloaded/. var/release/assets/
 	$(RELEASE_PATH) $(MAKE) --no-print-directory php-serialization-install-rust
 	$(RELEASE_PATH) $(MAKE) --no-print-directory install-tools TOOLS=go
 	$(RELEASE_PATH) $(MAKE) --no-print-directory release-recipes
