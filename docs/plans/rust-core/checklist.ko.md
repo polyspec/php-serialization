@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 25b1c22716b699db9a6618fed87f82e324ee073fb74e887f2d895db89912c0c7 -->
+<!-- source-sha256: dded760c5369af6cf14ee4c1f82bfba8c20739a6e4da76853afb76f07d867b60 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -42,3 +42,5 @@
 | T2.26 | 0.0.10의 CI가 binding 0.0.7로 통과한다: 어떤 recipe도 `install-llvm`을 만들지 않는다. `assets.yml`의 job `php`는 run step 앞에서 커밋으로 고정한 `install-llvm-action`으로 macOS에 LLVM 21을 설치하고 `ci-assets-php`는 `LLVM_PATH`를 `LLVM_ROOT`로 넘긴다. `api.mjs`는 `new PhpFloat('1.5')`에 kind `invalid_number`를 기대한다. Red 먼저 | `.github/workflows/assets.yml`, `Makefile`, `scripts/workflows.test.mts`, `packages/ts/tests/api.mjs`, `config/toolchain.json`, `AGENTS.md`, `CHANGELOG.md` | `make workflows-test` | [o] |
 | T2.27 | kit 0.0.114가 0.0.113을 대신한다: `package.json`은 asset `polyspec-kit-0.0.114.tgz`를 가리키고 `package-lock.json`이 그것을 integrity로 pin한다 | `package.json`, `package-lock.json`, `CHANGELOG.md` | `make rules-check` | [o] |
 | T2.28 | 0.0.10의 CI가 `shared`와 macOS PHP job을 통과한다: Go case runner에 중복 블록이 없고, `ci-assets-php`는 `install-llvm-action`의 `DYLD_LIBRARY_PATH`와 `LD_LIBRARY_PATH` 없이 빌드한다. Red 먼저 | `packages/go/tests/cases_test.go`, `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test` | [o] |
+| T2.29 | release job은 내려받은 자산 폴더(`go`, `npm`, `php-ext`, `wheel`)를 `cp -R`로 `var/release/assets`에 복사하고, `release-platform-assets`가 거기서 읽는다. Red 먼저 | `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test` | [o] |
+| T2.30 | 0.0.11: 모든 manifest가 0.0.11을 선언하고 lock이 그것을 기록한다. changelog는 release 없는 tag `v0.0.10`을 적는다. 마지막은 버전 커밋 `chore(release): Release 0.0.11 (#T2.30)`이다 | `package.json`, `package-lock.json`, `packages/*/Cargo.toml`, `packages/python/pyproject.toml`, `packages/ts/package.json`, `Cargo.lock`, `CHANGELOG.md` | `make workflows-test` | [o] |

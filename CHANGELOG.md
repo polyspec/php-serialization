@@ -6,6 +6,11 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.11
+
+- The tag `v0.0.10` exists, but 0.0.10 has no GitHub Release (T2.29): the release job copied the platform assets with `cp var/release/downloaded/* var/release/assets/`, and the asset jobs of binding 0.0.7 upload the folders `go`, `npm`, `php-ext` and `wheel`, so `cp` stopped at the first folder. `ci-release-release` now copies them with `cp -R var/release/downloaded/. var/release/assets/`, where `release-platform-assets` reads them. The release job checks out the tag, so 0.0.11 releases the fix and `v0.0.10` stays where it is. `make workflows-test`: 15 passed and 1 failed before, 16 passed after.
+- Every manifest declares 0.0.11 (T2.30), and `package-lock.json` and `Cargo.lock` record it.
+
 ## 0.0.10
 
 - The CI run of 0.0.10 with kit 0.0.114 failed in `shared` and in the macOS jobs `assets / php` (T2.28). `make duplication-check` found three equal blocks in `packages/go/tests/cases_test.go`, which the functions `succeeded` and `same` now hold. `install-llvm-action` appends `DYLD_LIBRARY_PATH` and `LD_LIBRARY_PATH` with `/usr/lib` first to `GITHUB_ENV`, so the Homebrew PHP loaded `/usr/lib/libsqlite3.dylib` and aborted (`Symbol not found: _sqlite3_enable_load_extension`); `ci-assets-php` now empties both with target-specific variables and takes the LLVM from `LLVM_PATH` alone. `make workflows-test`: 14 passed and 1 failed before, 15 passed after.
