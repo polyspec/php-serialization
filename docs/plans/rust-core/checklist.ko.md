@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 5dfa70896515a0df7d5eac651b497362854201a29cbc7d0c526411447c5ccc44 -->
+<!-- source-sha256: b315e260d8b3fe7c59e0bbd4791ecff5cb3b57d78a65b1c4893ad70431ddb617 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -46,3 +46,4 @@
 | T2.30 | 0.0.11: 모든 manifest가 0.0.11을 선언하고 lock이 그것을 기록한다. changelog는 release 없는 tag `v0.0.10`을 적는다. 마지막은 버전 커밋 `chore(release): Release 0.0.11 (#T2.30)`이다 | `package.json`, `package-lock.json`, `packages/*/Cargo.toml`, `packages/python/pyproject.toml`, `packages/ts/package.json`, `Cargo.lock`, `CHANGELOG.md` | `make workflows-test` | [o] |
 | T2.31 | 바인딩이 binding 0.0.8을 쓴다: 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.8"`을 가리키고, `Cargo.lock`은 그 태그 하나만 고정하며, `package.json`은 `@polyspec/binding` 0.0.8의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다 | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml`, `scripts/binding-features.test.mts`, `CHANGELOG.md` | `node --test scripts/binding-features.test.mts`, `make docs-check` | [o] |
 | T2.32 | 바인딩이 binding 0.0.10을 쓴다: 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.10"`을 가리키고, `Cargo.lock`은 그 태그 하나만 고정하며, `package.json`은 `@polyspec/binding` 0.0.10의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. session-store는 하나의 `polyspec-binding-core`로 바인딩을 빌드하며, 이 라이브러리의 0.0.10 기반 릴리스가 그것을 준다 | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml`, `scripts/binding-features.test.mts`, `CHANGELOG.md` | `node --test scripts/binding-features.test.mts`, `make docs-check` | [o] |
+| T2.33 | 0.0.12: 모든 manifest가 0.0.12를 선언하고 lock이 그것을 기록한다. 마지막은 버전 커밋 `chore(release): Release 0.0.12 (#T2.33)`이다 | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml`, `packages/python/pyproject.toml`, `packages/ts/package.json`, `CHANGELOG.md` | `make release-coverage`, `make binding-features-test` | [o] |
