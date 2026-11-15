@@ -298,11 +298,14 @@ test-php: bindings-php ## Build the extension, lint its stub and run the generat
 	$(CONTRACTS_ENV) $(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/tests
 
 # The static library with the test features (binding GN-13b), which Go links through CGO_LDFLAGS; gofmt and go vet,
-# then the generated tests on go test. GOTOOLCHAIN=local: a go of another release than the go directive fails instead
-# of fetching that release.
+# then the generated tests and the contract cases of packages/go/tests on go test. go test builds with the tag
+# polyspec_<feature> of each test feature of the crate (binding GN-13e), so the tests that arm faults
+# (polyspec_fault_test) run with the others. GOTOOLCHAIN=local: a go of another release than the go directive fails
+# instead of fetching that release.
 GO_RELEASE := $(shell sed -n 's/^go \(.*\)$$/\1/p' packages/go/go.mod)
-GO_ENV := GOTOOLCHAIN=local CGO_LDFLAGS=-L$(CARGO_TARGET)/debug GOFLAGS=-tags=polyspec_panic_test,polyspec_codec_test
-test-go: bindings-go ## Build the static library of the Go binding, run gofmt and go vet, then the generated tests on go test; offline
+GO_TAGS = $(subst $(space),$(comma),$(addprefix polyspec_,$(subst -,_,$(subst $(comma),$(space),$(GO_FEATURES)))))
+GO_ENV = GOTOOLCHAIN=local CGO_LDFLAGS=-L$(CARGO_TARGET)/debug GOFLAGS=-tags=$(GO_TAGS)
+test-go: bindings-go ## Build the static library of the Go binding, run gofmt and go vet, then the generated tests and the contract cases on go test; offline
 	test "$$($(GO_ENV) $(GO) env GOVERSION)" = "go$(GO_RELEASE)"
 	cargo build --locked --offline -p $(CORE)-go --features $(GO_FEATURES)
 	test -z "$$(cd packages/go && $(GOFMT) -l .)"
