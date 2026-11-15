@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 7a290ce6b9972bbafa4ac47e3b12aa0545160ac775e697add998dab42aaced88 -->
+<!-- source-sha256: f7d1f3d5da0b841667d7f025445b048b492c44859b7fff7228b7d60621208bae -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 바인딩이 binding 0.0.10을 쓴다(T2.32): 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.10"`을 가리키고, `Cargo.lock`은 다른 `polyspec-binding-core` 없이 그 태그만 고정하며, `package.json`은 `@polyspec/binding` 0.0.10의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `scripts/binding-features.test.mts`가 0.0.10의 태그와 asset을 확인한다. 이 라이브러리와 binding 0.0.10에 의존하는 라이브러리는 `polyspec-binding-core` 하나를 받는다. 여기가 0.0.8이던 때에는 trait이 서로 다른 두 개를 받았다.
 - 바인딩이 binding 0.0.8을 쓴다(T2.31): 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.8"`을 가리키고, `Cargo.lock`은 다른 `polyspec-binding-core` 없이 그 태그만 고정하며, `package.json`은 `@polyspec/binding` 0.0.8의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `scripts/binding-features.test.mts`가 0.0.8의 태그와 asset을 확인한다.
 
 ## 0.0.11
