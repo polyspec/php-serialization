@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 1816fe3c2bf39fb3b81a0d7128213b6be54852a8eb5e79faf35275c703600f34 -->
+<!-- source-sha256: 4f2b3ac7ff99c5b162d9cb1999ae63d0518430c7fcaee0ca86465c843f81c91a -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,7 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
-- PHP 확장 자산은 플랫폼과 선언한 PHP minor마다 새 job을 사용한다(T2.22). 이전에는 플랫폼 job 하나가 PHP 8.4와 8.5를 차례로 설치하여 로드된 라이브러리 상태가 minor 사이에 남을 수 있었다. 독립 PHP job은 expected minor를 전달하여 한 번 빌드하고 고유 artifact를 게시하며, PHP 외 자산은 플랫폼마다 한 번 빌드한다. workflow 소유 시험은 누락, 중복, 잘못된 matrix 항목과 혼합 설치나 빌드, expected-minor 인자 누락, artifact 충돌을 거부한다. native 자산 검증은 일치하는 릴리스 recipe를 설치할 때까지 미검증 상태다.
+- PHP 확장 자산은 플랫폼과 선언한 PHP minor마다 새 job을 사용한다(T2.22). 이전에는 플랫폼 job 하나가 PHP 8.4와 8.5를 차례로 설치하여 로드된 라이브러리 상태가 minor 사이에 남을 수 있었다. 독립 PHP job은 expected minor를 전달하여 한 번 빌드하고 고유 artifact를 게시하며, PHP 외 자산은 플랫폼마다 한 번 빌드한다. workflow 소유 시험은 누락, 중복, 잘못된 matrix 항목과 혼합 설치나 빌드, expected-minor 인자 누락, artifact 충돌을 거부한다. 선언한 `make workflows-test`는 commit된 구현에서 13개 시험에 통과했고 skip은 없으며 Node 26.12.0을 사용했다. native 자산 검증은 일치하는 릴리스 recipe를 설치할 때까지 미검증 상태다.
 
 - 명세는 interface가 `php_value` case group을 alias에 연결하고 생성된 바인딩 시험이 그 in 함수로 case를 실행한다고 적는다(T2.21). 이전에는 `packages/rust/interface.json`이 이미 연결을 선언했는데도 group을 연결하지 않았다고 적었다. `make text-absent`는 수정 전의 문장을 거부하고 수정 후에는 통과한다.
 - PHP 계약 runner는 PHP 표현이 없는 case가 정확히 네 개인지 확인하고 다른 모든 case를 실행한다(RQ-015, T2.20). 생성된 `case-test` 시험은 그 넷을 실행하고 오류 class와 kind를 확인한다. 이전에는 생성된 시험이 그 넷을 이미 시험했는데도 손으로 쓴 runner가 그 넷에서 실패했다. PHP 8.4.27의 `make test-php`: 이전에는 생성된 시험 1292개가 통과하고 손으로 쓴 시험 두 개 중 하나가 실패했다. 이후에는 두 시험 모음이 assertion 2150개와 2749개로 통과하며 건너뛴 시험이 없다. `panic-test` 진단 두 개는 생성된 panic 변환 시험에서 나오며, 생성된 시험은 둘 다 잡은 뒤 성공한다.
