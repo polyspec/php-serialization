@@ -15,10 +15,12 @@
 //   - the last job of the workflow ci is ci-passed, which runs after every other job, also after a failed one
 //     (`if: ${{ always() }}`), needs each of them and runs `make ci-passed FAIL_SKIPPED=1 RESULTS='${{ toJSON(needs) }}'`,
 //     the JSON of its needs, so that it passes only when every other job succeeded;
-//   - every job of the workflows that CI runs, ci and assets, which it calls, has one run step, `make ci-<job>` with make
-//     variables alone, a matrix value as NAME=${{ matrix.<key> }} and an input of the called workflow as
-//     NAME=${{ inputs.<key> }}; its other steps are uses steps, only a uses step has a condition, and no job sets env, so
-//     that the recipe ci-<job> holds the order and the conditions of the job and a local run is the call that CI makes.
+//   - every job of the workflows ci, release and assets, which both call, has one run step, `make ci-<job>`,
+//     `make ci-release-<job>` or `make ci-assets-<job>`, with make variables alone, a matrix value as
+//     NAME=${{ matrix.<key> }}, an input of the called workflow as NAME=${{ inputs.<key> }}, an output of a needed job as
+//     NAME=${{ needs.<job>.outputs.<key> }} and a quoted expression of the event as NAME="${{ ... }}"; its other steps are
+//     uses steps, only a uses step has a condition, no step sets env and a job sets GH_TOKEN alone, so that the recipe
+//     holds the order and the conditions of the job and a local run is the call that the workflow makes.
 //
 // The test reads the files as text, line by line: the workflows hold one key on a line, and a run step whose command
 // continues on a later line is a finding.
