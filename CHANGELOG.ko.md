@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 61bfb31dbfc57d623ffa618a2417a7228c8de8669dc71a08921347514932c070 -->
+<!-- source-sha256: 0057337786a8cda839fbaff41a70f1d3dcb337df3a9a436bab70a55ce1682235 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.10
+
+- kit 0.0.113과 binding 0.0.7이 kit 0.0.112와 binding 0.0.5를 대신합니다(T2.24): devDependency는 각 GitHub Release의 asset `polyspec-kit-0.0.113.tgz`와 `polyspec-binding-0.0.7.tgz`를 `package-lock.json`의 integrity와 함께 가리키고, `polyspec-binding-core`에 대한 모든 의존 줄은 `Cargo.lock`이 pin하는 tag `v0.0.7`을 가리키며, `make bindings`가 생성된 binding을 다시 씁니다. `make binding-features-test`는 tag `v0.0.7`을 요구합니다.
 - workflow의 모든 job은 `run` step 하나, 곧 `Makefile`에 있는 job의 recipe를 둔다(T2.23): `ci.yml`의 job은 `make ci-<job>`, `release.yml`의 job은 `make ci-release-<job>`, `assets.yml`의 job은 `make ci-assets-<job>`이며, 인자는 make 변수뿐이다. matrix 값은 `NAME=${{ matrix.<key> }}`, input `release`는 `RELEASE=${{ inputs.release }}`로 넘긴다. `ci-passed`는 step의 `env` 대신 명령줄에서 `RESULTS='${{ toJSON(needs) }}'`를 넘긴다. `release.yml`의 job `tag`는 `RUN`과 `AUTO`를 명령줄에서 넘기고, 그 recipe는 `release-tag`가 `GITHUB_ENV`에 덧붙인 `TAG`와 `VERSION`을 뒤 job에 넘긴다. job `release`는 `tag`의 output에서 `TAG`와 `VERSION`을 넘기고, 플랫폼 자산을 `run` step 앞에서 `var/release/downloaded`에 내려받으며, recipe는 그것을 `release-assets` 뒤에 `var/release/assets`에 더한다. 뒤 줄은 `release-tools-path` 대신 `release-tools`의 도구를 PATH에 두고 실행하며, Go 모듈 commit의 Git 신원은 step의 `env` 대신 recipe에서 `GITHUB_ACTOR`로 정한다. recipe는 job의 설치와 선행 작업을 먼저 실행하고 실패하면 멈추며, 그다음 검사나 빌드를 각각 끝까지 실행한다. 그래서 로컬 실행은 CI가 하는 호출과 같다. 이전에는 job마다 `run` step이 둘에서 일곱 개였고 `run` step에 step 조건 `${{ !cancelled() }}`와 `${{ inputs.release }}`가 있어서, 로컬 실행은 YAML의 순서와 조건을 되풀이해야 했다. `assets.yml`의 job `php`에서 PHP 설치는 이제 bootstrap보다 앞에 온다. 하나뿐인 `run` step보다 앞서야 하기 때문이다. `make workflows-test`는 job마다 `run` step 하나와 그 recipe 이름과 인자를 요구하고, `run` step의 조건과 step의 `env`와 `GH_TOKEN` 외의 job `env`를 거부하며, PHP 빌드와 자산 빌드를 recipe에서 읽는다.
 - PHP 확장 자산은 플랫폼과 선언한 PHP minor마다 새 job을 사용한다(T2.22). 이전에는 플랫폼 job 하나가 PHP 8.4와 8.5를 차례로 설치하여 로드된 라이브러리 상태가 minor 사이에 남을 수 있었다. 독립 PHP job은 expected minor를 전달하여 한 번 빌드하고 고유 artifact를 게시하며, PHP 외 자산은 플랫폼마다 한 번 빌드한다. workflow 소유 시험은 누락, 중복, 잘못된 matrix 항목과 혼합 설치나 빌드, expected-minor 인자 누락, artifact 충돌을 거부한다. 선언한 `make workflows-test`는 commit된 구현에서 13개 시험에 통과했고 skip은 없으며 Node 26.12.0을 사용했다. native 자산 검증은 일치하는 릴리스 recipe를 설치할 때까지 미검증 상태다.
 
@@ -14,8 +17,6 @@
 - PHP 계약 runner는 PHP 표현이 없는 case가 정확히 네 개인지 확인하고 다른 모든 case를 실행한다(RQ-015, T2.20). 생성된 `case-test` 시험은 그 넷을 실행하고 오류 class와 kind를 확인한다. 이전에는 생성된 시험이 그 넷을 이미 시험했는데도 손으로 쓴 runner가 그 넷에서 실패했다. PHP 8.4.27의 `make test-php`: 이전에는 생성된 시험 1292개가 통과하고 손으로 쓴 시험 두 개 중 하나가 실패했다. 이후에는 두 시험 모음이 assertion 2150개와 2749개로 통과하며 건너뛴 시험이 없다. `panic-test` 진단 두 개는 생성된 panic 변환 시험에서 나오며, 생성된 시험은 둘 다 잡은 뒤 성공한다.
 - 바인딩의 손으로 쓴 case runner가 바인딩이 정한 것을 기대한다(T2.18). 오류를 내는 case는 binding GN-7a가 그 kind에 주는 class를 기대한다. `packages/rust/interface.json`에서 그 kind의 행이 적는 error unit(category value의 모든 kind는 `FormatError`)이고, 그런 행이 없는 kind는 그 category의 class다. 이전에는 Python, Node, WASM, PHP runner가 category의 class를 정확한 class로 요구했다. `StdClass` 생성자의 case는 속성을 생성자에 넘기고, 생성자가 그것을 판정한다(RQ-012). 이전에는 runner가 빈 객체를 만들고 속성을 채웠는데 그것을 판정하는 검사가 없어서 생성자의 어떤 case도 오류를 내지 않았다. Node와 WASM runner는 JavaScript 안전 정수 밖의 key `{"int": n}`을 그 원문의 텍스트로 읽는다. 이전에는 `array_key_max`의 key를 반올림해서 거부했다. PHP runner는 값에 PHP 형식이 없는 case 넷에서 실패하기 전에 `serialize`의 모든 case를 실행하고 그 넷의 이름을 적는다(RQ-015). 이전에는 첫 case에서 멈췄다. `make test-python-binding`: 이전 실패 69개와 오류 1개, 이후 실패 1개. `make test-node`: 이전 1324개 중 5개 실패, 이후 1개. `make test-wasm`: 이전 1323개 중 5개 실패, 이후 1개. `make test-php`: 이전에는 contract case가 오류를 내는 첫 case에서 실패했고, 이후에는 RQ-015의 넷 밖의 모든 case가 통과한다. Python, Node, WASM에 남은 실패는 자기를 담는 list다. 바인딩은 그 list를 자리마다 새 handle로 설명하므로 core가 순환을 보지 못하고, 값을 `unsupported_value`가 아니라 `depth`로 거부한다(T2.19).
 - `int`, `float`, `str`, `bytes`의 subclass인 Python instance는 `unsupported_value`로 거부한다(RQ-012, T2.18). binding이 그런 instance를 `Other`로 설명하기 때문이다(binding GN-6e). legacy Python 패키지는 `float`의 subclass를 그 float로 썼고 `test_api.py`는 그것에 `d:1.5;`를 기대했다. 이제는 거부를 기대한다. `make test-python-binding`: `test_built_values`의 오류가 없어졌다.
-
-## 0.0.10
 
 - workflow `ci`가 새 job `bindings`에서 다섯 target의 바인딩 시험을 실행하고(`make ci-bindings`: `lint-bindings`, `check-declarations`, `test-python-binding`, `test-node`, `test-wasm`, `test-php`, `test-go`), `ci-passed`가 그것을 needs에 둔다(T2.9). 이전에는 어떤 job도 그것을 실행하지 않아서, 릴리스는 어떤 run도 시험하지 않은 바인딩을 asset으로 내보낼 수 있었다. `make workflows-test`는 그 job과 needs, 목록 `CI_BINDINGS`를 요구한다. job이 없을 때 실패했고(10 passed, 1 failed: job `bindings`가 없고 `ci-passed`가 그것을 needs에 두지 않음), 있을 때 11 passed다.
 - `make check-declarations`가 생성된 각 선언 파일을 `tsc --ignoreConfig`로 검사한다(T2.9). 이전에는 TypeScript 7이 루트의 `tsconfig.json` 옆에서 명령줄의 파일을 거부했으므로(TS5112) target이 선언을 검사하기 전에 실패했다.

@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: af8a3142f6ab5c52051c58bf8d462bc99a45c16a36f465f190d9371f2ec3de48 -->
+<!-- source-sha256: 8942d8e3767df34f86c3e335c921ed252494499041f79d1b4e24e9407d675fd0 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -37,3 +37,4 @@
 | T2.21 | 명세는 interface가 php_value case group을 alias에 연결하고 생성된 바인딩 시험이 실행한다고 적는다. case 선언이 이미 그 alias와 group을 적고 있기 때문이다 | `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make text-absent FILE=docs/spec/php-serialize.md TEXT='The interface contract does not link this group yet'` | [o] |
 | T2.22 | PHP 릴리스 확장을 플랫폼과 minor별 독립 job에서 빌드하여 각 새 job이 선언한 PHP minor만 로드한다. 정확한 matrix, runner, 단일 설치와 빌드, expected-minor 인자와 고유 artifact를 검증한다 | .github/workflows/assets.yml, scripts/workflows.test.mts, AGENTS.md and paired documents | make workflows-test | [o] |
 | T2.23 | workflow `ci.yml`, `release.yml`, `assets.yml`의 모든 job은 `run` step 하나, 곧 make 변수만 받는 recipe `make ci-<job>`, `make ci-release-<job>` 또는 `make ci-assets-<job>`을 두어, 로컬 실행이 CI가 하는 호출과 같다: recipe가 실패하면 멈추는 설치와 각각 끝까지 실행하는 검사나 빌드를 가진다. 다른 모든 step은 `uses` step이고, 조건은 `uses` step에만 두며, 어떤 step도 `env`를 두지 않고 job은 `GH_TOKEN`만 둔다. `ci-passed`는 `RESULTS='${{ toJSON(needs) }}'`를 넘긴다. Red 먼저 | `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.github/workflows/assets.yml`, `Makefile`, `scripts/workflows.test.mts`, `AGENTS.md(.ko)`, `CHANGELOG.md(.ko)` | `make workflows-test` | [o] |
+| T2.24 | 0.0.10: kit 0.0.113과 binding 0.0.7. devDependency는 각 GitHub Release의 asset `polyspec-kit-0.0.113.tgz`와 `polyspec-binding-0.0.7.tgz`를 가리키고 `package-lock.json`이 그것을 integrity로 pin한다. `polyspec-binding-core`에 대한 모든 의존 줄은 tag `v0.0.7`을 가리키고 `Cargo.lock`이 그것을 pin한다. `make bindings`가 생성된 binding을 다시 쓴다. 0.0.10에는 아직 tag가 없으므로 두 changelog의 0.0.10 절이 T2.18부터 T2.24까지의 항목을 받는다. 마지막은 버전 커밋 `chore(release): Release 0.0.10 (#T2.24)`이다 | `package.json`, `package-lock.json`, `packages/*/Cargo.toml`, `Cargo.lock`, `scripts/binding-features.test.mts`, `CHANGELOG.md` | `make binding-features-test` | [o] |
