@@ -39,7 +39,7 @@ const LAST = 'ci-passed';
 
 // A run step: make, one target, then arguments NAME=value, NAME="words" for a list such as the tools of a job, or
 // expressions ${{ ... }}.
-const RUN = /^make ([a-z][a-z0-9-]*)((?: (?:[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+")|\$\{\{[^}]*\}\}))*)$/;
+const RUN = /^make ([a-z][a-z0-9-]*)((?: (?:[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{[^}]*\}\})|\$\{\{[^}]*\}\}))*)$/;
 const PINNED = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@[0-9a-f]{40}$/;
 
 /** The targets that the text of a Makefile defines with a rule. */
@@ -181,26 +181,40 @@ function lastJobFindings(file: string, text: string): string[] {
   return found;
 }
 
+/** Accept only the tracked include-list convention, whose keys cannot alter native expansion. */
+function includeMatrix(lines: string[], php: boolean): boolean {
+  const matrixAt = lines.findIndex((line) => line.startsWith('      matrix:'));
+  const matrixEnd = lines.findIndex((line, index) => index > matrixAt && /^ {0,6}\S/.test(line));
+  const matrix = lines.slice(matrixAt, matrixEnd < 0 ? undefined : matrixEnd).filter((line) => line.trim() !== '' && !line.trim().startsWith('#')).join('\n');
+  const includeOnly = php
+    ? /^      matrix:\n        include:\n(?:          - platform: [a-z0-9-]+\n            runner: [a-z0-9.-]+\n            php: '[0-9]+\.[0-9]+'(?:\n|$))+$/
+    : /^      matrix:\n        include:\n(?:          - platform: [a-z0-9-]+\n            runner: [a-z0-9.-]+(?:\n|$))+$/;
+  return lines.filter((line) => line.startsWith('      matrix:')).length === 1 && includeOnly.test(matrix);
+}
+
 /**
  * The findings of the runners of assets.yml: the job platform runs on the runner of its matrix, whose entries are the
- * platforms of the release, each with its runner, and no other job runs on a runner of the matrix.
+ * platforms of the release, each with its runner, and only the separate PHP job may also run on a runner of the matrix.
  */
 function platformFindings(file: string, text: string): string[] {
   const found: string[] = [];
   const jobs = jobsOf(text);
   for (const [name, lines] of jobs) {
-    if (name !== 'platform' && lines.some((line) => valueOf(line, 'runs-on') === MATRIX_RUNNER)) found.push(`${file}: the job ${name} runs on the runner of a matrix`);
+    if (name !== 'platform' && name !== 'php' && lines.some((line) => valueOf(line, 'runs-on') === MATRIX_RUNNER)) found.push(`${file}: the job ${name} runs on the runner of a matrix`);
   }
   const lines = jobs.get('platform');
   if (lines === undefined) return [...found, `${file}: has no job platform`];
   if (!lines.some((line) => valueOf(line, 'runs-on') === MATRIX_RUNNER)) found.push(`${file}: the job platform does not run on ${MATRIX_RUNNER}`);
+  if (!includeMatrix(lines, false)) found.push(`${file}: the job platform matrix must be one explicit include list with only platform and runner`);
   const entries: Record<string, string> = {};
   let platform: string | undefined;
+  let count = 0;
   for (const line of lines) {
     const named = valueOf(line, 'platform');
     if (named !== undefined && line.trim().startsWith('- ')) platform = named;
     const runner = valueOf(line, 'runner');
     if (runner !== undefined && platform !== undefined) {
+      count += 1;
       entries[platform] = runner;
       platform = undefined;
     }
@@ -208,28 +222,59 @@ function platformFindings(file: string, text: string): string[] {
   const byPlatform = (left: [string, string], right: [string, string]): number => left[0].localeCompare(right[0]);
   if (JSON.stringify(Object.entries(entries).sort(byPlatform)) !== JSON.stringify(Object.entries(PLATFORM_RUNNERS).sort(byPlatform)))
     found.push(`${file}: the job platform runs on ${JSON.stringify(entries)}, not on ${JSON.stringify(PLATFORM_RUNNERS)}`);
+  if (count !== Object.keys(entries).length) found.push(`${file}: the job platform repeats a platform`);
   return found;
 }
 
-/**
- * The findings of the PHP minors of the job platform of assets.yml: it sets up each minor of `minors`, the PHP minors of the
- * extension that config/toolchain.json names (phpExtension.minors), with setup-php and its php-version, and builds the
- * extension after each with `make release-php-ext PHP=php`, and sets up no other minor (binding GN-19d).
- */
+/** The PHP job isolates every platform and declared minor in a fresh runner. */
 function phpMinorFindings(file: string, text: string, minors: string[]): string[] {
-  const lines = jobsOf(text).get('platform') ?? [];
-  const set: string[] = [];
-  const built: string[] = [];
-  let current: string | undefined;
-  for (const line of lines) {
-    const version = valueOf(line, 'php-version')?.replace(/^'|'$/g, '');
-    if (version !== undefined) current = version;
-    if (valueOf(line, 'run') === 'make release-php-ext PHP=php' && current !== undefined) built.push(current);
-    if (version !== undefined) set.push(version);
-  }
+  const jobs = jobsOf(text);
+  const lines = jobs.get('php');
+  if (lines === undefined) return [`${file}: has no job php`];
   const found: string[] = [];
-  if (set.join(' ') !== minors.join(' ')) found.push(`${file}: the job platform sets up PHP ${set.join(', ') || 'none'}, not the minors ${minors.join(', ')} of config/toolchain.json`);
-  if (built.join(' ') !== minors.join(' ')) found.push(`${file}: the job platform builds the extension for PHP ${built.join(', ') || 'none'}, not for the minors ${minors.join(', ')} of config/toolchain.json`);
+  const fail = (message: string): void => { found.push(`${file}: ${message}`); };
+  if (!includeMatrix(lines, true)) fail('the job php matrix must be one explicit include list with only platform, runner and php');
+  const entries: { platform: string; runner?: string; php?: string }[] = [];
+  for (const line of lines) {
+    const platform = valueOf(line, 'platform');
+    if (platform !== undefined && line.trim().startsWith('- ')) entries.push({ platform });
+    const current = entries.at(-1);
+    const runner = valueOf(line, 'runner');
+    const php = valueOf(line, 'php')?.replace(/^'|'$/g, '');
+    if (current !== undefined && runner !== undefined) current.runner = runner;
+    if (current !== undefined && php !== undefined) current.php = php;
+  }
+  const expected = Object.entries(PLATFORM_RUNNERS).flatMap(([platform, runner]) => minors.map((php) => ({ platform, runner, php })));
+  const canonical = (values: typeof entries): string => values.map((entry) => JSON.stringify(entry)).sort().join(' ');
+  if (canonical(entries) !== canonical(expected)) fail('the job php does not have the exact platform, runner and PHP minor product');
+  if (lines.filter((line) => valueOf(line, 'runs-on') === MATRIX_RUNNER).length !== 1) fail('the job php must run on matrix.runner');
+  const setups = lines.filter((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true);
+  const versions = lines.map((line) => valueOf(line, 'php-version')).filter((value) => value !== undefined);
+  if (setups.length !== 1 || versions.length !== 1 || versions[0] !== '${{ matrix.php }}') fail('the job php must set up exactly matrix.php once');
+  const steps: string[][] = [];
+  for (const line of lines.slice(lines.findIndex((line) => line === '    steps:') + 1)) {
+    if (line.startsWith('      - ')) steps.push([]);
+    steps.at(-1)?.push(line);
+  }
+  const setupAt = steps.findIndex((step) => step.some((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true));
+  const buildAt = steps.findIndex((step) => step.some((line) => valueOf(line, 'run')?.startsWith('make release-php-ext') === true));
+  const setup = steps[setupAt] ?? [];
+  if (!setup.includes('        with:') || !setup.includes('          php-version: ${{ matrix.php }}') || setupAt >= buildAt) fail('the PHP setup step must own its minor input and precede the build');
+  const builds = lines.map((line) => valueOf(line, 'run')).filter((value) => value?.startsWith('make release-php-ext') === true);
+  if (builds.length !== 1 || builds[0] !== 'make release-php-ext PHP=php EXPECTED_PHP_MINOR=${{ matrix.php }}') fail('the job php must build once with its expected minor');
+  const upload = lines.findIndex((line) => valueOf(line, 'uses')?.startsWith('actions/upload-artifact@') === true);
+  if (upload < 0 || !lines.slice(upload).some((line) => valueOf(line, 'name') === 'assets-php-${{ matrix.platform }}-${{ matrix.php }}')) fail('the job php must publish its unique platform and minor artifact');
+  const nonPhp = ['release-go-static', 'release-wheel', 'release-npm-platform'];
+  for (const [name, other] of jobs) {
+    if (name === 'php' || name === 'platform') continue;
+    if (other.some((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true || valueOf(line, 'php-version') !== undefined || /^make (?:release-php-ext|release-go-static|release-wheel|release-npm-platform)(?: |$)/.test(valueOf(line, 'run') ?? ''))) fail(`the job ${name} repeats a native asset setup or build`);
+  }
+  if (lines.some((line) => nonPhp.some((target) => valueOf(line, 'run') === `make ${target}`))) fail('the job php must not repeat non-PHP assets');
+  const platform = jobs.get('platform') ?? [];
+  if (platform.some((line) => valueOf(line, 'php-version') !== undefined || valueOf(line, 'run')?.startsWith('make release-php-ext') === true)) fail('the job platform must not install or build PHP');
+  for (const target of nonPhp) {
+    if (platform.filter((line) => valueOf(line, 'run') === `make ${target}`).length !== 1) fail(`the job platform must build ${target} once`);
+  }
   return found;
 }
 
@@ -411,23 +456,75 @@ test('a workflow that calls assets.yml has no finding of the call, and one that 
   assert.deepEqual(callFindings(CI, GOOD), [`${CI}: no job calls ./${ASSETS}`]);
 });
 
-test('the job platform builds the extension for each PHP minor of config/toolchain.json and for no other', () => {
-  const sample = `jobs:
+const PHP_SAMPLE = `jobs:
   platform:
+    runs-on: \${{ matrix.runner }}
+    steps:
+      - run: make release-go-static
+      - run: make release-wheel
+      - run: make release-npm-platform
+  php:
+    strategy:
+      matrix:
+        include:
+${Object.entries(PLATFORM_RUNNERS).flatMap(([platform, runner]) => ['8.4', '8.5'].map((php) => `          - platform: ${platform}\n            runner: ${runner}\n            php: '${php}'`)).join('\n')}
     runs-on: \${{ matrix.runner }}
     steps:
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
-          php-version: '8.4'
-      - run: make release-php-ext PHP=php
-      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+          php-version: \${{ matrix.php }}
+      - run: make release-php-ext PHP=php EXPECTED_PHP_MINOR=\${{ matrix.php }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          php-version: '8.5'
-      - run: make release-php-ext PHP=php
+          name: assets-php-\${{ matrix.platform }}-\${{ matrix.php }}
 `;
-  assert.deepEqual(phpMinorFindings(ASSETS, sample, ['8.4', '8.5']), []);
-  assert.deepEqual(phpMinorFindings(ASSETS, sample, ['8.4', '8.5', '8.6']), [`${ASSETS}: the job platform sets up PHP 8.4, 8.5, not the minors 8.4, 8.5, 8.6 of config/toolchain.json`, `${ASSETS}: the job platform builds the extension for PHP 8.4, 8.5, not for the minors 8.4, 8.5, 8.6 of config/toolchain.json`]);
-  assert.deepEqual(phpMinorFindings(ASSETS, sample.replace(/ {6}- run: make release-php-ext PHP=php\n$/, ''), ['8.4', '8.5']), [`${ASSETS}: the job platform builds the extension for PHP 8.4, not for the minors 8.4, 8.5 of config/toolchain.json`]);
+
+test('PHP asset jobs isolate the exact platform and minor product (T2.22)', () => {
+  assert.deepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5']), []);
+  const mutations = [
+    PHP_SAMPLE.replace("            php: '8.4'", "            php: '8.5'"),
+    PHP_SAMPLE.replace(/          - platform: linux-x64-gnu\n            runner: ubuntu-26.04\n            php: '8.4'\n/, ''),
+    PHP_SAMPLE.replaceAll('    runs-on: ${{ matrix.runner }}\n    steps:', "          - platform: linux-x64-gnu\n            runner: ubuntu-26.04\n            php: '8.4'\n    runs-on: ${{ matrix.runner }}\n    steps:"),
+    PHP_SAMPLE.replace('            runner: ubuntu-26.04', '            runner: macos-15'),
+    PHP_SAMPLE.replace("            php: '8.4'", "            php: '8.6'"),
+    PHP_SAMPLE.replaceAll('    runs-on: ${{ matrix.runner }}\n    steps:', '    runs-on: macos-15\n    steps:'),
+    PHP_SAMPLE.replace('php-version: ${{ matrix.php }}', "php-version: '8.4'"),
+    PHP_SAMPLE.replace('      - run: make release-php-ext', '      - uses: shivammathur/setup-php@duplicate\n      - run: make release-php-ext'),
+    PHP_SAMPLE.replace(' EXPECTED_PHP_MINOR=${{ matrix.php }}', ''),
+    PHP_SAMPLE.replace('      - run: make release-php-ext', '      - run: make release-php-ext PHP=php\n      - run: make release-php-ext'),
+    PHP_SAMPLE.replace('assets-php-${{ matrix.platform }}-${{ matrix.php }}', 'assets-${{ matrix.platform }}'),
+    PHP_SAMPLE.replace('      - run: make release-wheel\n', ''),
+    PHP_SAMPLE.replace('      - run: make release-wheel', '      - run: make release-wheel\n      - run: make release-wheel'),
+    PHP_SAMPLE.replace('  platform:\n', '  platform:\n      - run: make release-php-ext PHP=php\n'),
+  ];
+  for (const [index, mutation] of mutations.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, mutation, ['8.4', '8.5']), [], `mutation ${index}`);
+  assert.notDeepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5', '8.6']), []);
+});
+
+test('PHP jobs reject matrix shape changes and detached or late setup (T2.22)', () => {
+  const build = '      - run: make release-php-ext PHP=php EXPECTED_PHP_MINOR=${{ matrix.php }}\n';
+  const version = '          php-version: ${{ matrix.php }}\n';
+  const mutations = [
+    PHP_SAMPLE.replace('      matrix:\n', '      matrix:\n        extra: [one, two]\n'),
+    PHP_SAMPLE.replace('      matrix:\n', '      matrix:\n        exclude: [{platform: linux-x64-gnu}]\n'),
+    PHP_SAMPLE.replace('      matrix:\n', '      matrix: {extra: [one, two]}\n'),
+    PHP_SAMPLE.replace('        include:\n', '        include: []\n'),
+    PHP_SAMPLE.replace('        include:\n', '        include:\n        include:\n'),
+    PHP_SAMPLE.replace("            php: '8.4'", "            php: '8.4'\n            extra: one"),
+    PHP_SAMPLE.replace(build, '').replace('      - uses: shivammathur/setup-php@', build + '      - uses: shivammathur/setup-php@'),
+    PHP_SAMPLE.replace(version, '').replace(build, build + '        with:\n' + version),
+  ];
+  for (const [index, mutation] of mutations.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, mutation, ['8.4', '8.5']), [], `shape/setup mutation ${index}`);
+});
+
+test('asset ownership rejects non-PHP matrix axes and builds in other jobs (T2.22)', () => {
+  for (const extra of ['        extra: [one, two]\n', '        exclude: [{platform: linux-x64-gnu}]\n']) {
+    assert.notDeepEqual(platformFindings(ASSETS, PLATFORM.replace('      matrix:\n', '      matrix:\n' + extra)), []);
+  }
+  for (const step of ['uses: shivammathur/setup-php@duplicate', 'run: make release-php-ext PHP=php', 'run: make release-go-static', 'run: make release-wheel', 'run: make release-npm-platform']) {
+    const duplicated = PHP_SAMPLE + `  other:\n    runs-on: ubuntu-26.04-arm\n    steps:\n      - ${step}\n`;
+    assert.notDeepEqual(phpMinorFindings(ASSETS, duplicated, ['8.4', '8.5']), [], step);
+  }
 });
 
 test('the workflow ci runs the binding tests of the five targets in a job that ci-passed needs', () => {

@@ -87,3 +87,7 @@ Until the generated bindings replace them (RQ-011), the Node.js and Python packa
 ## Transition
 
 The Node.js and Python packages are in `legacy/packages/js` and `legacy/packages/python`, and the bindings that binding generates from `packages/rust/interface.json` take `packages/python`, `packages/ts` and `packages/php-ext` (RQ-011). The legacy packages keep their API and their own implementation, are no release target, and run their tests and the fuzz from their new paths, as the reference of the comparison with the bindings. Each is removed by a change of its own once the binding of its language passes the contract, the package tests and the fuzz (plan V-6 (5)); until then [the table above](#differences) lists where they differ from the crate.
+
+## PHP release build isolation
+
+The PHP extension is built in a fresh job for each supported platform and PHP minor. The complete product of the platform runners and `config/toolchain.json` PHP minors is required in an explicit include-only matrix without extra axes or exclusions. The setup step owns the minor input and precedes the build. Each job installs one minor, passes that minor as `EXPECTED_PHP_MINOR`, builds once and publishes a unique platform-and-minor artifact. The other platform assets build once per platform. Sharing a job between PHP minors is refused because a process can retain the previously loaded PHP library. The workflow contract is planned until T2.22 passes its owning check; native recipe and asset verification remain pending until matching released recipes are installed.

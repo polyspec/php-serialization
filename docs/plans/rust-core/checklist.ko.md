@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 06e7aa5665c7e9dbcfd3458822f8e2709a61b8a9cb2180d595431241aa4372f2 -->
+<!-- source-sha256: 22e50703213530a53bb1ddee84bd6bd40eb0f1d2b16a6917c24af95e8f9368de -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -35,3 +35,4 @@
 | T2.19 | 자기를 담는 언어의 list나 map은 모든 바인딩에서 `unsupported_value`로 거부한다(RQ-012). core는 handle이 이미 열린 배열을 거부하지만, pin한 binding 0.0.5의 바인딩은 Python `list`나 `dict`와 JavaScript `Array`나 `Map`을 자리마다 새 handle로 설명한다(GN-6af는 instance마다 handle 하나를 value class에만 준다). 그래서 core가 순환을 보지 못하고 순회가 깊이 제한에서 `depth`로 끝난다. 순회가 container를 가진 동안 그것에 handle 하나를 주는 binding 릴리스를 기다리고, 그 뒤 그것을 pin한다. Red: `test_api.py`의 `test_unrepresentable`과 `api.mjs`의 `unrepresentable`(Node와 WASM)이 `depth`로 실패한다 | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml` | `make test-python-binding`, `make test-node`, `make test-wasm` | [ ] |
 | T2.20 | PHP 계약 runner는 PHP로 표현할 수 있는 모든 host 값을 실행하고 PHP 형식이 없는 값이 정확히 네 개인지 확인한다. 생성된 PHP case-test 시험은 그 넷을 실행하여 오류 class와 kind를 확인한다(RQ-015). 표현할 수 없는 case가 빠지거나 바뀌거나 추가되면 허용하지 않는다. 잡힌 panic-test 진단은 PHPUnit 종료 결과로 처리되지 않은 panic과 구분한다 | `packages/php-ext/tests/CasesTest.php`, `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make test-php` | [o] |
 | T2.21 | 명세는 interface가 php_value case group을 alias에 연결하고 생성된 바인딩 시험이 실행한다고 적는다. case 선언이 이미 그 alias와 group을 적고 있기 때문이다 | `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make text-absent FILE=docs/spec/php-serialize.md TEXT='The interface contract does not link this group yet'` | [o] |
+| T2.22 | PHP 릴리스 확장을 플랫폼과 minor별 독립 job에서 빌드하여 각 새 job이 선언한 PHP minor만 로드한다. 정확한 matrix, runner, 단일 설치와 빌드, expected-minor 인자와 고유 artifact를 검증한다 | .github/workflows/assets.yml, scripts/workflows.test.mts, AGENTS.md and paired documents | make workflows-test | [~] |

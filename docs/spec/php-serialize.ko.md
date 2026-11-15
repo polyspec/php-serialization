@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: 7b4673213fd902fb60cc7702b8d85fc37af2c2025e12f88c8d3709cf3b9d1916 -->
+<!-- source-sha256: 2b3d8807f1ab1c89a2d6ad49fb40ea9eb4bf2f2f7d339772f15d727b9b5f1fb4 -->
 # PHP serialize 계약
 
 [English](php-serialize.md)
@@ -88,3 +88,7 @@ runtime이 담을 수 없는 값은 변경하지 않고 unserialize의 오류로
 ## 이행
 
 Node.js와 Python 패키지는 `legacy/packages/js`와 `legacy/packages/python`에 있고, binding이 `packages/rust/interface.json`에서 생성하는 바인딩이 `packages/python`, `packages/ts`, `packages/php-ext`를 차지합니다(RQ-011). legacy 패키지는 API와 자기 구현을 지키고, 배포 대상이 아니며, 바인딩과 비교하는 기준으로 새 경로에서 시험과 fuzz를 실행합니다. 각 패키지는 그 언어의 바인딩이 contract, 패키지 시험, fuzz를 통과하면 그것만의 변경으로 없앱니다(계획 V-6 (5)). 그때까지 [위 표](#differences)가 crate와 다른 곳을 적습니다.
+
+## PHP 릴리스 빌드 격리
+
+PHP 확장은 지원하는 플랫폼과 PHP minor마다 새 job에서 빌드한다. 플랫폼 runner와 `config/toolchain.json` PHP minor의 전체 곱을 추가 axis나 exclusion이 없는 명시적 include-only matrix로 구성한다. 설치 step은 minor 입력을 소유하고 빌드보다 먼저 실행한다. 각 job은 minor 하나를 설치하고 그 minor를 `EXPECTED_PHP_MINOR`로 전달하며 한 번 빌드하고 플랫폼과 minor별 고유 artifact를 게시한다. 나머지 플랫폼 자산은 플랫폼마다 한 번 빌드한다. 프로세스가 이전에 로드한 PHP 라이브러리를 유지할 수 있으므로 서로 다른 PHP minor가 job을 공유하는 것을 거부한다. workflow 계약은 T2.22의 소유 검사가 통과할 때까지 계획 상태이며, native recipe와 자산 검증은 일치하는 릴리스 recipe를 설치할 때까지 미검증 상태다.
