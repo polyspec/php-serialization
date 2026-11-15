@@ -705,6 +705,70 @@ test('the workflow ci runs the binding tests of the five targets in a job that c
   assert.deepEqual(bindingJobFindings(CI, good, makefile.replace(' test-go', '')), [`Makefile: CI_BINDINGS is ${BINDING_TESTS.filter((name) => name !== 'test-go').join(' ')}, not ${BINDING_TESTS.join(' ')}`]);
 });
 
+/**
+ * The findings of the recipes of the jobs: every target that a recipe ci-<job> makes with $(MAKE) is a target of the
+ * Makefile or of the release recipes that it includes, so that a job does not stop at a target that the pinned binding
+ * no longer writes (binding 0.0.7 writes no install-llvm).
+ */
+function recipeTargetFindings(makefile: string, targets: Set<string>): string[] {
+  const found: string[] = [];
+  for (const job of [...makefile.matchAll(/^(ci-[a-z0-9-]+) *:(?!=)/gm)].map((match) => match[1] ?? '')) {
+    for (const line of recipeOf(makefile, job)) {
+      for (const match of line.matchAll(/\$\(MAKE\)(?: --no-print-directory)? ([a-z][a-z0-9-]*)/g)) {
+        if (!targets.has(match[1] ?? '')) found.push(`Makefile: the recipe ${job} makes ${match[1] ?? ''}, which neither the Makefile nor the release recipes define`);
+      }
+    }
+  }
+  return found;
+}
+
+/** The LLVM step of the job php: KyleMayes/install-llvm-action, pinned by its commit (GN-19i). */
+const LLVM_ACTION = /^ {6}- uses: KyleMayes\/install-llvm-action@[0-9a-f]{40}$/;
+/** The tail of the build line of ci-assets-php that builds with the LLVM that the step installed. */
+const LLVM_ROOT_ARGUMENT = '$(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))';
+
+/**
+ * The findings of the LLVM of the job php of assets.yml (binding GN-19i): the job provisions the LLVM of
+ * config/toolchain.json before its run step on a runner whose image holds none, macOS, with one uses step of
+ * install-llvm-action of a release of that major, and its recipe passes the LLVM_PATH of that step as LLVM_ROOT. The
+ * ubuntu-26.04 images hold the LLVM at /usr/lib/llvm-<major>, the default LLVM_ROOT of the release recipes.
+ */
+function llvmFindings(file: string, text: string, major: string, makefile: string): string[] {
+  const steps = stepsOf(jobsOf(text).get('php') ?? []);
+  const found: string[] = [];
+  const llvm = steps.filter((step) => LLVM_ACTION.test(step[0] ?? ''));
+  const run = steps.findIndex((step) => step.some((line) => valueOf(line, 'run') !== undefined));
+  if (llvm.length !== 1) return [`${file}: the job php provisions LLVM in ${String(llvm.length)} uses steps of install-llvm-action pinned by a commit, not one`];
+  const step = llvm[0] ?? [];
+  if (!step.includes("        if: runner.os == 'macOS'")) found.push(`${file}: the LLVM step of the job php does not run on macOS alone`);
+  if (!step.some((line) => new RegExp(`^ {10}version: '${major}\\.[0-9]+\\.[0-9]+'$`).test(line))) found.push(`${file}: the LLVM step of the job php installs no LLVM ${major} of config/toolchain.json`);
+  if (steps.indexOf(step) > run) found.push(`${file}: the LLVM step of the job php comes after its run step`);
+  if (!recipeOf(makefile, 'ci-assets-php').some((line) => /\brelease-php-ext\b/.test(line) && line.endsWith(` ${LLVM_ROOT_ARGUMENT}`))) found.push(`Makefile: the build of ci-assets-php does not pass ${LLVM_ROOT_ARGUMENT}`);
+  return found;
+}
+
+/** The major release of LLVM that config/toolchain.json pins (llvm.version). */
+function llvmMajor(): string {
+  const toolchain: unknown = JSON.parse(readFileSync(join(root, 'config/toolchain.json'), 'utf8'));
+  const llvm: unknown = typeof toolchain === 'object' && toolchain !== null && 'llvm' in toolchain ? toolchain.llvm : undefined;
+  const version: unknown = typeof llvm === 'object' && llvm !== null && 'version' in llvm ? llvm.version : undefined;
+  assert.ok(typeof version === 'string' && /^[0-9]+$/.test(version), 'config/toolchain.json pins no major release of LLVM (llvm.version)');
+  return version;
+}
+
+test('a recipe of a job makes only defined targets, and the job php provisions LLVM on macOS before its run step', () => {
+  const makefile = 'ci-assets-php:\n\t$(MAKE) --no-print-directory release-recipes\n\t$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))\n';
+  const targets = new Set(['ci-assets-php', 'release-recipes', 'release-php-ext']);
+  assert.deepEqual(recipeTargetFindings(makefile, targets), []);
+  assert.deepEqual(recipeTargetFindings(makefile.replace('release-recipes', 'install-llvm'), targets), ['Makefile: the recipe ci-assets-php makes install-llvm, which neither the Makefile nor the release recipes define']);
+  const job = `jobs:\n  php:\n    runs-on: \${{ matrix.runner }}\n    steps:\n      - uses: ./.github/actions/bootstrap\n      - uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0\n        if: runner.os == 'macOS'\n        with:\n          version: '21.1.8'\n      - run: make ci-assets-php\n`;
+  assert.deepEqual(llvmFindings(ASSETS, job, '21', makefile), []);
+  assert.deepEqual(llvmFindings(ASSETS, job.replace("        if: runner.os == 'macOS'\n", ''), '21', makefile), [`${ASSETS}: the LLVM step of the job php does not run on macOS alone`]);
+  assert.deepEqual(llvmFindings(ASSETS, job, '22', makefile), [`${ASSETS}: the LLVM step of the job php installs no LLVM 22 of config/toolchain.json`]);
+  assert.deepEqual(llvmFindings(ASSETS, job.replace('@ebc0426251bc40c7cd31162802432c68818ab8f0', '@v2'), '21', makefile), [`${ASSETS}: the job php provisions LLVM in 0 uses steps of install-llvm-action pinned by a commit, not one`]);
+  assert.deepEqual(llvmFindings(ASSETS, job, '21', makefile.replace(` ${LLVM_ROOT_ARGUMENT}`, '')), [`Makefile: the build of ci-assets-php does not pass ${LLVM_ROOT_ARGUMENT}`]);
+});
+
 /** The PHP minors of the extension that config/toolchain.json names (phpExtension.minors). */
 function phpMinors(): string[] {
   const toolchain: unknown = JSON.parse(readFileSync(join(root, 'config/toolchain.json'), 'utf8'));
@@ -747,5 +811,7 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   for (const file of [CI, ASSETS, RELEASE]) found.push(...jobStepFindings(file, readFileSync(join(root, file), 'utf8')));
   for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
   found.push(...bindingJobFindings(CI, readFileSync(join(root, CI), 'utf8'), readFileSync(join(root, 'Makefile'), 'utf8')));
+  found.push(...recipeTargetFindings(readFileSync(join(root, 'Makefile'), 'utf8'), targets));
+  found.push(...llvmFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), llvmMajor(), readFileSync(join(root, 'Makefile'), 'utf8')));
   assert.deepEqual(found, []);
 });
