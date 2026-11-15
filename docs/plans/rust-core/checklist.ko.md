@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 68f055cf0aeb88a2cd0ddec63bb25680f93682af74077a457df2adabcdd5a29a -->
+<!-- source-sha256: 25b1c22716b699db9a6618fed87f82e324ee073fb74e887f2d895db89912c0c7 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -41,3 +41,4 @@
 | T2.25 | Go binding은 `packages/go/tests`로 `contracts/`의 contract case를 다른 runner와 같은 비교로 실행하고, `make test-go`는 crate의 모든 test feature의 tag `polyspec_<feature>`로 Go 테스트를 빌드한다. Red 먼저 | `packages/go/tests/*_test.go`, `Makefile`, `CHANGELOG.md` | `make test-go` | [o] |
 | T2.26 | 0.0.10의 CI가 binding 0.0.7로 통과한다: 어떤 recipe도 `install-llvm`을 만들지 않는다. `assets.yml`의 job `php`는 run step 앞에서 커밋으로 고정한 `install-llvm-action`으로 macOS에 LLVM 21을 설치하고 `ci-assets-php`는 `LLVM_PATH`를 `LLVM_ROOT`로 넘긴다. `api.mjs`는 `new PhpFloat('1.5')`에 kind `invalid_number`를 기대한다. Red 먼저 | `.github/workflows/assets.yml`, `Makefile`, `scripts/workflows.test.mts`, `packages/ts/tests/api.mjs`, `config/toolchain.json`, `AGENTS.md`, `CHANGELOG.md` | `make workflows-test` | [o] |
 | T2.27 | kit 0.0.114가 0.0.113을 대신한다: `package.json`은 asset `polyspec-kit-0.0.114.tgz`를 가리키고 `package-lock.json`이 그것을 integrity로 pin한다 | `package.json`, `package-lock.json`, `CHANGELOG.md` | `make rules-check` | [o] |
+| T2.28 | 0.0.10의 CI가 `shared`와 macOS PHP job을 통과한다: Go case runner에 중복 블록이 없고, `ci-assets-php`는 `install-llvm-action`의 `DYLD_LIBRARY_PATH`와 `LD_LIBRARY_PATH` 없이 빌드한다. Red 먼저 | `packages/go/tests/cases_test.go`, `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test` | [o] |

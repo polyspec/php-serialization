@@ -543,6 +543,29 @@ func raises(t *testing.T, iface map[string]any, kase map[string]any, err error) 
 	}
 }
 
+// succeeded judges the error of a call: a case that raises expects it, and any other case expects none. It is true
+// when the call succeeded as the case expects, so that the caller compares its result.
+func succeeded(t *testing.T, iface map[string]any, kase map[string]any, err error) bool {
+	t.Helper()
+	if _, ok := kase["raises"]; ok {
+		raises(t, iface, kase, err)
+		return false
+	}
+	if err != nil {
+		t.Errorf("%v: %v", kase["id"], err)
+		return false
+	}
+	return true
+}
+
+// same requires the canonical form that the binding gave to be the one of the case.
+func same(t *testing.T, kase map[string]any, what string, got, want []string) {
+	t.Helper()
+	if !slices.Equal(got, want) {
+		t.Errorf("%v: %s is %v, expected %v", kase["id"], what, got, want)
+	}
+}
+
 func written(kase map[string]any) (string, bool) {
 	if text, ok := kase["written"].(string); ok {
 		return text, true
@@ -631,12 +654,7 @@ func TestSerialize(t *testing.T) {
 			continue
 		}
 		out, err := phpserialization.Serialize(made)
-		if _, ok := kase["raises"]; ok {
-			raises(t, iface, kase, err)
-			continue
-		}
-		if err != nil {
-			t.Errorf("%v: %v", kase["id"], err)
+		if !succeeded(t, iface, kase, err) {
 			continue
 		}
 		if want, ok := written(kase); ok && base64.StdEncoding.EncodeToString(out) != want {
@@ -647,9 +665,7 @@ func TestSerialize(t *testing.T) {
 			t.Errorf("%v: unserialize of the written bytes: %v", kase["id"], err)
 			continue
 		}
-		if got, want := canonicalHost(t, back), canonicalCase(value); !slices.Equal(got, want) {
-			t.Errorf("%v: the value read back is %v, expected %v", kase["id"], got, want)
-		}
+		same(t, kase, "the value read back", canonicalHost(t, back), canonicalCase(value))
 	}
 	if count == 0 {
 		t.Fatal("no serialize case ran")
@@ -672,17 +688,10 @@ func TestStdClass(t *testing.T) {
 			t.Fatalf("%v: %v", kase["id"], err)
 		}
 		object, err := phpserialization.NewStdClass(properties)
-		if _, ok := kase["raises"]; ok {
-			raises(t, iface, kase, err)
+		if !succeeded(t, iface, kase, err) {
 			continue
 		}
-		if err != nil {
-			t.Errorf("%v: %v", kase["id"], err)
-			continue
-		}
-		if got, want := canonicalHost(t, object), canonicalCase(map[string]any{"kind": "object", "value": kase["properties"]}); !slices.Equal(got, want) {
-			t.Errorf("%v: the object is %v, expected %v", kase["id"], got, want)
-		}
+		same(t, kase, "the object", canonicalHost(t, object), canonicalCase(map[string]any{"kind": "object", "value": kase["properties"]}))
 	}
 	t.Logf("%d StdClass cases", count)
 }
@@ -699,17 +708,10 @@ func TestReference(t *testing.T) {
 			t.Fatalf("%v: %v", kase["id"], err)
 		}
 		reference, err := phpserialization.NewReference(made)
-		if _, ok := kase["raises"]; ok {
-			raises(t, iface, kase, err)
+		if !succeeded(t, iface, kase, err) {
 			continue
 		}
-		if err != nil {
-			t.Errorf("%v: %v", kase["id"], err)
-			continue
-		}
-		if got, want := canonicalHost(t, reference.Value), canonicalCase(value); !slices.Equal(got, want) {
-			t.Errorf("%v: the value is %v, expected %v", kase["id"], got, want)
-		}
+		same(t, kase, "the value", canonicalHost(t, reference.Value), canonicalCase(value))
 	}
 	t.Logf("%d Reference cases", count)
 }

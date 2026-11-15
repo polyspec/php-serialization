@@ -431,7 +431,10 @@ ci-assets-platform: ## The job platform of assets.yml: the Go static library, th
 
 # The job php provisions the LLVM of config/toolchain.json before ci-assets-php (binding GN-19i): the ubuntu-26.04 images
 # hold it at /usr/lib/llvm-<major>, the default LLVM_ROOT of packages/release.mk, and on macOS install-llvm-action installs
-# it and sets LLVM_PATH, which the build takes as LLVM_ROOT.
+# it and sets LLVM_PATH, which the build takes as LLVM_ROOT. The action also appends DYLD_LIBRARY_PATH and LD_LIBRARY_PATH
+# with /usr/lib first, which make the PHP of the job load the system libsqlite3 and abort, so the recipe empties both.
+ci-assets-php: DYLD_LIBRARY_PATH :=
+ci-assets-php: LD_LIBRARY_PATH :=
 ci-assets-php: ## The job php of assets.yml: the PHP extension for the PHP on PATH, whose minor is EXPECTED_PHP_MINOR; RELEASE=true; ONLINE
 	@test -n "$(EXPECTED_PHP_MINOR)" || { echo 'ci-assets-php needs EXPECTED_PHP_MINOR, the PHP minor of the job, for example make ci-assets-php EXPECTED_PHP_MINOR=8.4' >&2; exit 2; }
 	$(MAKE) --no-print-directory php-serialization-install-rust

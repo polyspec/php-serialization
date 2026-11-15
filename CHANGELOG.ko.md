@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 31eab9a3c50c171fc79ec7222af016f1b2cb817bb2e2e6ee8e34f82c0ee90ad5 -->
+<!-- source-sha256: 7a0f69d7546fbde073cbebe12d70e789bd93abf2dc8d07ca452d8d043e948ca6 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -9,6 +9,7 @@
 
 ## 0.0.10
 
+- kit 0.0.114로 돌린 0.0.10의 CI 실행이 `shared`와 macOS job `assets / php`에서 실패했습니다(T2.28). `make duplication-check`가 `packages/go/tests/cases_test.go`에서 같은 블록 세 개를 찾았고, 이제 함수 `succeeded`와 `same`이 그것을 담습니다. `install-llvm-action`이 `/usr/lib`를 앞에 둔 `DYLD_LIBRARY_PATH`와 `LD_LIBRARY_PATH`를 `GITHUB_ENV`에 더하므로 Homebrew PHP가 `/usr/lib/libsqlite3.dylib`를 읽고 abort했습니다(`Symbol not found: _sqlite3_enable_load_extension`). 이제 `ci-assets-php`는 target 전용 변수로 두 변수를 비우고 LLVM은 `LLVM_PATH`로만 받습니다. `make workflows-test`: 이전 14개 통과와 1개 실패, 이후 15개 통과입니다.
 - kit 0.0.114가 kit 0.0.113을 대신합니다(T2.27): `package.json`은 GitHub Release의 asset `polyspec-kit-0.0.114.tgz`를 가리키고 `package-lock.json`이 그것을 integrity로 pin합니다. `make rules-check`가 그것으로 통과합니다.
 - Go binding이 contract case를 실행합니다(T2.25): `packages/go/tests`가 `contracts/php-serialize.json`과 `contracts/host-values.json`을 읽어 Python, Node, WASM, PHP runner와 같은 방식으로 Go binding과 비교하고, `make test-go`가 생성 테스트와 함께 그것을 실행합니다. `make test-go`는 `packages/go/internal/ffi/Cargo.toml`의 모든 test feature의 tag `polyspec_<feature>`로 Go 테스트를 빌드합니다. 이전에는 `polyspec_panic_test`와 `polyspec_codec_test`만 적었으므로 fault를 거는 생성 테스트가 실행되지 않았고 case `a_broken_invariant_is_internal`은 fault를 걸 수 없었습니다. `make test-go`: 이전에는 runner가 그 case에서 실패했고, 이후에는 unserialize 661개, serialize 622개(Go 형태가 없는 2개, RQ-015), `StdClass` 6개, `Reference` 5개 case가 통과합니다.
 - 0.0.10 릴리스 커밋의 CI 실행이 job `assets / php`와 `bindings`에서 실패했습니다(T2.26). `make ci-assets-php`가 binding 0.0.7이 더 이상 `packages/release.mk`에 쓰지 않는 `install-llvm`을 만들었으므로 모든 PHP job이 멈췄습니다. 이제 recipe는 그것을 만들지 않습니다. ubuntu-26.04 이미지는 LLVM 21을 기본 `LLVM_ROOT`인 `/usr/lib/llvm-21`에 두고, macOS에서는 job `php`가 run step 앞에서 커밋으로 고정한 `KyleMayes/install-llvm-action`으로 LLVM 21.1.8을 설치하며 recipe가 그 `LLVM_PATH`를 `LLVM_ROOT`로 넘깁니다. `make test-node`와 `make test-wasm`에서 binding 0.0.7의 `new PhpFloat('1.5')`는 kind `invalid_number`의 `PhpSerializationValueError`를 던지는데 `api.mjs`는 `TypeError`를 기대했습니다. 이제 그 kind를 기대합니다. `make workflows-test`는 recipe `ci-<job>`가 만드는 모든 target이 정의되어 있고 job `php`가 macOS에서 LLVM을 준비할 것을 요구합니다. 이전에는 14개 통과, 1개 실패, 이후에는 15개 통과입니다.
