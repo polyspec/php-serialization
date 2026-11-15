@@ -311,7 +311,7 @@ function platformFindings(file: string, text: string): string[] {
 
 // The run step of the job php and the one line of its recipe ci-assets-php that builds the extension of the minor of the job.
 const PHP_RUN = 'make ci-assets-php EXPECTED_PHP_MINOR=${{ matrix.php }} RELEASE=${{ inputs.release }}';
-const PHP_BUILD = '$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR)';
+const PHP_BUILD = '$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))';
 // The native assets of the job platform, which its recipe ci-assets-platform builds once each.
 const NON_PHP = ['release-go-static', 'release-wheel', 'release-npm-platform'];
 

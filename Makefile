@@ -429,13 +429,15 @@ ci-assets-platform: ## The job platform of assets.yml: the Go static library, th
 	$(release_check)
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) release-go-static release-wheel release-npm-platform
 
+# The job php provisions the LLVM of config/toolchain.json before ci-assets-php (binding GN-19i): the ubuntu-26.04 images
+# hold it at /usr/lib/llvm-<major>, the default LLVM_ROOT of packages/release.mk, and on macOS install-llvm-action installs
+# it and sets LLVM_PATH, which the build takes as LLVM_ROOT.
 ci-assets-php: ## The job php of assets.yml: the PHP extension for the PHP on PATH, whose minor is EXPECTED_PHP_MINOR; RELEASE=true; ONLINE
 	@test -n "$(EXPECTED_PHP_MINOR)" || { echo 'ci-assets-php needs EXPECTED_PHP_MINOR, the PHP minor of the job, for example make ci-assets-php EXPECTED_PHP_MINOR=8.4' >&2; exit 2; }
 	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(MAKE) --no-print-directory release-recipes
 	$(release_check)
-	$(MAKE) --no-print-directory install-llvm
-	$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR)
+	$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))
 
 ci-assets-npm: ## The job npm of assets.yml: pack the npm package with the wasm-bindgen of mise.toml; RELEASE=true; ONLINE
 	$(MAKE) --no-print-directory php-serialization-install-rust
@@ -556,7 +558,7 @@ release-coverage: ## Require every package file of the checkout to be classified
 # binding writes the release recipes of the contract into packages/release.mk (binding release-recipes, GN-19h), which is
 # generated and not tracked, so that every repository runs the same recipes of the binding that it pins and keeps no copy
 # (CK-94): release-go-static, release-wheel, release-php-ext, release-npm-platform, release-npm, release-go-module,
-# release-binding-check, release-platform-assets, install-llvm and install-wasm-bindgen. The recipes read the variables below,
+# release-binding-check, release-platform-assets and install-wasm-bindgen. The recipes read the variables below,
 # which the Makefile defines before it includes the file. The include is optional, because a checkout holds no file until
 # make release-recipes writes it, and a run of a recipe of the file without it fails with no rule of the target.
 BINDING_RUN := $(BINDING)

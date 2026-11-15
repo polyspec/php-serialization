@@ -101,8 +101,17 @@ jobs:
           tools: none
           coverage: none
       - uses: ./.github/actions/bootstrap
-      # The Rust toolchain and the locked crates, LLVM, then the extension for the PHP of the setup, whose minor the build
-      # checks against EXPECTED_PHP_MINOR.
+      # KyleMayes/install-llvm-action v2.0.9: the LLVM of config/toolchain.json (llvm.version), whose libclang and clang the
+      # bindgen of ext-php-rs reads (binding GN-19i). The ubuntu-26.04 images hold LLVM 20, 21 and 22 at
+      # /usr/lib/llvm-<major>; the macos-15 image holds no LLVM 21, so the step installs it there and sets LLVM_PATH, which
+      # make ci-assets-php passes as LLVM_ROOT.
+      - uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0
+        if: runner.os == 'macOS'
+        with:
+          version: '21.1.8'
+          directory: ${{ runner.temp }}/llvm
+      # The Rust toolchain and the locked crates, then the extension for the PHP of the setup, whose minor the build checks
+      # against EXPECTED_PHP_MINOR.
       - name: build the PHP extension
         run: make ci-assets-php EXPECTED_PHP_MINOR=${{ matrix.php }} RELEASE=${{ inputs.release }}
       # actions/upload-artifact v7.0.1: the isolated platform and minor asset.

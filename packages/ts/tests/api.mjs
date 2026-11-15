@@ -55,7 +55,7 @@ export function run(lib) {
     const cycle = [];
     cycle.push(cycle);
     refuses(lib, () => lib.serialize(cycle), 'unsupported_value', 'a list that holds itself');
-    assert.throws(() => new lib.PhpFloat('1.5'), TypeError);
+    refuses(lib, () => new lib.PhpFloat('1.5'), 'invalid_number', 'a text for a float');
     let deepest = new lib.StdClass(new Map());
     for (let index = 0; index < 4096; index++) deepest = [deepest];
     refuses(lib, () => lib.serialize(deepest), 'depth', 'a value nested 4097 deep');
