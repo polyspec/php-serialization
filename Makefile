@@ -52,7 +52,7 @@ CI_REPORT ?= var/report/ci-targets
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
-	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings \
+	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings ci-assets-platform ci-assets-php ci-assets-npm \
 	plan-new plan-split item-new item-edit item-state item-test commit documents-stamp text-absent hooks twin-merge \
 	worktree-setup land \
 	release-tag release-tools release-tools-path release-assets release-publish release-undraft release-coverage release-candidate-assets release-recipes release-tag-output
@@ -377,26 +377,69 @@ suppression-check: ## Fail on a suppression of a lint finding without its reason
 	$(NODE) $(KIT)/suppression-check.mjs
 
 # ---- CI -----------------------------------------------------------------------------------------------------------------------
-ci-shared: ## Run the targets of the shared CI job past failures into CI_REPORT
+# Each job of .github/workflows/ci.yml and assets.yml runs one recipe ci-<job>, with the values of its matrix and of the
+# inputs of assets.yml as make variables, so that a local run is the call that CI makes: make ci-<job> NAME=value. A recipe
+# runs the installs and the prerequisites of its job first, which stop at a failure, then the checks or the builds of the
+# job with ci-targets past failures into CI_REPORT; its status is that of the checks. The other steps of a job only provision
+# the runner (checkout, setup-php, the bootstrap action) or carry a result (upload-artifact).
+ci-shared: ## The job shared: install alint, PHP and Python, then run CI_SHARED past failures into CI_REPORT; ONLINE
+	$(MAKE) --no-print-directory install-tools TOOLS="alint php python"
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_SHARED)
 
 ci-passed: ## Fail unless every job of RESULTS, the JSON of toJSON(needs), has the result success; FAIL_SKIPPED=1 fails a skipped job
 	$(NODE) $(KIT)/ci-passed.mjs
 
-ci-fuzz: ## Run the targets of the fuzz CI job past failures into CI_REPORT
+ci-fuzz: ## The job fuzz: install PHP, Python, uv, the Python package and the Rust toolchain, then run CI_FUZZ past failures; ONLINE
+	$(MAKE) --no-print-directory install-tools TOOLS="php python uv"
+	$(MAKE) --no-print-directory php-serialization-install-python
+	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_FUZZ)
 
-ci-ts: ## Run the targets of the TypeScript CI job past failures into CI_REPORT
+ci-ts: ## The job ts: build the JavaScript package, then run CI_TS past failures into CI_REPORT
+	$(MAKE) --no-print-directory build-js
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_TS)
 
-ci-python: ## Run the targets of the Python CI job past failures into CI_REPORT
+ci-python: ## The job python: install the Python tools and the package and build it, then run CI_PYTHON past failures; ONLINE
+	$(MAKE) --no-print-directory install-tools TOOLS="python uv ruff vulture"
+	$(MAKE) --no-print-directory php-serialization-install-python
+	$(MAKE) --no-print-directory build-python
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PYTHON)
 
-ci-rust: ## Run the targets of the Rust CI job past failures into CI_REPORT
+ci-rust: ## The job rust: install the Rust toolchain and the locked crates, then run CI_RUST past failures; ONLINE
+	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_RUST)
 
-ci-bindings: ## Run the targets of the binding tests past failures into CI_REPORT, the job bindings of ci.yml
+ci-bindings: ## The job bindings: install every tool, the Rust toolchain and PHPUnit, then run CI_BINDINGS past failures; ONLINE
+	$(MAKE) --no-print-directory install-tools
+	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory install-php-tools
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_BINDINGS)
+
+# The jobs of assets.yml. Each writes the release recipes, and with RELEASE=true, the input release of assets.yml that the
+# workflow release passes, runs the release check of binding before it builds.
+release_check = $(if $(filter true,$(RELEASE)),$(MAKE) --no-print-directory release-binding-check)
+
+ci-assets-platform: ## The job platform of assets.yml: the Go static library, the wheel and the npm platform package of this host; RELEASE=true; ONLINE
+	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory install-tools TOOLS="uv python"
+	$(MAKE) --no-print-directory release-recipes
+	$(release_check)
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) release-go-static release-wheel release-npm-platform
+
+ci-assets-php: ## The job php of assets.yml: the PHP extension for the PHP on PATH, whose minor is EXPECTED_PHP_MINOR; RELEASE=true; ONLINE
+	@test -n "$(EXPECTED_PHP_MINOR)" || { echo 'ci-assets-php needs EXPECTED_PHP_MINOR, the PHP minor of the job, for example make ci-assets-php EXPECTED_PHP_MINOR=8.4' >&2; exit 2; }
+	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory release-recipes
+	$(release_check)
+	$(MAKE) --no-print-directory install-llvm
+	$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR)
+
+ci-assets-npm: ## The job npm of assets.yml: pack the npm package with the wasm-bindgen of mise.toml; RELEASE=true; ONLINE
+	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory release-recipes
+	$(MAKE) --no-print-directory install-wasm-bindgen
+	$(release_check)
+	$(MAKE) --no-print-directory release-npm
 
 check: ## Run the targets of every CI job once into var/report/full-run
 	$(NODE) $(KIT)/ci-targets.mjs -k var/report/full-run $(CI_SHARED) $(CI_FUZZ) $(CI_TS) $(CI_PYTHON) $(CI_RUST)

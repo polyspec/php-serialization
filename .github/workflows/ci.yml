@@ -1,6 +1,7 @@
-# CI of php-serialization: one workflow whose jobs run the targets of the Makefile, each job the target that names its list
-# (CI_SHARED, CI_FUZZ, CI_TS, CI_PYTHON and CI_RUST of the Makefile), past failures, with the report of ci-targets as an artifact. The
-# release workflow releases the commit whose run of this workflow is green. The workflow starts on a push of main and
+# CI of php-serialization: one workflow whose every job runs one recipe of the Makefile, make ci-<job>, which installs what
+# the job needs and then runs the targets of its list (CI_SHARED, CI_FUZZ, CI_TS, CI_PYTHON, CI_RUST and CI_BINDINGS of the
+# Makefile) past failures, with the report of ci-targets as an artifact; a local run is the same call. The other steps of a
+# job provision the runner or upload its report. The release workflow releases the commit whose run of this workflow is green. The workflow starts on a push of main and
 # on a manual run alone, and its last job ci-passed passes only when every other job succeeded (make workflows-test).
 name: ci
 
@@ -32,8 +33,6 @@ jobs:
           tools: none
           coverage: none
       - uses: ./.github/actions/bootstrap
-      - name: install the tools of the job
-        run: make install-tools TOOLS="alint php python"
       - name: shared checks
         run: make ci-shared
       # actions/upload-artifact v7.0.1: the report of make ci-targets, var/report/ci-targets.
@@ -58,12 +57,6 @@ jobs:
           tools: none
           coverage: none
       - uses: ./.github/actions/bootstrap
-      - name: install the tools of the job
-        run: make install-tools TOOLS="php python uv"
-      - name: install the Python package
-        run: make php-serialization-install-python
-      - name: install the Rust toolchain and the locked crates
-        run: make php-serialization-install-rust
       - name: fuzz
         run: make ci-fuzz
       - name: report
@@ -80,8 +73,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
-      - name: build the package
-        run: make build-js
       - name: lint and unit tests
         run: make ci-ts
       - name: report
@@ -98,12 +89,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
-      - name: install the tools of the job
-        run: make install-tools TOOLS="python uv ruff vulture"
-      - name: install the package
-        run: make php-serialization-install-python
-      - name: build the package
-        run: make build-python
       - name: lint and unit tests
         run: make ci-python
       - name: report
@@ -120,8 +105,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
-      - name: install the Rust toolchain and the locked crates
-        run: make php-serialization-install-rust
       - name: lint and tests
         run: make ci-rust
       - name: report
@@ -147,12 +130,6 @@ jobs:
           tools: none
           coverage: none
       - uses: ./.github/actions/bootstrap
-      - name: install the tools of mise.toml and the PHP of .php-version
-        run: make install-tools
-      - name: install the Rust toolchain and the locked crates
-        run: make php-serialization-install-rust
-      - name: install PHPUnit
-        run: make install-php-tools
       - name: the binding tests of the five targets
         run: make ci-bindings
       - name: report
@@ -179,6 +156,4 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
       - name: every job passed
-        env:
-          RESULTS: ${{ toJSON(needs) }}
-        run: make ci-passed FAIL_SKIPPED=1
+        run: make ci-passed FAIL_SKIPPED=1 RESULTS='${{ toJSON(needs) }}'

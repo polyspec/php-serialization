@@ -13,8 +13,12 @@
 //     so that the settings and the checks of the Makefile apply to every command of CI;
 //   - the workflow ci starts on a push of main and on workflow_dispatch alone;
 //   - the last job of the workflow ci is ci-passed, which runs after every other job, also after a failed one
-//     (`if: ${{ always() }}`), needs each of them and runs `make ci-passed FAIL_SKIPPED=1` with RESULTS, the JSON of
-//     its needs, so that it passes only when every other job succeeded.
+//     (`if: ${{ always() }}`), needs each of them and runs `make ci-passed FAIL_SKIPPED=1 RESULTS='${{ toJSON(needs) }}'`,
+//     the JSON of its needs, so that it passes only when every other job succeeded;
+//   - every job of the workflows that CI runs, ci and assets, which it calls, has one run step, `make ci-<job>` with make
+//     variables alone, a matrix value as NAME=${{ matrix.<key> }} and an input of the called workflow as
+//     NAME=${{ inputs.<key> }}; its other steps are uses steps, only a uses step has a condition, and no job sets env, so
+//     that the recipe ci-<job> holds the order and the conditions of the job and a local run is the call that CI makes.
 //
 // The test reads the files as text, line by line: the workflows hold one key on a line, and a run step whose command
 // continues on a later line is a finding.
@@ -22,7 +26,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -39,7 +43,12 @@ const LAST = 'ci-passed';
 
 // A run step: make, one target, then arguments NAME=value, NAME="words" for a list such as the tools of a job, or
 // expressions ${{ ... }}.
-const RUN = /^make ([a-z][a-z0-9-]*)((?: (?:[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{[^}]*\}\})|\$\{\{[^}]*\}\}))*)$/;
+const RUN = /^make ([a-z][a-z0-9-]*)((?: (?:[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{[^}]*\}\}|'\$\{\{[^}]*\}\}')|\$\{\{[^}]*\}\}))*)$/;
+// An argument of the run step of a job of CI: NAME=value, NAME="words", or a matrix value or an input of the called
+// workflow, NAME=${{ matrix.<key> }} or NAME=${{ inputs.<key> }}.
+const JOB_ARGUMENT = /^[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{ (?:matrix|inputs)\.[a-z][a-z0-9_-]* \}\})$/;
+// The run step of the judgement job ci-passed, which reads the results of the other jobs.
+const LAST_RUN = `make ${LAST} FAIL_SKIPPED=1 RESULTS='\${{ toJSON(needs) }}'`;
 const PINNED = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@[0-9a-f]{40}$/;
 
 /** The targets that the text of a Makefile defines with a rule. */
@@ -176,8 +185,73 @@ function lastJobFindings(file: string, text: string): string[] {
   const others = names.filter((name) => name !== LAST);
   if ([...needs].sort().join(' ') !== [...others].sort().join(' '))
     found.push(`${file}: the job ${LAST} needs ${needs.join(', ') || 'no job'}, not every other job: ${others.join(', ') || 'none'}`);
-  if (value('RESULTS') !== '${{ toJSON(needs) }}') found.push(`${file}: the job ${LAST} does not pass RESULTS, the JSON of its needs`);
-  if (!lines.some((line) => valueOf(line, 'run') === `make ${LAST} FAIL_SKIPPED=1`)) found.push(`${file}: the job ${LAST} does not run make ${LAST} FAIL_SKIPPED=1`);
+  if (!lines.some((line) => valueOf(line, 'run') === LAST_RUN)) found.push(`${file}: the job ${LAST} does not run ${LAST_RUN}`);
+  return found;
+}
+
+/** The steps of the lines of a job: each step its lines, from its line `      - ` to the next. */
+function stepsOf(lines: string[]): string[][] {
+  const steps: string[][] = [];
+  const start = lines.indexOf('    steps:');
+  if (start < 0) return steps;
+  for (const line of lines.slice(start + 1)) {
+    if (/^ {0,4}\S/.test(line)) break;
+    if (line.startsWith('      - ')) steps.push([]);
+    steps.at(-1)?.push(line);
+  }
+  return steps;
+}
+
+/** The recipe lines of the target `target` of the text of a Makefile, without their tab; empty when no rule names it. */
+function recipeOf(makefile: string, target: string): string[] {
+  const lines = makefile.split('\n');
+  const at = lines.findIndex((line) => new RegExp(`^${target.replaceAll('.', '\\.')} *:(?!=)`).test(line));
+  if (at < 0) return [];
+  const recipe: string[] = [];
+  for (const line of lines.slice(at + 1)) {
+    if (!line.startsWith('\t')) break;
+    recipe.push(line.slice(1));
+  }
+  return recipe;
+}
+
+/**
+ * The recipe of the job `job` of the workflow `file`: ci-<job> for a job of ci.yml, and ci-<workflow>-<job> for a job of a
+ * workflow that ci.yml calls, assets.yml, whose job assets / <job> has the recipe ci-assets-<job>.
+ */
+function recipeName(file: string, job: string): string {
+  return file === CI ? `ci-${job}` : `ci-${basename(file, '.yml')}-${job}`;
+}
+
+/**
+ * The findings of the steps of the jobs of a workflow that CI runs: each job that has steps runs one make target, recipeName,
+ * or for ci-passed its judgement LAST_RUN, with arguments of JOB_ARGUMENT alone; every other step is a uses step, a
+ * condition stands on a uses step alone, and no job sets env. A job that calls a workflow has no steps of its own.
+ */
+function jobStepFindings(file: string, text: string): string[] {
+  const found: string[] = [];
+  for (const [name, lines] of jobsOf(text)) {
+    if (lines.some((line) => /^ {4}uses: /.test(line))) continue;
+    const at = `${file}: the job ${name}`;
+    if (lines.some((line) => /^ +(?:- )?env:/.test(line))) found.push(`${at} sets env`);
+    const steps = stepsOf(lines);
+    const runs = steps.map((step) => step.map((line) => valueOf(line, 'run')).find((run) => run !== undefined)).filter((run) => run !== undefined);
+    if (runs.length !== 1) found.push(`${at} has ${String(runs.length)} run steps, not one`);
+    const [run] = runs;
+    if (run !== undefined) {
+      if (name === LAST) {
+        if (run !== LAST_RUN) found.push(`${at} runs ${run}, not ${LAST_RUN}`);
+      } else {
+        const [make, target, ...rest] = run.match(/(?:[^\s"]|"[^"]*")+/g) ?? [];
+        if (make !== 'make' || target !== recipeName(file, name)) found.push(`${at} runs ${run}, not make ${recipeName(file, name)}`);
+        for (const argument of rest) if (!JOB_ARGUMENT.test(argument)) found.push(`${at} passes ${argument}, which is no make variable of a value, a matrix value or an input`);
+      }
+    }
+    for (const step of steps) {
+      const uses = step.some((line) => valueOf(line, 'uses') !== undefined);
+      if (!uses && step.some((line) => /^ {6}(?:- | {2})if:/.test(line))) found.push(`${at} has a condition on a run step`);
+    }
+  }
   return found;
 }
 
@@ -226,8 +300,22 @@ function platformFindings(file: string, text: string): string[] {
   return found;
 }
 
-/** The PHP job isolates every platform and declared minor in a fresh runner. */
-function phpMinorFindings(file: string, text: string, minors: string[]): string[] {
+// The run step of the job php and the one line of its recipe ci-assets-php that builds the extension of the minor of the job.
+const PHP_RUN = 'make ci-assets-php EXPECTED_PHP_MINOR=${{ matrix.php }} RELEASE=${{ inputs.release }}';
+const PHP_BUILD = '$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR)';
+// The native assets of the job platform, which its recipe ci-assets-platform builds once each.
+const NON_PHP = ['release-go-static', 'release-wheel', 'release-npm-platform'];
+
+/** The count of the recipe lines of `recipe` that name the target `target` as a word. */
+function naming(recipe: string[], target: string): number {
+  return recipe.filter((line) => new RegExp(`(?:^| )${target}(?: |$)`).test(line)).length;
+}
+
+/**
+ * The PHP job isolates every platform and declared minor in a fresh runner: its one PHP setup owns the minor of the matrix
+ * and precedes its run step, PHP_RUN, whose recipe ci-assets-php of `makefile` builds the extension once, with PHP_BUILD.
+ */
+function phpMinorFindings(file: string, text: string, minors: string[], makefile: string): string[] {
   const jobs = jobsOf(text);
   const lines = jobs.get('php');
   if (lines === undefined) return [`${file}: has no job php`];
@@ -251,29 +339,27 @@ function phpMinorFindings(file: string, text: string, minors: string[]): string[
   const setups = lines.filter((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true);
   const versions = lines.map((line) => valueOf(line, 'php-version')).filter((value) => value !== undefined);
   if (setups.length !== 1 || versions.length !== 1 || versions[0] !== '${{ matrix.php }}') fail('the job php must set up exactly matrix.php once');
-  const steps: string[][] = [];
-  for (const line of lines.slice(lines.findIndex((line) => line === '    steps:') + 1)) {
-    if (line.startsWith('      - ')) steps.push([]);
-    steps.at(-1)?.push(line);
-  }
+  const steps = stepsOf(lines);
   const setupAt = steps.findIndex((step) => step.some((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true));
-  const buildAt = steps.findIndex((step) => step.some((line) => valueOf(line, 'run')?.startsWith('make release-php-ext') === true));
+  const buildAt = steps.findIndex((step) => step.some((line) => valueOf(line, 'run') !== undefined));
   const setup = steps[setupAt] ?? [];
   if (!setup.includes('        with:') || !setup.includes('          php-version: ${{ matrix.php }}') || setupAt >= buildAt) fail('the PHP setup step must own its minor input and precede the build');
-  const builds = lines.map((line) => valueOf(line, 'run')).filter((value) => value?.startsWith('make release-php-ext') === true);
-  if (builds.length !== 1 || builds[0] !== 'make release-php-ext PHP=php EXPECTED_PHP_MINOR=${{ matrix.php }}') fail('the job php must build once with its expected minor');
+  const runs = lines.map((line) => valueOf(line, 'run')).filter((value) => value !== undefined);
+  if (runs.length !== 1 || runs[0] !== PHP_RUN) fail(`the job php must run ${PHP_RUN} once`);
   const upload = lines.findIndex((line) => valueOf(line, 'uses')?.startsWith('actions/upload-artifact@') === true);
   if (upload < 0 || !lines.slice(upload).some((line) => valueOf(line, 'name') === 'assets-php-${{ matrix.platform }}-${{ matrix.php }}')) fail('the job php must publish its unique platform and minor artifact');
-  const nonPhp = ['release-go-static', 'release-wheel', 'release-npm-platform'];
+  const recipe = (name: string): string[] => recipeOf(makefile, recipeName(file, name));
+  const php = recipe('php');
+  if (naming(php, 'release-php-ext') !== 1 || !php.includes(PHP_BUILD)) fail(`the recipe ci-assets-php must build once with ${PHP_BUILD}`);
   for (const [name, other] of jobs) {
     if (name === 'php' || name === 'platform') continue;
-    if (other.some((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true || valueOf(line, 'php-version') !== undefined || /^make (?:release-php-ext|release-go-static|release-wheel|release-npm-platform)(?: |$)/.test(valueOf(line, 'run') ?? ''))) fail(`the job ${name} repeats a native asset setup or build`);
+    if (other.some((line) => valueOf(line, 'uses')?.startsWith('shivammathur/setup-php@') === true || valueOf(line, 'php-version') !== undefined) || ['release-php-ext', ...NON_PHP].some((target) => naming(recipe(name), target) > 0)) fail(`the job ${name} repeats a native asset setup or build`);
   }
-  if (lines.some((line) => nonPhp.some((target) => valueOf(line, 'run') === `make ${target}`))) fail('the job php must not repeat non-PHP assets');
+  if (NON_PHP.some((target) => naming(php, target) > 0)) fail('the job php must not repeat non-PHP assets');
   const platform = jobs.get('platform') ?? [];
-  if (platform.some((line) => valueOf(line, 'php-version') !== undefined || valueOf(line, 'run')?.startsWith('make release-php-ext') === true)) fail('the job platform must not install or build PHP');
-  for (const target of nonPhp) {
-    if (platform.filter((line) => valueOf(line, 'run') === `make ${target}`).length !== 1) fail(`the job platform must build ${target} once`);
+  if (platform.some((line) => valueOf(line, 'php-version') !== undefined) || naming(recipe('platform'), 'release-php-ext') > 0) fail('the job platform must not install or build PHP');
+  for (const target of NON_PHP) {
+    if (naming(recipe('platform'), target) !== 1) fail(`the job platform must build ${target} once`);
   }
   return found;
 }
@@ -382,9 +468,7 @@ const LAST_JOB = `  rust:
     steps:
       - uses: ./.github/actions/bootstrap
       - name: every job passed
-        env:
-          RESULTS: \${{ toJSON(needs) }}
-        run: make ci-passed FAIL_SKIPPED=1
+        run: make ci-passed FAIL_SKIPPED=1 RESULTS='\${{ toJSON(needs) }}'
 `;
 
 test('the last job of the workflow ci is ci-passed, which needs every other job and judges their results', () => {
@@ -403,8 +487,8 @@ test('the last job of the workflow ci is ci-passed, which needs every other job 
   assert.deepEqual(broken('needs: [shared, rust]', 'needs: [shared]'), [`${CI}: the job ci-passed needs shared, not every other job: shared, rust`]);
   assert.deepEqual(broken('    needs: [shared, rust]\n', ''), [`${CI}: the job ci-passed needs no job, not every other job: shared, rust`]);
   assert.deepEqual(broken('needs: [shared, rust]', 'needs: [shared, rust, other]'), [`${CI}: the job ci-passed needs shared, rust, other, not every other job: shared, rust`]);
-  assert.deepEqual(broken('          RESULTS: ${{ toJSON(needs) }}\n', ''), [`${CI}: the job ci-passed does not pass RESULTS, the JSON of its needs`]);
-  assert.deepEqual(broken('run: make ci-passed FAIL_SKIPPED=1', 'run: make ci-passed'), [`${CI}: the job ci-passed does not run make ci-passed FAIL_SKIPPED=1`]);
+  assert.deepEqual(broken(" RESULTS='${{ toJSON(needs) }}'", ''), [`${CI}: the job ci-passed does not run ${LAST_RUN}`]);
+  assert.deepEqual(broken('run: make ci-passed FAIL_SKIPPED=1', 'run: make ci-passed'), [`${CI}: the job ci-passed does not run ${LAST_RUN}`]);
 });
 
 test('the Makefile rules name their targets', () => {
@@ -460,9 +544,7 @@ const PHP_SAMPLE = `jobs:
   platform:
     runs-on: \${{ matrix.runner }}
     steps:
-      - run: make release-go-static
-      - run: make release-wheel
-      - run: make release-npm-platform
+      - run: make ci-assets-platform RELEASE=\${{ inputs.release }}
   php:
     strategy:
       matrix:
@@ -473,14 +555,23 @@ ${Object.entries(PLATFORM_RUNNERS).flatMap(([platform, runner]) => ['8.4', '8.5'
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: \${{ matrix.php }}
-      - run: make release-php-ext PHP=php EXPECTED_PHP_MINOR=\${{ matrix.php }}
+      - run: make ci-assets-php EXPECTED_PHP_MINOR=\${{ matrix.php }} RELEASE=\${{ inputs.release }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: assets-php-\${{ matrix.platform }}-\${{ matrix.php }}
 `;
+const PHP_MAKEFILE = `ci-assets-platform: ## The assets of the platform
+	$(MAKE) --no-print-directory release-recipes
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) release-go-static release-wheel release-npm-platform
+ci-assets-php: ## The PHP extension of EXPECTED_PHP_MINOR
+	$(MAKE) --no-print-directory release-recipes
+	${PHP_BUILD}
+ci-other: ## Another job
+	$(MAKE) --no-print-directory release-recipes
+`;
 
 test('PHP asset jobs isolate the exact platform and minor product (T2.22)', () => {
-  assert.deepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5']), []);
+  assert.deepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5'], PHP_MAKEFILE), []);
   const mutations = [
     PHP_SAMPLE.replace("            php: '8.4'", "            php: '8.5'"),
     PHP_SAMPLE.replace(/          - platform: linux-x64-gnu\n            runner: ubuntu-26.04\n            php: '8.4'\n/, ''),
@@ -489,20 +580,26 @@ test('PHP asset jobs isolate the exact platform and minor product (T2.22)', () =
     PHP_SAMPLE.replace("            php: '8.4'", "            php: '8.6'"),
     PHP_SAMPLE.replaceAll('    runs-on: ${{ matrix.runner }}\n    steps:', '    runs-on: macos-15\n    steps:'),
     PHP_SAMPLE.replace('php-version: ${{ matrix.php }}', "php-version: '8.4'"),
-    PHP_SAMPLE.replace('      - run: make release-php-ext', '      - uses: shivammathur/setup-php@duplicate\n      - run: make release-php-ext'),
+    PHP_SAMPLE.replace('      - run: make ci-assets-php', '      - uses: shivammathur/setup-php@duplicate\n      - run: make ci-assets-php'),
     PHP_SAMPLE.replace(' EXPECTED_PHP_MINOR=${{ matrix.php }}', ''),
-    PHP_SAMPLE.replace('      - run: make release-php-ext', '      - run: make release-php-ext PHP=php\n      - run: make release-php-ext'),
+    PHP_SAMPLE.replace('      - run: make ci-assets-php', '      - run: make ci-assets-php PHP=php\n      - run: make ci-assets-php'),
     PHP_SAMPLE.replace('assets-php-${{ matrix.platform }}-${{ matrix.php }}', 'assets-${{ matrix.platform }}'),
-    PHP_SAMPLE.replace('      - run: make release-wheel\n', ''),
-    PHP_SAMPLE.replace('      - run: make release-wheel', '      - run: make release-wheel\n      - run: make release-wheel'),
-    PHP_SAMPLE.replace('  platform:\n', '  platform:\n      - run: make release-php-ext PHP=php\n'),
   ];
-  for (const [index, mutation] of mutations.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, mutation, ['8.4', '8.5']), [], `mutation ${index}`);
-  assert.notDeepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5', '8.6']), []);
+  for (const [index, mutation] of mutations.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, mutation, ['8.4', '8.5'], PHP_MAKEFILE), [], `mutation ${index}`);
+  const recipes = [
+    PHP_MAKEFILE.replace(' release-wheel ', ' '),
+    PHP_MAKEFILE.replace(' release-wheel ', ' release-wheel release-wheel '),
+    PHP_MAKEFILE.replace('ci-assets-platform: ## The assets of the platform\n', `ci-assets-platform: ## The assets of the platform\n\t${PHP_BUILD}\n`),
+    PHP_MAKEFILE.replace(' EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR)', ''),
+    PHP_MAKEFILE.replace(PHP_BUILD, `${PHP_BUILD}\n\t${PHP_BUILD}`),
+    PHP_MAKEFILE.replace(PHP_BUILD, `${PHP_BUILD}\n\t$(MAKE) release-wheel`),
+  ];
+  for (const [index, recipe] of recipes.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5'], recipe), [], `recipe mutation ${index}`);
+  assert.notDeepEqual(phpMinorFindings(ASSETS, PHP_SAMPLE, ['8.4', '8.5', '8.6'], PHP_MAKEFILE), []);
 });
 
 test('PHP jobs reject matrix shape changes and detached or late setup (T2.22)', () => {
-  const build = '      - run: make release-php-ext PHP=php EXPECTED_PHP_MINOR=${{ matrix.php }}\n';
+  const build = `      - run: ${PHP_RUN}\n`;
   const version = '          php-version: ${{ matrix.php }}\n';
   const mutations = [
     PHP_SAMPLE.replace('      matrix:\n', '      matrix:\n        extra: [one, two]\n'),
@@ -514,17 +611,56 @@ test('PHP jobs reject matrix shape changes and detached or late setup (T2.22)', 
     PHP_SAMPLE.replace(build, '').replace('      - uses: shivammathur/setup-php@', build + '      - uses: shivammathur/setup-php@'),
     PHP_SAMPLE.replace(version, '').replace(build, build + '        with:\n' + version),
   ];
-  for (const [index, mutation] of mutations.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, mutation, ['8.4', '8.5']), [], `shape/setup mutation ${index}`);
+  for (const [index, mutation] of mutations.entries()) assert.notDeepEqual(phpMinorFindings(ASSETS, mutation, ['8.4', '8.5'], PHP_MAKEFILE), [], `shape/setup mutation ${index}`);
 });
 
 test('asset ownership rejects non-PHP matrix axes and builds in other jobs (T2.22)', () => {
   for (const extra of ['        extra: [one, two]\n', '        exclude: [{platform: linux-x64-gnu}]\n']) {
     assert.notDeepEqual(platformFindings(ASSETS, PLATFORM.replace('      matrix:\n', '      matrix:\n' + extra)), []);
   }
-  for (const step of ['uses: shivammathur/setup-php@duplicate', 'run: make release-php-ext PHP=php', 'run: make release-go-static', 'run: make release-wheel', 'run: make release-npm-platform']) {
-    const duplicated = PHP_SAMPLE + `  other:\n    runs-on: ubuntu-26.04-arm\n    steps:\n      - ${step}\n`;
-    assert.notDeepEqual(phpMinorFindings(ASSETS, duplicated, ['8.4', '8.5']), [], step);
+  const other = PHP_SAMPLE + '  other:\n    runs-on: ubuntu-26.04-arm\n    steps:\n      - run: make ci-other\n';
+  assert.deepEqual(phpMinorFindings(ASSETS, other, ['8.4', '8.5'], PHP_MAKEFILE), []);
+  assert.notDeepEqual(phpMinorFindings(ASSETS, other.replace('      - run: make ci-other', '      - uses: shivammathur/setup-php@duplicate\n      - run: make ci-other'), ['8.4', '8.5'], PHP_MAKEFILE), []);
+  for (const target of ['release-php-ext PHP=php', 'release-go-static', 'release-wheel', 'release-npm-platform']) {
+    assert.notDeepEqual(phpMinorFindings(ASSETS, other, ['8.4', '8.5'], `${PHP_MAKEFILE}\t$(MAKE) ${target}\n`), [], target);
   }
+});
+
+const JOBS = `jobs:
+  shared:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/bootstrap
+      - name: shared checks
+        run: make ci-shared
+      - name: report
+        if: \${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+  php:
+    runs-on: \${{ matrix.runner }}
+    steps:
+      - run: make ci-php EXPECTED_PHP_MINOR=\${{ matrix.php }} RELEASE=\${{ inputs.release }} TOOLS="uv python"
+  assets:
+    uses: ./.github/workflows/assets.yml
+${LAST_JOB.replace(/^ {2}rust:\n(?: {4}.*\n)*/, '')}`;
+
+test('every job of CI runs its recipe ci-<job> in one run step, and its other steps are uses steps', () => {
+  assert.deepEqual(jobStepFindings(CI, JOBS), []);
+  assert.deepEqual(jobStepFindings(ASSETS, JOBS.replace('make ci-php ', 'make ci-assets-php ').replace(/^ {2}(?:shared|assets|ci-passed):\n(?: {4}.*\n)*/gm, '')), []);
+  assert.deepEqual(jobStepFindings(ASSETS, JOBS.replace(/^ {2}(?:shared|assets|ci-passed):\n(?: {4}.*\n)*/gm, '')), [`${ASSETS}: the job php runs make ci-php EXPECTED_PHP_MINOR=\${{ matrix.php }} RELEASE=\${{ inputs.release }} TOOLS="uv python", not make ci-assets-php`]);
+  const broken = (from: string, to: string): string[] => {
+    assert.ok(JOBS.includes(from), `the sample holds no ${from}`);
+    return jobStepFindings(CI, JOBS.replace(from, to));
+  };
+  assert.deepEqual(broken('        run: make ci-shared\n', ''), [`${CI}: the job shared has 0 run steps, not one`]);
+  assert.deepEqual(broken('        run: make ci-shared\n', '        run: make ci-shared\n      - run: make install-tools\n'), [`${CI}: the job shared has 2 run steps, not one`]);
+  assert.deepEqual(broken('run: make ci-shared', 'run: make shared-checks'), [`${CI}: the job shared runs make shared-checks, not make ci-shared`]);
+  assert.deepEqual(broken('run: make ci-shared', 'run: make ci-shared CI_REPORT=${{ runner.temp }}'), [`${CI}: the job shared passes CI_REPORT=\${{ runner.temp }}, which is no make variable of a value, a matrix value or an input`]);
+  assert.deepEqual(broken('run: make ci-shared', 'run: make ci-shared ${{ matrix.php }}'), [`${CI}: the job shared passes \${{ matrix.php }}, which is no make variable of a value, a matrix value or an input`]);
+  assert.deepEqual(broken('      - name: shared checks\n', '      - name: shared checks\n        if: ${{ !cancelled() }}\n'), [`${CI}: the job shared has a condition on a run step`]);
+  assert.deepEqual(broken('      - name: shared checks\n', '      - name: shared checks\n        env:\n          TOOLS: alint\n'), [`${CI}: the job shared sets env`]);
+  assert.deepEqual(broken("RESULTS='${{ toJSON(needs) }}'", 'RESULTS=${{ toJSON(needs) }}'), [`${CI}: the job ci-passed runs make ci-passed FAIL_SKIPPED=1 RESULTS=\${{ toJSON(needs) }}, not ${LAST_RUN}`]);
 });
 
 test('the workflow ci runs the binding tests of the five targets in a job that ci-passed needs', () => {
@@ -574,7 +710,8 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   found.push(...triggerFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...lastJobFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...platformFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8')));
-  found.push(...phpMinorFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), phpMinors()));
+  found.push(...phpMinorFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), phpMinors(), readFileSync(join(root, 'Makefile'), 'utf8')));
+  for (const file of [CI, ASSETS]) found.push(...jobStepFindings(file, readFileSync(join(root, file), 'utf8')));
   for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
   found.push(...bindingJobFindings(CI, readFileSync(join(root, CI), 'utf8'), readFileSync(join(root, 'Makefile'), 'utf8')));
   assert.deepEqual(found, []);
