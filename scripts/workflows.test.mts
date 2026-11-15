@@ -42,11 +42,14 @@ const MATRIX_RUNNER = '${{ matrix.runner }}';
 const LAST = 'ci-passed';
 
 // A run step: make, one target, then arguments NAME=value, NAME="words" for a list such as the tools of a job, or
-// expressions ${{ ... }}.
-const RUN = /^make ([a-z][a-z0-9-]*)((?: (?:[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{[^}]*\}\}|'\$\{\{[^}]*\}\}')|\$\{\{[^}]*\}\}))*)$/;
-// An argument of the run step of a job of CI: NAME=value, NAME="words", or a matrix value or an input of the called
-// workflow, NAME=${{ matrix.<key> }} or NAME=${{ inputs.<key> }}.
-const JOB_ARGUMENT = /^[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{ (?:matrix|inputs)\.[a-z][a-z0-9_-]* \}\})$/;
+// expressions ${{ ... }}, bare or quoted.
+const RUN = /^make ([a-z][a-z0-9-]*)((?: (?:[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{[^}]*\}\}|'\$\{\{[^}]*\}\}'|"\$\{\{[^}"]*\}\}")|\$\{\{[^}]*\}\}))*)$/;
+// An argument of the run step of a job: NAME=value, NAME="words", a matrix value or an input of the called workflow,
+// NAME=${{ matrix.<key> }} or NAME=${{ inputs.<key> }}, an output of a job that the job needs, NAME=${{ needs.<job>.outputs.<key> }},
+// or a quoted expression of the event, NAME="${{ ... }}", such as the run id and the AUTO of the job tag of release.yml.
+const JOB_ARGUMENT = /^[A-Z][A-Z0-9_]*=(?:[A-Za-z0-9_.-]+|"[A-Za-z0-9_. -]+"|\$\{\{ (?:matrix|inputs)\.[a-z][a-z0-9_-]* \}\}|\$\{\{ needs\.[a-z][a-z0-9_-]*\.outputs\.[a-z][a-z0-9_-]* \}\}|"\$\{\{ [^"}]* \}\}")$/;
+// The one environment that a job may set: the token of the run, which the release targets read with gh.
+const JOB_ENV = ['    env:', '      GH_TOKEN: ${{ github.token }}'];
 // The run step of the judgement job ci-passed, which reads the results of the other jobs.
 const LAST_RUN = `make ${LAST} FAIL_SKIPPED=1 RESULTS='\${{ toJSON(needs) }}'`;
 const PINNED = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@[0-9a-f]{40}$/;
@@ -226,14 +229,18 @@ function recipeName(file: string, job: string): string {
 /**
  * The findings of the steps of the jobs of a workflow that CI runs: each job that has steps runs one make target, recipeName,
  * or for ci-passed its judgement LAST_RUN, with arguments of JOB_ARGUMENT alone; every other step is a uses step, a
- * condition stands on a uses step alone, and no job sets env. A job that calls a workflow has no steps of its own.
+ * condition stands on a uses step alone, and no job or step sets env but a job that sets GH_TOKEN alone (JOB_ENV). A job
+ * that calls a workflow has no steps of its own.
  */
 function jobStepFindings(file: string, text: string): string[] {
   const found: string[] = [];
   for (const [name, lines] of jobsOf(text)) {
     if (lines.some((line) => /^ {4}uses: /.test(line))) continue;
     const at = `${file}: the job ${name}`;
-    if (lines.some((line) => /^ +(?:- )?env:/.test(line))) found.push(`${at} sets env`);
+    const env = lines.indexOf(JOB_ENV[0] ?? '');
+    const rest = env < 0 ? lines : [...lines.slice(0, env), ...lines.slice(env + 1).filter((line, index) => index !== 0 || line !== JOB_ENV[1])];
+    if (env >= 0 && (lines[env + 1] !== JOB_ENV[1] || /^ {6}\S/.test(lines[env + 2] ?? ''))) found.push(`${at} sets env other than GH_TOKEN`);
+    if (rest.some((line) => /^ +(?:- )?env:/.test(line))) found.push(`${at} sets env`);
     const steps = stepsOf(lines);
     const runs = steps.map((step) => step.map((line) => valueOf(line, 'run')).find((run) => run !== undefined)).filter((run) => run !== undefined);
     if (runs.length !== 1) found.push(`${at} has ${String(runs.length)} run steps, not one`);
@@ -661,6 +668,30 @@ test('every job of CI runs its recipe ci-<job> in one run step, and its other st
   assert.deepEqual(broken('      - name: shared checks\n', '      - name: shared checks\n        if: ${{ !cancelled() }}\n'), [`${CI}: the job shared has a condition on a run step`]);
   assert.deepEqual(broken('      - name: shared checks\n', '      - name: shared checks\n        env:\n          TOOLS: alint\n'), [`${CI}: the job shared sets env`]);
   assert.deepEqual(broken("RESULTS='${{ toJSON(needs) }}'", 'RESULTS=${{ toJSON(needs) }}'), [`${CI}: the job ci-passed runs make ci-passed FAIL_SKIPPED=1 RESULTS=\${{ toJSON(needs) }}, not ${LAST_RUN}`]);
+  // The jobs of release.yml run ci-release-<job>, with the outputs of the job tag and quoted expressions of the event, and
+  // set the token of the run alone.
+  const release = `jobs:
+  tag:
+    runs-on: ubuntu-26.04-arm
+    env:
+      GH_TOKEN: \${{ github.token }}
+    steps:
+      - id: tag
+        run: make ci-release-tag RUN="\${{ inputs.run || github.event.workflow_run.id }}" AUTO="\${{ github.event_name == 'workflow_run' && '1' || '' }}"
+  release:
+    runs-on: ubuntu-26.04-arm
+    env:
+      GH_TOKEN: \${{ github.token }}
+    steps:
+      - uses: ./.github/actions/bootstrap
+      - run: make ci-release-release TAG=\${{ needs.tag.outputs.tag }} VERSION=\${{ needs.tag.outputs.version }}
+`;
+  assert.deepEqual(jobStepFindings(RELEASE, release), []);
+  assert.deepEqual(jobStepFindings(RELEASE, release.replace('make ci-release-tag', 'make release-tag')), [`${RELEASE}: the job tag runs make release-tag RUN="\${{ inputs.run || github.event.workflow_run.id }}" AUTO="\${{ github.event_name == 'workflow_run' && '1' || '' }}", not make ci-release-tag`]);
+  assert.deepEqual(jobStepFindings(RELEASE, release.replace('      GH_TOKEN: ${{ github.token }}\n    steps:\n      - id', '      GH_TOKEN: ${{ github.token }}\n      TAG: v1\n    steps:\n      - id')), [`${RELEASE}: the job tag sets env other than GH_TOKEN`]);
+  assert.deepEqual(jobStepFindings(RELEASE, release.replace('      GH_TOKEN: ${{ github.token }}\n    steps:\n      - id', '      TAG: v1\n    steps:\n      - id')), [`${RELEASE}: the job tag sets env other than GH_TOKEN`]);
+  assert.deepEqual(jobStepFindings(RELEASE, release.replace('      - run: make ci-release-release', '      - run: make release-tools\n      - run: make ci-release-release')), [`${RELEASE}: the job release has 2 run steps, not one`]);
+  assert.deepEqual(jobStepFindings(RELEASE, release.replace('      - run: make ci-release-release', '      - env:\n          GIT_AUTHOR_NAME: x\n        run: make ci-release-release')), [`${RELEASE}: the job release sets env`]);
 });
 
 test('the workflow ci runs the binding tests of the five targets in a job that ci-passed needs', () => {
@@ -711,7 +742,7 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   found.push(...lastJobFindings(CI, readFileSync(join(root, CI), 'utf8')));
   found.push(...platformFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8')));
   found.push(...phpMinorFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), phpMinors(), readFileSync(join(root, 'Makefile'), 'utf8')));
-  for (const file of [CI, ASSETS]) found.push(...jobStepFindings(file, readFileSync(join(root, file), 'utf8')));
+  for (const file of [CI, ASSETS, RELEASE]) found.push(...jobStepFindings(file, readFileSync(join(root, file), 'utf8')));
   for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
   found.push(...bindingJobFindings(CI, readFileSync(join(root, CI), 'utf8'), readFileSync(join(root, 'Makefile'), 'utf8')));
   assert.deepEqual(found, []);

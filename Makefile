@@ -46,7 +46,7 @@ CI_RUST := lint-rust test-rust bindings-check
 CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
 CI_REPORT ?= var/report/ci-targets
 
-.PHONY: bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
+.PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
@@ -570,3 +570,31 @@ release-recipes: ## Write packages/release.mk, the release recipes of the contra
 release-tag-output: ## Write TAG and VERSION into GITHUB_OUTPUT for the later jobs of the release workflow
 	@test -n "$$GITHUB_OUTPUT" || { echo 'release-tag-output: GITHUB_OUTPUT is not set; run it in the release workflow' >&2; exit 2; }
 	printf 'tag=%s\nversion=%s\n' "$$TAG" "$$VERSION" >> "$$GITHUB_OUTPUT"
+
+# The jobs of release.yml, each one recipe that its one run step runs (T2.23). ci-release-tag tags the commit of the CI run
+# RUN and gives the later jobs the TAG and VERSION that release-tag appended to GITHUB_ENV, which a later line of the same
+# step does not receive in its environment. ci-release-release builds and publishes the release of TAG: the tools of
+# release-tools join PATH for its later lines (RELEASE_PATH), the artifacts of the job assets, which the workflow downloads
+# into var/release/downloaded before this step, join var/release/assets after release-assets, and the commit of the Go
+# module carries the identity of GITHUB_ACTOR, the actor of the run.
+RELEASE_PATH = PATH="$(VAR_TOOLS)/mise/shims:$(VAR_TOOLS)/bin:$$PATH"
+RELEASE_IDENTITY = GIT_AUTHOR_NAME="$${GITHUB_ACTOR:?}" GIT_AUTHOR_EMAIL="$${GITHUB_ACTOR:?}@users.noreply.github.com" \
+	GIT_COMMITTER_NAME="$${GITHUB_ACTOR:?}" GIT_COMMITTER_EMAIL="$${GITHUB_ACTOR:?}@users.noreply.github.com"
+ci-release-tag: ## The job tag of release.yml: tag the commit of the CI run RUN, then write TAG and VERSION into GITHUB_OUTPUT; AUTO for workflow_run
+	@test -n "$$GITHUB_ENV" || { echo 'ci-release-tag: GITHUB_ENV is not set; run it in the release workflow' >&2; exit 2; }
+	$(MAKE) --no-print-directory release-tag
+	$(MAKE) --no-print-directory release-tag-output TAG="$$(sed -n 's/^TAG=//p' "$$GITHUB_ENV" | tail -n 1)" VERSION="$$(sed -n 's/^VERSION=//p' "$$GITHUB_ENV" | tail -n 1)"
+
+ci-release-release: ## The job release of release.yml: build, carry and publish the release of TAG with the downloaded platform assets; ONLINE
+	@test -n "$(TAG)" || { echo 'ci-release-release: TAG is required, for example make ci-release-release TAG=v0.0.1' >&2; exit 2; }
+	$(MAKE) --no-print-directory release-zip
+	$(MAKE) --no-print-directory release-tools
+	$(RELEASE_PATH) $(MAKE) --no-print-directory release-assets
+	mkdir -p var/release/assets && cp var/release/downloaded/* var/release/assets/
+	$(RELEASE_PATH) $(MAKE) --no-print-directory php-serialization-install-rust
+	$(RELEASE_PATH) $(MAKE) --no-print-directory install-tools TOOLS=go
+	$(RELEASE_PATH) $(MAKE) --no-print-directory release-recipes
+	$(RELEASE_IDENTITY) $(RELEASE_PATH) $(MAKE) --no-print-directory release-go-module
+	$(RELEASE_PATH) $(MAKE) --no-print-directory release-publish
+	$(RELEASE_PATH) $(MAKE) --no-print-directory release-platform-assets
+	$(RELEASE_PATH) $(MAKE) --no-print-directory release-undraft
