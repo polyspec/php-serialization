@@ -752,6 +752,24 @@ function llvmFindings(file: string, text: string, major: string, makefile: strin
   return found;
 }
 
+/** The line of ci-release-release that carries the downloaded platform assets, with their folders, into the release assets. */
+const CARRY_ASSETS = 'mkdir -p var/release/assets && cp -R var/release/downloaded/. var/release/assets/';
+
+/**
+ * The findings of the carry of the platform assets: the jobs of assets.yml upload the folders go, npm, php-ext and wheel
+ * that the release recipes write, and release-platform-assets reads them there, so the release job copies the folder
+ * var/release/downloaded with its subfolders; a copy of its top files alone stops at the first folder.
+ */
+function carryFindings(makefile: string): string[] {
+  return recipeOf(makefile, 'ci-release-release').includes(CARRY_ASSETS) ? [] : [`Makefile: the recipe ci-release-release does not carry the downloaded assets with ${CARRY_ASSETS}`];
+}
+
+test('the release job carries the downloaded platform assets with their folders', () => {
+  const makefile = `ci-release-release:\n\t${CARRY_ASSETS}\n`;
+  assert.deepEqual(carryFindings(makefile), []);
+  assert.deepEqual(carryFindings(makefile.replace('cp -R var/release/downloaded/.', 'cp var/release/downloaded/*')), [`Makefile: the recipe ci-release-release does not carry the downloaded assets with ${CARRY_ASSETS}`]);
+});
+
 /** The major release of LLVM that config/toolchain.json pins (llvm.version). */
 function llvmMajor(): string {
   const toolchain: unknown = JSON.parse(readFileSync(join(root, 'config/toolchain.json'), 'utf8'));
@@ -820,6 +838,7 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   for (const file of [CI, RELEASE]) found.push(...callFindings(file, readFileSync(join(root, file), 'utf8')));
   found.push(...bindingJobFindings(CI, readFileSync(join(root, CI), 'utf8'), readFileSync(join(root, 'Makefile'), 'utf8')));
   found.push(...recipeTargetFindings(readFileSync(join(root, 'Makefile'), 'utf8'), targets));
+  found.push(...carryFindings(readFileSync(join(root, 'Makefile'), 'utf8')));
   found.push(...llvmFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), llvmMajor(), readFileSync(join(root, 'Makefile'), 'utf8')));
   assert.deepEqual(found, []);
 });
