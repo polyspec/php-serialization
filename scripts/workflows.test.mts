@@ -311,7 +311,11 @@ function platformFindings(file: string, text: string): string[] {
 
 // The run step of the job php and the one line of its recipe ci-assets-php that builds the extension of the minor of the job.
 const PHP_RUN = 'make ci-assets-php EXPECTED_PHP_MINOR=${{ matrix.php }} RELEASE=${{ inputs.release }}';
-const PHP_BUILD = '$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))';
+// install-llvm-action also appends DYLD_LIBRARY_PATH and LD_LIBRARY_PATH with /usr/lib first to GITHUB_ENV, which makes
+// the PHP of the job load the system libsqlite3 instead of its own and abort; the build runs without them and takes the LLVM
+// from LLVM_PATH alone.
+const LLVM_ENV_DROP = 'env -u DYLD_LIBRARY_PATH -u LD_LIBRARY_PATH ';
+const PHP_BUILD = LLVM_ENV_DROP + '$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))';
 // The native assets of the job platform, which its recipe ci-assets-platform builds once each.
 const NON_PHP = ['release-go-static', 'release-wheel', 'release-npm-platform'];
 
@@ -743,6 +747,7 @@ function llvmFindings(file: string, text: string, major: string, makefile: strin
   if (!step.includes("        if: runner.os == 'macOS'")) found.push(`${file}: the LLVM step of the job php does not run on macOS alone`);
   if (!step.some((line) => new RegExp(`^ {10}version: '${major}\\.[0-9]+\\.[0-9]+'$`).test(line))) found.push(`${file}: the LLVM step of the job php installs no LLVM ${major} of config/toolchain.json`);
   if (steps.indexOf(step) > run) found.push(`${file}: the LLVM step of the job php comes after its run step`);
+  if (!recipeOf(makefile, 'ci-assets-php').some((line) => /\brelease-php-ext\b/.test(line) && line.startsWith(LLVM_ENV_DROP))) found.push(`Makefile: the build of ci-assets-php keeps the DYLD_LIBRARY_PATH and LD_LIBRARY_PATH of install-llvm-action`);
   if (!recipeOf(makefile, 'ci-assets-php').some((line) => /\brelease-php-ext\b/.test(line) && line.endsWith(` ${LLVM_ROOT_ARGUMENT}`))) found.push(`Makefile: the build of ci-assets-php does not pass ${LLVM_ROOT_ARGUMENT}`);
   return found;
 }
@@ -757,7 +762,7 @@ function llvmMajor(): string {
 }
 
 test('a recipe of a job makes only defined targets, and the job php provisions LLVM on macOS before its run step', () => {
-  const makefile = 'ci-assets-php:\n\t$(MAKE) --no-print-directory release-recipes\n\t$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))\n';
+  const makefile = 'ci-assets-php:\n\t$(MAKE) --no-print-directory release-recipes\n\tenv -u DYLD_LIBRARY_PATH -u LD_LIBRARY_PATH $(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))\n';
   const targets = new Set(['ci-assets-php', 'release-recipes', 'release-php-ext']);
   assert.deepEqual(recipeTargetFindings(makefile, targets), []);
   assert.deepEqual(recipeTargetFindings(makefile.replace('release-recipes', 'install-llvm'), targets), ['Makefile: the recipe ci-assets-php makes install-llvm, which neither the Makefile nor the release recipes define']);
@@ -766,6 +771,7 @@ test('a recipe of a job makes only defined targets, and the job php provisions L
   assert.deepEqual(llvmFindings(ASSETS, job.replace("        if: runner.os == 'macOS'\n", ''), '21', makefile), [`${ASSETS}: the LLVM step of the job php does not run on macOS alone`]);
   assert.deepEqual(llvmFindings(ASSETS, job, '22', makefile), [`${ASSETS}: the LLVM step of the job php installs no LLVM 22 of config/toolchain.json`]);
   assert.deepEqual(llvmFindings(ASSETS, job.replace('@ebc0426251bc40c7cd31162802432c68818ab8f0', '@v2'), '21', makefile), [`${ASSETS}: the job php provisions LLVM in 0 uses steps of install-llvm-action pinned by a commit, not one`]);
+  assert.deepEqual(llvmFindings(ASSETS, job, '21', makefile.replace(LLVM_ENV_DROP, '')), ['Makefile: the build of ci-assets-php keeps the DYLD_LIBRARY_PATH and LD_LIBRARY_PATH of install-llvm-action']);
   assert.deepEqual(llvmFindings(ASSETS, job, '21', makefile.replace(` ${LLVM_ROOT_ARGUMENT}`, '')), [`Makefile: the build of ci-assets-php does not pass ${LLVM_ROOT_ARGUMENT}`]);
 });
 
