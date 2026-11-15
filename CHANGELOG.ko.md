@@ -7,6 +7,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 바인딩이 binding 0.0.8을 쓴다(T2.31): 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.8"`을 가리키고, `Cargo.lock`은 다른 `polyspec-binding-core` 없이 그 태그만 고정하며, `package.json`은 `@polyspec/binding` 0.0.8의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `scripts/binding-features.test.mts`가 0.0.8의 태그와 asset을 확인한다.
+
 ## 0.0.11
 
 - tag `v0.0.10`은 있지만 0.0.10에는 GitHub Release가 없습니다(T2.29). release job이 플랫폼 자산을 `cp var/release/downloaded/* var/release/assets/`로 복사했는데, binding 0.0.7의 자산 job은 폴더 `go`, `npm`, `php-ext`, `wheel`을 올리므로 `cp`가 첫 폴더에서 멈췄습니다. 이제 `ci-release-release`는 그것을 `cp -R var/release/downloaded/. var/release/assets/`로 복사하고, `release-platform-assets`가 거기서 읽습니다. release job은 tag를 checkout하므로 0.0.11이 이 수정을 릴리스하고 `v0.0.10`은 그대로 둡니다. `make workflows-test`: 이전 15개 통과와 1개 실패, 이후 16개 통과입니다.
