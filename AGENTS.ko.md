@@ -1,5 +1,5 @@
 <!-- doc-id: development -->
-<!-- source-sha256: 1ce58621e6a14aeb8e6126d37a330622650cad1f334c46f996b392fe076b9a90 -->
+<!-- source-sha256: 4572bd02e5f478aa0bb21632a4c983ffff7aaf2e106790ba871a12a1591b2a73 -->
 # 개발 절차
 
 [English](AGENTS.md)

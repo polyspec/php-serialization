@@ -251,7 +251,7 @@ function jobStepFindings(file: string, text: string): string[] {
       if (name === LAST) {
         if (run !== LAST_RUN) found.push(`${at} runs ${run}, not ${LAST_RUN}`);
       } else {
-        const [make, target, ...rest] = run.match(/(?:[^\s"]|"[^"]*")+/g) ?? [];
+        const [make, target, ...rest] = run.match(/(?:"[^"]*"|\$\{\{[^}]*\}\}|[^\s"])+/g) ?? [];
         if (make !== 'make' || target !== recipeName(file, name)) found.push(`${at} runs ${run}, not make ${recipeName(file, name)}`);
         for (const argument of rest) if (!JOB_ARGUMENT.test(argument)) found.push(`${at} passes ${argument}, which is no make variable of a value, a matrix value or an input`);
       }
@@ -315,9 +315,9 @@ const PHP_BUILD = '$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED
 // The native assets of the job platform, which its recipe ci-assets-platform builds once each.
 const NON_PHP = ['release-go-static', 'release-wheel', 'release-npm-platform'];
 
-/** The count of the recipe lines of `recipe` that name the target `target` as a word. */
+/** The count of the times that the recipe lines of `recipe` name the target `target` as a word. */
 function naming(recipe: string[], target: string): number {
-  return recipe.filter((line) => new RegExp(`(?:^| )${target}(?: |$)`).test(line)).length;
+  return recipe.reduce((count, line) => count + (line.match(new RegExp(`(?<=^| )${target}(?= |$)`, 'g')) ?? []).length, 0);
 }
 
 /**
@@ -575,7 +575,7 @@ const PHP_MAKEFILE = `ci-assets-platform: ## The assets of the platform
 ci-assets-php: ## The PHP extension of EXPECTED_PHP_MINOR
 	$(MAKE) --no-print-directory release-recipes
 	${PHP_BUILD}
-ci-other: ## Another job
+ci-assets-other: ## Another job
 	$(MAKE) --no-print-directory release-recipes
 `;
 
@@ -627,9 +627,9 @@ test('asset ownership rejects non-PHP matrix axes and builds in other jobs (T2.2
   for (const extra of ['        extra: [one, two]\n', '        exclude: [{platform: linux-x64-gnu}]\n']) {
     assert.notDeepEqual(platformFindings(ASSETS, PLATFORM.replace('      matrix:\n', '      matrix:\n' + extra)), []);
   }
-  const other = PHP_SAMPLE + '  other:\n    runs-on: ubuntu-26.04-arm\n    steps:\n      - run: make ci-other\n';
+  const other = PHP_SAMPLE + '  other:\n    runs-on: ubuntu-26.04-arm\n    steps:\n      - run: make ci-assets-other\n';
   assert.deepEqual(phpMinorFindings(ASSETS, other, ['8.4', '8.5'], PHP_MAKEFILE), []);
-  assert.notDeepEqual(phpMinorFindings(ASSETS, other.replace('      - run: make ci-other', '      - uses: shivammathur/setup-php@duplicate\n      - run: make ci-other'), ['8.4', '8.5'], PHP_MAKEFILE), []);
+  assert.notDeepEqual(phpMinorFindings(ASSETS, other.replace('      - run: make ci-assets-other', '      - uses: shivammathur/setup-php@duplicate\n      - run: make ci-assets-other'), ['8.4', '8.5'], PHP_MAKEFILE), []);
   for (const target of ['release-php-ext PHP=php', 'release-go-static', 'release-wheel', 'release-npm-platform']) {
     assert.notDeepEqual(phpMinorFindings(ASSETS, other, ['8.4', '8.5'], `${PHP_MAKEFILE}\t$(MAKE) ${target}\n`), [], target);
   }
@@ -692,7 +692,7 @@ test('every job of CI runs its recipe ci-<job> in one run step, and its other st
   assert.deepEqual(jobStepFindings(RELEASE, release.replace('make ci-release-tag', 'make release-tag')), [`${RELEASE}: the job tag runs make release-tag RUN="\${{ inputs.run || github.event.workflow_run.id }}" AUTO="\${{ github.event_name == 'workflow_run' && '1' || '' }}", not make ci-release-tag`]);
   assert.deepEqual(jobStepFindings(RELEASE, release.replace('      GH_TOKEN: ${{ github.token }}\n    steps:\n      - id', '      GH_TOKEN: ${{ github.token }}\n      TAG: v1\n    steps:\n      - id')), [`${RELEASE}: the job tag sets env other than GH_TOKEN`]);
   assert.deepEqual(jobStepFindings(RELEASE, release.replace('      GH_TOKEN: ${{ github.token }}\n    steps:\n      - id', '      TAG: v1\n    steps:\n      - id')), [`${RELEASE}: the job tag sets env other than GH_TOKEN`]);
-  assert.deepEqual(jobStepFindings(RELEASE, release.replace('      - run: make ci-release-release', '      - run: make release-tools\n      - run: make ci-release-release')), [`${RELEASE}: the job release has 2 run steps, not one`]);
+  assert.deepEqual(jobStepFindings(RELEASE, release.replace('      - run: make ci-release-release', '      - run: make release-tools\n      - run: make ci-release-release')), [`${RELEASE}: the job release has 2 run steps, not one`, `${RELEASE}: the job release runs make release-tools, not make ci-release-release`]);
   assert.deepEqual(jobStepFindings(RELEASE, release.replace('      - run: make ci-release-release', '      - env:\n          GIT_AUTHOR_NAME: x\n        run: make ci-release-release')), [`${RELEASE}: the job release sets env`]);
 });
 
