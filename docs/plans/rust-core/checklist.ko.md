@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 37bd3ffa1098362c63959519a2b1a2f5f384028346f1e21b8619dc8bfb0fcaa0 -->
+<!-- source-sha256: af8a3142f6ab5c52051c58bf8d462bc99a45c16a36f465f190d9371f2ec3de48 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -36,4 +36,4 @@
 | T2.20 | PHP 계약 runner는 PHP로 표현할 수 있는 모든 host 값을 실행하고 PHP 형식이 없는 값이 정확히 네 개인지 확인한다. 생성된 PHP case-test 시험은 그 넷을 실행하여 오류 class와 kind를 확인한다(RQ-015). 표현할 수 없는 case가 빠지거나 바뀌거나 추가되면 허용하지 않는다. 잡힌 panic-test 진단은 PHPUnit 종료 결과로 처리되지 않은 panic과 구분한다 | `packages/php-ext/tests/CasesTest.php`, `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make test-php` | [o] |
 | T2.21 | 명세는 interface가 php_value case group을 alias에 연결하고 생성된 바인딩 시험이 실행한다고 적는다. case 선언이 이미 그 alias와 group을 적고 있기 때문이다 | `docs/spec/php-serialize.md`, `CHANGELOG.md` | `make text-absent FILE=docs/spec/php-serialize.md TEXT='The interface contract does not link this group yet'` | [o] |
 | T2.22 | PHP 릴리스 확장을 플랫폼과 minor별 독립 job에서 빌드하여 각 새 job이 선언한 PHP minor만 로드한다. 정확한 matrix, runner, 단일 설치와 빌드, expected-minor 인자와 고유 artifact를 검증한다 | .github/workflows/assets.yml, scripts/workflows.test.mts, AGENTS.md and paired documents | make workflows-test | [o] |
-| T2.23 | CI가 실행하는 workflow인 `ci.yml`과 `assets.yml`의 모든 job은 `run` step 하나, 곧 make 변수만 받는 recipe `make ci-<job>` 또는 `make ci-assets-<job>`을 두어, 로컬 실행이 CI가 하는 호출과 같다: recipe가 실패하면 멈추는 설치와 각각 끝까지 실행하는 검사나 빌드를 가진다. 다른 모든 step은 `uses` step이고, 조건은 `uses` step에만 두며, 어떤 job도 `env`를 두지 않는다. `ci-passed`는 `RESULTS='${{ toJSON(needs) }}'`를 넘긴다. Red 먼저 | `.github/workflows/ci.yml`, `.github/workflows/assets.yml`, `Makefile`, `scripts/workflows.test.mts`, `AGENTS.md(.ko)`, `CHANGELOG.md(.ko)` | `make workflows-test` | [ ] |
+| T2.23 | workflow `ci.yml`, `release.yml`, `assets.yml`의 모든 job은 `run` step 하나, 곧 make 변수만 받는 recipe `make ci-<job>`, `make ci-release-<job>` 또는 `make ci-assets-<job>`을 두어, 로컬 실행이 CI가 하는 호출과 같다: recipe가 실패하면 멈추는 설치와 각각 끝까지 실행하는 검사나 빌드를 가진다. 다른 모든 step은 `uses` step이고, 조건은 `uses` step에만 두며, 어떤 step도 `env`를 두지 않고 job은 `GH_TOKEN`만 둔다. `ci-passed`는 `RESULTS='${{ toJSON(needs) }}'`를 넘긴다. Red 먼저 | `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.github/workflows/assets.yml`, `Makefile`, `scripts/workflows.test.mts`, `AGENTS.md(.ko)`, `CHANGELOG.md(.ko)` | `make workflows-test` | [o] |
