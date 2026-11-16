@@ -17,10 +17,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Each binding crate: its manifest and the line of the dry run that builds it.
 const CRATES = [
   { manifest: 'packages/python/Cargo.toml', target: 'test-python-binding', build: /\bmaturin build .*--features (\S+)/ },
-  { manifest: 'packages/ts/Cargo.toml', target: 'node-package', build: /^cargo build .*-p polyspec-php-serialization-node .*--features (\S+)/ },
-  { manifest: 'packages/ts/wasm/Cargo.toml', target: 'node-package', build: /^cargo build .*-p polyspec-php-serialization-wasm .*--features (\S+)/ },
-  { manifest: 'packages/php-ext/Cargo.toml', target: 'test-php', build: /^cargo build .*-p polyspec-php-serialization-php-ext .*--features (\S+)/ },
-  { manifest: 'packages/go/internal/ffi/Cargo.toml', target: 'test-go', build: /^cargo build .*-p polyspec-php-serialization-go .*--features (\S+)/ },
+  { manifest: 'packages/ts/Cargo.toml', target: 'node-package', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-node .*--features (\S+)/ },
+  { manifest: 'packages/ts/wasm/Cargo.toml', target: 'node-package', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-wasm .*--features (\S+)/ },
+  { manifest: 'packages/php-ext/Cargo.toml', target: 'test-php', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-php-ext .*--features (\S+)/ },
+  { manifest: 'packages/go/internal/ffi/Cargo.toml', target: 'test-go', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-go .*--features (\S+)/ },
 ] as const;
 
 // The names of the [features] table of a manifest, without default.
@@ -53,7 +53,7 @@ test('each binding crate is built, and the workspace linted, with every feature 
     assert.equal(built.length, 1, `make ${crate.target} builds ${crate.manifest} once, not ${String(built.length)} times:\n${lines.join('\n')}`);
     assert.deepEqual(built[0]?.split(',').sort(), declared, `make ${crate.target} builds ${crate.manifest} with the features ${built[0] ?? ''}, its manifest declares ${declared.join(',')}`);
   }
-  const lint = lines.map((line) => /^cargo clippy --workspace .*--features (\S+)/.exec(line)?.[1]).filter((found) => found !== undefined);
+  const lint = lines.map((line) => /\blink\.mjs cargo \S+ clippy --workspace .*--features (\S+)/.exec(line)?.[1]).filter((found) => found !== undefined);
   assert.equal(lint.length, 1, `make lint-bindings runs clippy once:\n${lines.join('\n')}`);
   assert.deepEqual(lint[0]?.split(',').sort(), [...union].sort(), `make lint-bindings lints with ${lint[0] ?? ''}, the manifests declare ${[...union].sort().join(',')}`);
 });
@@ -83,7 +83,7 @@ test('the binding recipes run the tool of the npm package that package.json name
   const install = dryRunOfCopy(t, 'php-serialization-install-')('php-serialization-install-rust');
   assert.ok(!install.some((line) => line.includes('scripts/binding.mts')), `make php-serialization-install-rust still installs binding from a checkout:\n${install.join('\n')}`);
   // binding reads the crates with cargo metadata --locked --offline, so the install fetches the crates of Cargo.lock.
-  assert.ok(install.some((line) => line.endsWith('cargo fetch --locked')), `make php-serialization-install-rust does not fetch the crates of Cargo.lock:\n${install.join('\n')}`);
+  assert.ok(install.some((line) => /\blink\.mjs cargo \S+ fetch --locked$/.test(line)), `make php-serialization-install-rust does not fetch the crates of Cargo.lock:\n${install.join('\n')}`);
 });
 
 test('the binding recipes install packages offline (HR-89)', (t) => {

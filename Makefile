@@ -14,6 +14,9 @@ VAR_TOOLS := $(CURDIR)/var/tools
 NODE := $(VAR_TOOLS)/bin/node
 NPM := $(VAR_TOOLS)/bin/npm
 MISE := $(VAR_TOOLS)/bin/mise
+# Every recipe runs cargo through the cargo of kit's link (T2.41): with the checkouts that .links names it patches their git
+# sources and resolves against a copy of the lock, and with none it runs cargo as given (kit docs/operations/local-links.md).
+CARGO := $(NODE) $(KIT)/link.mjs cargo $(CURDIR)
 UV := $(VAR_TOOLS)/mise/shims/uv
 ALINT := $(VAR_TOOLS)/mise/shims/alint
 export MISE_DATA_DIR := $(VAR_TOOLS)/mise
@@ -34,7 +37,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -49,7 +52,7 @@ CI_REPORT ?= var/report/ci-targets
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
-	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
+	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings ci-assets-platform ci-assets-php ci-assets-npm \
@@ -121,7 +124,7 @@ php-serialization-install-python: ## Make legacy/packages/python/.venv and insta
 # package of package.json, which make install-packages installs.
 php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
-	$(ONLINE) cargo fetch --locked
+	$(ONLINE) $(CARGO) fetch --locked
 
 # The local links of 0.0.x development: the git-ignored .links of the main checkout names the checkouts that provide packages.
 link: ## Link the packages to the checkouts of .links; offline
@@ -148,7 +151,7 @@ build-python: ## Build the Python package with uv build; offline
 CORE := polyspec-php-serialization
 
 build-rust: ## Build the Rust crate with cargo; offline
-	cargo build -p $(CORE) --locked --offline
+	$(CARGO) build -p $(CORE) --locked --offline
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
@@ -158,7 +161,7 @@ test-python: ## Run the unit tests of the Python package with the name filter CA
 	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots legacy/packages/python --venv .venv
 
 test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test, with the name filter CASES=<pattern>; offline
-	cargo test -p $(CORE) --locked --offline $(CASES)
+	$(CARGO) test -p $(CORE) --locked --offline $(CASES)
 
 lint-ts: ## Lint the TypeScript and JavaScript with oxlint (.oxlintrc.json) and knip (knip.json); offline
 	$(NODE) $(KIT)/lint-ts.mjs
@@ -169,8 +172,8 @@ lint-python: ## Lint the Python with ruff (ruff.toml) and vulture ([tool.vulture
 # R-1: clippy with the [workspace.lints] of Cargo.toml and the disallowed methods of clippy.toml, every warning an error, and
 # rustfmt.
 lint-rust: ## Lint the Rust crate with cargo clippy ([workspace.lints] of Cargo.toml and clippy.toml) and rustfmt; offline
-	cargo clippy -p $(CORE) --locked --offline --all-targets -- -D warnings
-	cargo fmt -p $(CORE) --check
+	$(CARGO) clippy -p $(CORE) --locked --offline --all-targets -- -D warnings
+	$(CARGO) fmt -p $(CORE) --check
 
 # ---- Bindings -----------------------------------------------------------------------------------------------------------------
 # binding is the npm package @polyspec/binding of package.json, the asset of the GitHub Release of the tag that every
@@ -234,7 +237,7 @@ binding-features-test: ## Run the test of the features of the binding recipes; o
 	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/binding-features.test.mts
 
 lint-bindings: bindings ## Run clippy on the binding crates with every warning an error, after make bindings; offline
-	cargo clippy --workspace --locked --offline --all-targets --features $(TEST_FEATURES) -- -D warnings
+	$(CARGO) clippy --workspace --locked --offline --all-targets --features $(TEST_FEATURES) -- -D warnings
 
 # check-declarations checks each generated declaration file alone with --ignoreConfig: TypeScript 7 refuses files on the
 # command line beside the tsconfig.json of the root (TS5112), and the declarations are checked without its settings.
@@ -263,10 +266,10 @@ NODE_VERSION := $(shell sed -n 's/^  "version": "\(.*\)",$$/\1/p' packages/ts/pa
 WASM_BINDGEN_RELEASE := $(shell sed -n 's/^wasm-bindgen = "=\(.*\)"$$/\1/p' packages/ts/wasm/Cargo.toml)
 node-package: bindings-node bindings-wasm ## Build the WASM module and the Node addon, then pack and install the npm package into var/bindings/node; offline
 	test "$$($(WASM_BINDGEN) --version)" = "wasm-bindgen $(WASM_BINDGEN_RELEASE)"
-	cargo build --locked --offline -p $(CORE)-wasm --target wasm32-unknown-unknown --features $(WASM_FEATURES)
+	$(CARGO) build --locked --offline -p $(CORE)-wasm --target wasm32-unknown-unknown --features $(WASM_FEATURES)
 	$(WASM_BINDGEN) --target web --out-dir packages/ts/wasm/generated --out-name php_serialization_wasm \
 		$(CARGO_TARGET)/wasm32-unknown-unknown/debug/polyspec_php_serialization_wasm.wasm
-	cargo build --locked --offline -p $(CORE)-node --features $(NODE_FEATURES)
+	$(CARGO) build --locked --offline -p $(CORE)-node --features $(NODE_FEATURES)
 	rm -rf $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform && mkdir -p $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform
 	cp $(CARGO_TARGET)/debug/libpolyspec_php_serialization_node.$(CDYLIB) $(BINDINGS_VAR)/node-platform/$(NODE_ADDON)
 	$(NODE) -e 'require("fs").writeFileSync("$(BINDINGS_VAR)/node-platform/package.json", JSON.stringify({ name: "@polyspec/php-serialization-$(NODE_PLATFORM)", version: "$(NODE_VERSION)", os: [process.platform], cpu: [process.arch], main: "$(NODE_ADDON)", files: ["$(NODE_ADDON)"] }, null, 2) + "\n")'
@@ -292,7 +295,7 @@ test-wasm: node-package ## Run the generated tests and the contract cases of the
 test-php: export PHP := $(PHP)
 test-php: export PHP_CONFIG := $(PHP_CONFIG)
 test-php: bindings-php ## Build the extension, lint its stub and run the generated tests and the contract cases on PHPUnit; offline
-	cargo build --locked --offline -p $(CORE)-php-ext --features $(PHP_FEATURES)
+	$(CARGO) build --locked --offline -p $(CORE)-php-ext --features $(PHP_FEATURES)
 	$(PHP) -l packages/php-ext/generated/polyspec_php_serialization.stub.php
 	$(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/generated/tests
 	$(CONTRACTS_ENV) $(PHP) -d extension=$(CARGO_TARGET)/debug/libpolyspec_php_serialization.$(CDYLIB) $(PHPUNIT) packages/php-ext/tests
@@ -308,7 +311,7 @@ GO_TAGS = $(subst $(space),$(comma),$(addprefix $(GO_TAG_PREFIX),$(subst -,_,$(s
 GO_ENV = GOTOOLCHAIN=local CGO_LDFLAGS=-L$(CARGO_TARGET)/debug GOFLAGS=-tags=$(GO_TAGS)
 test-go: bindings-go ## Build the static library of the Go binding, run gofmt and go vet, then the generated tests and the contract cases on go test; offline
 	test "$$($(GO_ENV) $(GO) env GOVERSION)" = "go$(GO_RELEASE)"
-	cargo build --locked --offline -p $(CORE)-go --features $(GO_FEATURES)
+	$(CARGO) build --locked --offline -p $(CORE)-go --features $(GO_FEATURES)
 	test -z "$$(cd packages/go && $(GOFMT) -l .)"
 	cd packages/go && $(GO_ENV) $(GO) vet ./...
 	cd packages/go && $(GO_ENV) $(CONTRACTS_ENV) $(GO) test -count=1 -v ./...
@@ -327,7 +330,7 @@ contracts-check: ## Fail when real PHP writes another contracts/php-serialize.js
 # fuzz gives corrupted and generated input and the bytes of random values of PHP, with a fixed seed, to real PHP, to the Rust
 # crate, whose probe it builds first, and to the Node.js and Python packages (scripts/fuzz.mts).
 fuzz: fuzz-temp-test ## Compare the Rust crate and both ports with real PHP on corrupted and generated input; offline
-	cargo build -p $(CORE) --locked --offline --release --example probe
+	$(CARGO) build -p $(CORE) --locked --offline --release --example probe
 	$(NODE) scripts/fuzz.mts
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.
@@ -565,7 +568,7 @@ RELEASE_CHECKS = $(CI_SHARED) $(CI_RUST) $(CI_BINDINGS)
 release-version: ## Write VERSION into the versioned manifests, the locks and the changelogs, then run the checks of CI; offline
 	@test -n "$(VERSION)" || { echo "release-version: VERSION is required, for example make release-version VERSION=0.0.14"; exit 1; }
 	PYTHON="$$($(MISE) which python3)" $(NODE) scripts/release-manifests.mts version $(VERSION)
-	cargo update --workspace --offline
+	$(CARGO) update --workspace --offline
 	$(NPM) install --package-lock-only --ignore-scripts
 	$(NODE) scripts/release-manifests.mts changelog $(VERSION)
 	$(MAKE) --no-print-directory documents-stamp PATHS=CHANGELOG.ko.md
@@ -574,10 +577,13 @@ release-version: ## Write VERSION into the versioned manifests, the locks and th
 binding-pin: ## Pin the binding of BINDING_TAG in the manifests and the locks, install it, then run the checks of CI; ONLINE
 	@test -n "$(BINDING_TAG)" || { echo "binding-pin: BINDING_TAG is required, for example make binding-pin BINDING_TAG=v0.0.15"; exit 1; }
 	$(NODE) scripts/release-manifests.mts binding $(BINDING_TAG)
-	$(ONLINE) cargo update -p polyspec-binding-core
+	$(ONLINE) $(CARGO) update -p polyspec-binding-core
 	$(ONLINE) $(NPM) install --package-lock-only --ignore-scripts
 	$(MAKE) --no-print-directory install-packages
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(RELEASE_CHECKS)
+
+cargo-link-test: ## Fail while a recipe runs cargo or maturin without the cargo of kit's link (T2.41); offline
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/cargo-link.test.mts
 
 release-manifests-test: ## Run the test of the writer of the release values; offline
 	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/release-manifests.test.mts
