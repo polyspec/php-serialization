@@ -1293,52 +1293,61 @@
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
       "group": "cases",
-      "result": "value"
+      "result": "value",
+      "reads": ["bytes", "serialized", "tree"]
     },
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
       "group": "forms",
-      "result": "value"
+      "result": "value",
+      "reads": ["bytes", "serialized", "tree", "written"]
     },
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
       "group": "deep",
-      "result": "value"
+      "result": "value",
+      "reads": ["bytes", "serialized"]
     },
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
-      "group": "rejected"
+      "group": "rejected",
+      "reads": ["bytes"]
     },
     {
       "member": "unserialize",
       "file": "contracts/php-serialize.json",
-      "group": "stricter"
+      "group": "stricter",
+      "reads": ["bytes"]
     },
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
       "group": "cases",
-      "result": "serialized"
+      "result": "serialized",
+      "reads": ["bytes", "data", "tree"]
     },
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
       "group": "forms",
-      "result": "serialized"
+      "result": "serialized",
+      "reads": ["bytes", "data", "tree", "written"]
     },
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
       "group": "deep",
-      "result": "serialized"
+      "result": "serialized",
+      "reads": ["bytes", "data"]
     },
     {
       "member": "serialize",
       "file": "contracts/php-serialize.json",
-      "group": "refused_values"
+      "group": "refused_values",
+      "reads": ["tree", "written"]
     },
     {
       "member": "serialize",
