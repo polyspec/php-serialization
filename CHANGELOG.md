@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.14
+
 - binding is pinned at its release 0.0.15 (T2.38): the seven tag lines, `Cargo.lock`, the asset of `package.json` and its lock name v0.0.15; `make bindings-generate` and `make bindings-check` pass `--cargo` (GN-1d); the Go tests build with the tags of binding (GN-13e); `api.mjs` expects a `PhpSerializationTypeError` of kind `invalid_argument_type` for a text in the place of a float (B2.412, GN-12a) and that a float takes NaN and the infinities; `make binding-pin` writes `packages/release.mk` again before the checks.
 - `make rebuild-check` classifies the writer of the release values (T2.44): `scripts/release-manifests.mts` writes `package.json` with `npm pkg set` and `pyproject.toml` with `uv version --frozen`, the npm and the uv of the checkout, and writes only what no pinned tool writes, the versions and the binding tags of the `Cargo.toml` and the sections of the changelogs; `docs/rebuild/release-manifests.md` records each tool it tried and its output, and `config/rebuild.json` declares the script a record.
 - The Python binding builds through the maturin of kit's link (T2.41): kit 0.0.116, which `package.json` pins, runs `link.mjs maturin <dir> <args>` with the maturin of `MATURIN`, so `make test-python-binding` builds the wheel against the linked crates as every other Rust target does, and `make cargo-link-test` passes.

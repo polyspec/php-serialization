@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: f94b9067c34cb7b384c857bb1455c0b1f292b0b9df705b814099043c3c4bca2e -->
+<!-- source-sha256: 2a84a9387b3683c7cbfcc3346637bca669d14aa9e15dcebd507b71d3b7a8b27e -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+## 0.0.14
 
 - binding을 release 0.0.15에 고정한다(T2.38): tag 일곱 줄, `Cargo.lock`, `package.json`의 asset과 그 lock이 v0.0.15를 가리킨다. `make bindings-generate`와 `make bindings-check`는 `--cargo`를 넘긴다(GN-1d). Go 시험은 binding의 tag로 빌드한다(GN-13e). `api.mjs`는 float 자리의 문자열에 kind `invalid_argument_type`의 `PhpSerializationTypeError`를 기대하고, float가 NaN과 무한대를 받는지 본다(B2.412, GN-12a). `make binding-pin`은 check 전에 `packages/release.mk`를 다시 쓴다.
 - `make rebuild-check`가 release 값을 쓰는 스크립트를 분류한다(T2.44): `scripts/release-manifests.mts`는 checkout의 npm과 uv로 `package.json`을 `npm pkg set`으로, `pyproject.toml`을 `uv version --frozen`으로 쓴다. pin된 도구가 쓰지 못하는 것, 즉 `Cargo.toml`의 version과 binding tag, changelog의 section만 직접 쓴다. `docs/rebuild/release-manifests.md`는 시험한 도구와 그 출력을 기록하고, `config/rebuild.json`은 그 스크립트를 record로 선언한다.
