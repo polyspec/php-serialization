@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 87c9af2227e713538353b5f3e107cb4e15bda34ae2fe596c1f04632aecbb73da -->
+<!-- source-sha256: 30a48dc14d223f118f348a93789484ebac9e50ef5ecaa5ccd8982e5f3ff7ccbf -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -9,6 +9,7 @@
 
 ## 0.0.13
 
+- `contracts/php-serialize.json`이 다시 `.php-version`의 PHP, `"php": {"version": "8.4"}`를 기록한다(T2.37): meta key `note`(T2.34)를 쓸 때 PATH의 PHP 8.5가 계약을 썼고, `.php-version`의 PHP로 도는 CI는 그 version에서 `make contracts-check`에 실패한다. 두 PHP release에서 모든 case는 같았고 version 필드만 달랐다. PHP 8.4.27에서 `make contracts`가 계약을 다시 쓴다.
 - 바인딩이 binding 0.0.13을 쓴다(T2.35): 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.13"`을 가리키고, `Cargo.lock`은 다른 `polyspec-binding-core` 없이 그 태그만 고정하며, `package.json`은 `@polyspec/binding` 0.0.13의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `packages/rust/interface.json`에서 `contracts/php-serialize.json`의 `cases` 행은 이 저장소의 시험이 읽는 case key를 `reads`에 적는다(CK-96): `bytes`, `serialized` 또는 `data`, `tree`, 그리고 `forms`에는 `written`.
 - 더 엄격한 bytes의 case는 bytes를 거부하는 이유를 `reason` 대신 meta key `note`에 기록한다: 그 key를 읽는 시험이 없고, binding은 parameter도 결과도 meta key도 아닌 case key를 보고한다(CK-96). `make contracts`가 `contracts/php-serialize.json`을 다시 쓴다.
 

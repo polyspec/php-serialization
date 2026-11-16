@@ -8,6 +8,7 @@
 
 ## 0.0.13
 
+- `contracts/php-serialize.json` records the PHP of `.php-version` again, `"php": {"version": "8.4"}` (T2.37): the meta key `note` (T2.34) was written by PHP 8.5 from PATH, and CI, which runs the PHP of `.php-version`, fails `make contracts-check` on that version. Every case was the same on both PHP releases; only the version field differed. `make contracts` on PHP 8.4.27 writes the contract again.
 - The bindings use binding 0.0.13 (T2.35): `polyspec-binding-core` of every Cargo manifest names `tag = "v0.0.13"`, `Cargo.lock` pins that tag with no other `polyspec-binding-core`, and `package.json` names the release asset of `@polyspec/binding` 0.0.13, whose integrity `package-lock.json` pins. Each row of `cases` of `packages/rust/interface.json` for `contracts/php-serialize.json` names in `reads` the keys of its cases that the tests of this repository read (CK-96): `bytes`, `serialized` or `data`, `tree`, and `written` for `forms`.
 - A case of the stricter bytes records why the bytes are refused under the meta key `note` instead of `reason`: no test reads that key, and binding reports a case key that is no parameter, no result and no meta key (CK-96). `make contracts` writes `contracts/php-serialize.json` again.
 
