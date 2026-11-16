@@ -34,7 +34,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -49,7 +49,7 @@ CI_REPORT ?= var/report/ci-targets
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
-	contracts contracts-check fuzz fuzz-temp-test binding-features-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
+	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings ci-assets-platform ci-assets-php ci-assets-npm \
@@ -557,6 +557,30 @@ release-undraft: ## Make the draft release of TAG public
 
 release-coverage: ## Require every package file of the checkout to be classified in config/release.json; offline
 	$(NODE) $(KIT)/release.mjs coverage
+
+# A version and a pin of binding (T2.40): scripts/release-manifests.mts writes the value that each manifest means and reads
+# it back as data, cargo and npm write the locks, and then the checks and the tests of the jobs shared, rust and bindings of
+# CI run past failures, so that the commit that follows is one that CI passes. Neither target commits.
+RELEASE_CHECKS = $(CI_SHARED) $(CI_RUST) $(CI_BINDINGS)
+release-version: ## Write VERSION into the versioned manifests, the locks and the changelogs, then run the checks of CI; offline
+	@test -n "$(VERSION)" || { echo "release-version: VERSION is required, for example make release-version VERSION=0.0.14"; exit 1; }
+	PYTHON="$$($(MISE) which python3)" $(NODE) scripts/release-manifests.mts version $(VERSION)
+	cargo update --workspace --offline
+	$(NPM) install --package-lock-only --ignore-scripts
+	$(NODE) scripts/release-manifests.mts changelog $(VERSION)
+	$(MAKE) --no-print-directory documents-stamp PATHS=CHANGELOG.ko.md
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(RELEASE_CHECKS)
+
+binding-pin: ## Pin the binding of BINDING_TAG in the manifests and the locks, install it, then run the checks of CI; ONLINE
+	@test -n "$(BINDING_TAG)" || { echo "binding-pin: BINDING_TAG is required, for example make binding-pin BINDING_TAG=v0.0.15"; exit 1; }
+	$(NODE) scripts/release-manifests.mts binding $(BINDING_TAG)
+	$(ONLINE) cargo update -p polyspec-binding-core
+	$(ONLINE) $(NPM) install --package-lock-only --ignore-scripts
+	$(MAKE) --no-print-directory install-packages
+	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(RELEASE_CHECKS)
+
+release-manifests-test: ## Run the test of the writer of the release values; offline
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/release-manifests.test.mts
 
 # ---- The per-platform assets of the bindings (binding GN-19 to GN-19i) ------------------------------------------------------
 # binding writes the release recipes of the contract into packages/release.mk (binding release-recipes, GN-19h), which is

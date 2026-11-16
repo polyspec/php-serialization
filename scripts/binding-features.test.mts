@@ -10,6 +10,8 @@ import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { bindingAsset } from './release-manifests.mts';
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Each binding crate: its manifest and the line of the dry run that builds it.
@@ -56,12 +58,12 @@ test('each binding crate is built, and the workspace linted, with every feature 
   assert.deepEqual(lint[0]?.split(',').sort(), [...union].sort(), `make lint-bindings lints with ${lint[0] ?? ''}, the manifests declare ${[...union].sort().join(',')}`);
 });
 
-// The release of binding that the repository uses: its tag, and the asset of its GitHub Release that holds the npm
-// package of the tool (binding CK-70, CK-20).
-const BINDING_TAG = 'v0.0.13';
-const BINDING_ASSET = `https://github.com/polyspec/binding/releases/download/${BINDING_TAG}/polyspec-binding-0.0.13.tgz`;
+// The release of binding that the repository uses: the tag that the core crate names, which every other line, the lock and
+// the asset of package.json must name too (binding CK-70, CK-20), so that a pin (make binding-pin) changes no test.
+const BINDING_TAG = /tag = "(v\d+\.\d+\.\d+)"/.exec(readFileSync(join(root, 'packages/rust/Cargo.toml'), 'utf8').split('\n').find((line) => line.startsWith('polyspec-binding-core = ')) ?? '')?.[1] ?? 'no tag';
+const BINDING_ASSET = bindingAsset(BINDING_TAG);
 
-test('every dependency line on polyspec-binding-core names the tag of the release of binding, which Cargo.lock pins (binding CK-70)', () => {
+test('every dependency line on polyspec-binding-core names one tag of a release of binding, which Cargo.lock pins (binding CK-70)', () => {
   for (const manifest of ['packages/rust/Cargo.toml', ...CRATES.map((crate) => crate.manifest)]) {
     const lines = readFileSync(join(root, manifest), 'utf8').split('\n').filter((line) => line.startsWith('polyspec-binding-core = '));
     assert.ok(lines.length > 0, `${manifest} has no dependency line on polyspec-binding-core`);
