@@ -10,13 +10,15 @@
 //   node scripts/release-manifests.mts changelog X.Y.Z  the section X.Y.Z of both changelogs, which takes the entries
 //                                                        of Unreleased
 //
-// A TOML manifest changes in the one line of the value, so its comments and layout stay; the change is verified with
-// cargo metadata (Cargo.toml) and tomllib (pyproject.toml). A JSON manifest is written only when it is the 2-space
-// JSON.stringify of its own data, so a write changes no layout. The locks are not written here: make release-version
-// and make binding-pin run cargo and npm for them.
+// A manifest is written by the tool of its ecosystem where the checkout pins one that writes the value (T2.44,
+// docs/rebuild/release-manifests.md): npm pkg set for package.json and uv version for pyproject.toml, the npm and the uv
+// that make names in NPM and UV. Cargo has no command that writes [package] version or the tag of a git dependency of
+// all the manifests at once, so a Cargo.toml changes in the one line of the value, and its comments and layout stay.
+// Every value is verified as data: cargo metadata (Cargo.toml), tomllib (pyproject.toml) and JSON.parse (package.json).
+// The locks are not written here: make release-version and make binding-pin run cargo and npm for them.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 export const BINDING_GIT = 'https://github.com/polyspec/binding.git';
 export const BINDING_CRATE = 'polyspec-binding-core';
@@ -70,12 +72,11 @@ const asString = (value: unknown, what: string): string => {
   return value;
 };
 
-/** `text`, a JSON document in the 2-space layout of JSON.stringify, with `change` applied to its data. */
-export function editJson(source: string, change: (data: Json) => void): string {
-  const data = parseObject(source, 'the manifest');
-  if (`${JSON.stringify(data, null, 2)}\n` !== source) throw new Error('the JSON is not in the 2-space layout of JSON.stringify, so a write would change its layout');
-  change(data);
-  return `${JSON.stringify(data, null, 2)}\n`;
+/** The command of the checkout that make names in the variable `name` of the environment. */
+function tool(name: string): string {
+  const command = process.env[name];
+  if (command === undefined || command === '') throw new Error(`${name} names no command; make names the ${name.toLowerCase()} of the checkout`);
+  return command;
 }
 
 /** `text`, a changelog, with the section `## version` placed under `## Unreleased`, which then holds no entry. */
@@ -121,8 +122,8 @@ function setVersion(root: string, version: string): void {
     const path = join(root, file);
     const text = readFileSync(path, 'utf8');
     if (file.endsWith('Cargo.toml')) writeFileSync(path, setTomlString(text, 'package', 'version', version));
-    else if (file.endsWith('pyproject.toml')) writeFileSync(path, setTomlString(text, 'project', 'version', version));
-    else if (file.endsWith('package.json')) writeFileSync(path, editJson(text, (data) => { data.version = version; }));
+    else if (file.endsWith('pyproject.toml')) execFileSync(tool('UV'), ['version', version, '--frozen'], { cwd: dirname(path), stdio: ['ignore', 'ignore', 'inherit'] });
+    else if (file.endsWith('package.json')) execFileSync(tool('NPM'), ['pkg', 'set', `version=${version}`], { cwd: dirname(path), stdio: ['ignore', 'ignore', 'inherit'] });
     else throw new Error(`${file}: no reader for the version of this manifest`);
   }
   // The values as data: cargo, tomllib and JSON.parse read every manifest back.
@@ -149,12 +150,14 @@ function setBinding(root: string, tag: string): void {
       if (found !== source) throw new Error(`${item.manifest} depends on ${BINDING_CRATE} at ${String(found)}, not ${source}`);
     }
   }
-  const manifest = join(root, 'package.json');
-  writeFileSync(manifest, editJson(readFileSync(manifest, 'utf8'), (data) => {
-    const dev = field(data, 'devDependencies', 'package.json');
+  const devDependencies = (): Json => {
+    const dev = field(parseObject(readFileSync(join(root, 'package.json'), 'utf8'), 'package.json'), 'devDependencies', 'package.json');
     if (!isObject(dev) || !(BINDING_PACKAGE in dev)) throw new Error(`package.json declares no devDependency ${BINDING_PACKAGE}`);
-    dev[BINDING_PACKAGE] = bindingAsset(tag);
-  }));
+    return dev;
+  };
+  devDependencies();
+  execFileSync(tool('NPM'), ['pkg', 'set', `devDependencies.${BINDING_PACKAGE}=${bindingAsset(tag)}`], { cwd: root, stdio: ['ignore', 'ignore', 'inherit'] });
+  if (devDependencies()[BINDING_PACKAGE] !== bindingAsset(tag)) throw new Error(`package.json does not declare ${BINDING_PACKAGE} at ${bindingAsset(tag)}`);
 }
 
 function main(args: string[]): void {

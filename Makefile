@@ -569,7 +569,7 @@ release-coverage: ## Require every package file of the checkout to be classified
 RELEASE_CHECKS = $(CI_SHARED) $(CI_RUST) $(CI_BINDINGS)
 release-version: ## Write VERSION into the versioned manifests, the locks and the changelogs, then run the checks of CI; offline
 	@test -n "$(VERSION)" || { echo "release-version: VERSION is required, for example make release-version VERSION=0.0.14"; exit 1; }
-	PYTHON="$$($(MISE) which python3)" $(NODE) scripts/release-manifests.mts version $(VERSION)
+	PYTHON="$$($(MISE) which python3)" NPM=$(NPM) UV=$(UV) $(NODE) scripts/release-manifests.mts version $(VERSION)
 	$(CARGO) update --workspace --offline
 	$(NPM) install --package-lock-only --ignore-scripts
 	$(NODE) scripts/release-manifests.mts changelog $(VERSION)
@@ -578,7 +578,7 @@ release-version: ## Write VERSION into the versioned manifests, the locks and th
 
 binding-pin: ## Pin the binding of BINDING_TAG in the manifests and the locks, install it, then run the checks of CI; ONLINE
 	@test -n "$(BINDING_TAG)" || { echo "binding-pin: BINDING_TAG is required, for example make binding-pin BINDING_TAG=v0.0.15"; exit 1; }
-	$(NODE) scripts/release-manifests.mts binding $(BINDING_TAG)
+	NPM=$(NPM) $(NODE) scripts/release-manifests.mts binding $(BINDING_TAG)
 	$(ONLINE) $(CARGO) update -p polyspec-binding-core
 	$(ONLINE) $(NPM) install --package-lock-only --ignore-scripts
 	$(MAKE) --no-print-directory install-packages

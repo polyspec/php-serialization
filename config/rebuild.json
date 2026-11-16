@@ -26,6 +26,10 @@
       "kind": "policy",
       "reason": "compares the ports with real PHP on corrupted and generated input, the proof of this repository; it needs PHP as the oracle and the typed tree of the contract"
     },
+    "scripts/release-manifests.mts": {
+      "kind": "record",
+      "record": "docs/rebuild/release-manifests.md"
+    },
     "scripts/check-commit-names.mts": {
       "kind": "policy",
       "reason": "fails a tracked document that names a Git commit, a rule of this repository (AGENTS.md, \"Tools\"): a release and a lock pin the name of a commit"

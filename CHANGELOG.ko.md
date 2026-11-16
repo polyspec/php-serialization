@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: df8eaf03f4f20dfcf8a2d7c31b01d65e5d0fc3300f6c3eec4d11e472e4b53acd -->
+<!-- source-sha256: 587d4cce158f771598bf39f96a45809f864a5bd44bdeec360f28ca43cc891604 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- `make rebuild-check`가 release 값을 쓰는 스크립트를 분류한다(T2.44): `scripts/release-manifests.mts`는 checkout의 npm과 uv로 `package.json`을 `npm pkg set`으로, `pyproject.toml`을 `uv version --frozen`으로 쓴다. pin된 도구가 쓰지 못하는 것, 즉 `Cargo.toml`의 version과 binding tag, changelog의 section만 직접 쓴다. `docs/rebuild/release-manifests.md`는 시험한 도구와 그 출력을 기록하고, `config/rebuild.json`은 그 스크립트를 record로 선언한다.
 - Python 바인딩은 kit link의 maturin으로 빌드한다(T2.41): `package.json`이 pin한 kit 0.0.116은 `MATURIN`의 maturin으로 `link.mjs maturin <dir> <args>`를 돌린다. 그래서 `make test-python-binding`은 다른 모든 Rust target처럼 연결한 crate로 wheel을 빌드하고, `make cargo-link-test`가 통과한다.
 - 연결한 checkout은 `packages/ts`에서 Node 바인딩을 load한다(T2.43): `make node-package`는 addon을 생성된 entry 옆, `packages/ts/generated/php-serialization.<platform>.node`에도 둔다. 플랫폼 패키지가 설치되어 있지 않을 때 binding의 entry는 checkout 빌드를 그 자리에서 찾는다. 그 파일은 ignored이고 `packages/ts/package.json`의 `files`가 npm 패키지에서 뺀다. `make test-node`는 연결한 소비자처럼 `packages/ts`를 load한다.
 - 모든 recipe가 kit link의 cargo로 cargo를 돌린다(T2.41): `CARGO := $(NODE) $(KIT)/link.mjs cargo $(CURDIR)`가 cargo를 직접 부르던 recipe 13곳을 대신한다. 그래서 `.links`가 있으면 연결한 checkout을 빌드하고, 없으면 cargo를 그대로 돌린다. 공용 CI job에 넣은 `make cargo-link-test`는 recipe가 `cargo`나 `maturin`을 직접 부르면 실패한다. 지금은 `make test-python-binding`의 `maturin build` 때문에 실패하며, 이것은 kit이 maturin을 link로 돌리기를 기다린다. 0.0.14 release의 조건이다.

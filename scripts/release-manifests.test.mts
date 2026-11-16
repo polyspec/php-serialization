@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { addChangelogSection, bindingAsset, editJson, setBindingTag, setTomlString, versionManifests } from './release-manifests.mts';
+import { addChangelogSection, bindingAsset, setBindingTag, setTomlString, versionManifests } from './release-manifests.mts';
 
 const cargo = `[package]
 name = "polyspec-php-serialization"
@@ -34,12 +34,6 @@ test('the binding tag changes in every dependency line on the git source of bind
   const result = setBindingTag(text, 'v0.0.15');
   assert.equal(result.count, 2);
   assert.equal(result.text, text.replaceAll('binding.git", tag = "v0.0.13"', 'binding.git", tag = "v0.0.15"'));
-});
-
-test('a JSON manifest is written in its own layout, or refused', () => {
-  const text = '{\n  "name": "x",\n  "version": "0.0.13"\n}\n';
-  assert.equal(editJson(text, (data) => { data.version = '0.0.14'; }), '{\n  "name": "x",\n  "version": "0.0.14"\n}\n');
-  assert.throws(() => editJson('{"name": "x"}\n', () => {}), /2-space layout/);
 });
 
 test('the asset of a release of binding is named by its tag', () => {
