@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 159faf6796c07086389f430058c2387fba3f18298fd987bb7740e2c0e165fd74 -->
+<!-- source-sha256: 7794593d477dadc6e0fe0185cf12a481bf54af60926147d987521ac63cab424c -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -55,4 +55,4 @@
 | T2.40 | version과 binding의 핀은 make target이다. `make release-version`과 `make binding-pin`은 각 manifest가 뜻하는 값을 쓰고 데이터로 다시 읽으며, cargo와 npm으로 lock을 쓰고 CI의 검사와 시험을 돌린다. binding feature 시험은 tag를 manifest에서 읽으므로 핀을 바꿀 때 시험을 고치지 않는다 | `scripts/release-manifests.mts`, `scripts/release-manifests.test.mts`, `scripts/binding-features.test.mts`, `Makefile`, `CHANGELOG.md` | `make release-manifests-test`, `make binding-features-test`, `make lint-ts` | [o] |
 | T2.42 | 기준 PHP를 8.5로 한다: `.php-version`이 8.5를 선언하고 계약이 version 8.5를 기록한다. 지원 범위는 그대로 둔다 | `.php-version`, `contracts/php-serialize.json`, `CHANGELOG.md` | `.php-version`의 PHP에서 `make contracts-check` | [-] 원인: 사용자 결정으로 기준 PHP는 8.4로 둔다. 변경 커밋은 revert했다 |
 | T2.41 | 모든 recipe가 kit link의 cargo인 `$(CARGO)`로 cargo를 돌리고, 공용 CI job의 `make cargo-link-test`가 `cargo`나 `maturin`을 직접 부르는 recipe를 찾는다 | `Makefile`, `scripts/cargo-link.test.mts`, `scripts/binding-features.test.mts` | `make cargo-link-test` | [!] 원인: `make test-python-binding`의 `maturin build`가 cargo를 직접 돌리고, kit은 maturin을 link로 돌리지 않는다; 재시도: `link.mjs maturin`을 가진 kit release를 `package.json`에 pin한다 |
-| T2.43 | `make node-package`가 Node addon을 `packages/ts/generated`의 생성된 entry 옆에 둔다. binding의 entry는 checkout 빌드를 그 자리에서 load하므로, `packages/ts`를 연결한 checkout이 그것을 load한다. 그 파일은 ignored이고 npm 패키지에 들어가지 않는다 | `Makefile`, `CHANGELOG.md` | `make test-node`가 `packages/ts`를 load한다; `make layout-check`; `npm pack --dry-run`에 `.node`가 없다 | [o] |
+| T2.43 | `make node-package`가 Node addon을 `packages/ts/generated`의 생성된 entry 옆에 둔다. binding의 entry는 checkout 빌드를 그 자리에서 load하므로, `packages/ts`를 연결한 checkout이 그것을 load한다. 그 파일은 ignored이고 npm 패키지에 들어가지 않는다 | `Makefile`, `CHANGELOG.md` | `make test-node`가 `packages/ts`를 load한다; `make layout-check`; `npm pack --dry-run`에 `.node`가 없다 | [v] |
