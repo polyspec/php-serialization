@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 30a48dc14d223f118f348a93789484ebac9e50ef5ecaa5ccd8982e5f3ff7ccbf -->
+<!-- source-sha256: 601c87ba447d7b5ccce6e6c5e5cd272bd603727688465263446731f4702909b5 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+- Go 시험은 각 test feature의 tag `polyspec_php_serialization_<feature>`로 빌드한다(T2.38): binding은 test feature의 tag에 계약의 library를 넣어 `polyspec_<library>_<feature>`로 쓴다(GN-13e). 그래서 그런 binding은 `zz_generated_fault_test.go`를 `polyspec_php_serialization_fault_test` 아래에 생성하고, `-tags=polyspec_fault_test`를 주는 `make test-go`는 go vet에서 멈췄다: `tests/faults_test.go:14:17: undefined: binding.ArmFaults`. `Makefile`의 `GO_TAGS`는 각 feature 앞에 `GO_TAG_PREFIX`를 붙이고, `packages/go/tests/faults_test.go`와 `no_faults_test.go`가 새 tag를 쓴다. `polyspec_fault_test`를 쓰는 핀의 binding 0.0.13에서는 `make test-go`가 실패하므로, 이 변경은 새 tag를 쓰는 binding의 핀과 함께 들어간다.
 
 ## 0.0.13
 

@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: a4a895ff86823a534d7c602fd31ef10c0704322d673db1c4feacd7d760885e89 -->
+<!-- source-sha256: f9e34407abb9731ead5539a4289689cd7404538ff76b7442551e32d645c8320d -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -51,3 +51,4 @@
 | T2.35 | 바인딩이 binding 0.0.13을 쓴다: 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.13"`을 가리키고, `Cargo.lock`은 그 태그 하나만 고정하며, `package.json`은 `@polyspec/binding` 0.0.13의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `contracts/php-serialize.json`의 `cases` 행은 저장소의 시험이 읽는 key를 `reads`에 선언한다(CK-96) | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml`, `packages/rust/interface.json`, `scripts/binding-features.test.mts`, `CHANGELOG.md` | `binding check packages/rust/interface.json`, `make bindings-check`, `make test-bindings` | [o] |
 | T2.36 | 0.0.13: 모든 manifest가 0.0.13을 선언하고 lock이 그것을 기록한다. 마지막은 버전 커밋 `chore(release): Release 0.0.13 (#T2.36)`이다 | `package.json`, `package-lock.json`, `Cargo.lock`, `packages/*/Cargo.toml`, `packages/python/pyproject.toml`, `packages/ts/package.json`, `CHANGELOG.md` | `make release-coverage`, `make binding-features-test` | [o] |
 | T2.37 | `contracts/php-serialize.json`이 `.php-version`의 PHP(8.4)를 기록한다: T2.34가 PATH의 PHP 8.5로 계약을 썼고 version 필드만 그것을 보였다. PHP 8.4에서 `make contracts`가 계약을 다시 쓴다 | `contracts/php-serialize.json`, `CHANGELOG.md` | `.php-version`의 PHP에서 `make contracts-check` | [o] |
+| T2.38 | Go 시험은 binding이 test feature에 쓰는 tag `polyspec_php_serialization_<feature>`로 빌드한다(GN-13e): `Makefile`의 `GO_TAGS`가 각 feature 앞에 `GO_TAG_PREFIX`를 붙이고, 손으로 쓴 Go 시험이 `polyspec_php_serialization_fault_test`를 쓴다. 그 tag를 쓰는 binding의 핀과 함께 들어간다 | `Makefile`, `packages/go/tests/faults_test.go`, `packages/go/tests/no_faults_test.go`, `CHANGELOG.md` | `polyspec_<library>_<feature>`를 쓰는 binding에서 `make test-go` | [o] |

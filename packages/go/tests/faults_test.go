@@ -1,4 +1,4 @@
-//go:build polyspec_fault_test
+//go:build polyspec_php_serialization_fault_test
 
 package tests
 
@@ -9,7 +9,7 @@ import (
 )
 
 // armFaults and faultLeft are the entry points of the feature fault-test (binding GN-5), which the build tag
-// polyspec_fault_test compiles.
+// polyspec_php_serialization_fault_test compiles.
 func armFaults(_ *testing.T, member, faults string) (uint64, error) {
 	return binding.ArmFaults(member, faults)
 }

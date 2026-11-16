@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- The Go tests build with the tag `polyspec_php_serialization_<feature>` of each test feature (T2.38): binding writes the tag of a test feature with the library of the contract, `polyspec_<library>_<feature>` (GN-13e), so a binding of that form generates `zz_generated_fault_test.go` under `polyspec_php_serialization_fault_test`, and `make test-go` with `-tags=polyspec_fault_test` stopped in go vet: `tests/faults_test.go:14:17: undefined: binding.ArmFaults`. `GO_TAGS` of the `Makefile` prefixes each feature with `GO_TAG_PREFIX`, and `packages/go/tests/faults_test.go` and `no_faults_test.go` name the new tag. With the pinned binding 0.0.13, which writes `polyspec_fault_test`, `make test-go` fails, so this change comes with the pin of a binding that writes the new tag.
+
 ## 0.0.13
 
 - `contracts/php-serialize.json` records the PHP of `.php-version` again, `"php": {"version": "8.4"}` (T2.37): the meta key `note` (T2.34) was written by PHP 8.5 from PATH, and CI, which runs the PHP of `.php-version`, fails `make contracts-check` on that version. Every case was the same on both PHP releases; only the version field differed. `make contracts` on PHP 8.4.27 writes the contract again.
