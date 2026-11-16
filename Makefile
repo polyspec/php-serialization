@@ -249,7 +249,7 @@ check-declarations: bindings-node bindings-wasm ## Check the generated declarati
 # contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
 test-python-binding: bindings-python ## Build the wheel, install it into var/bindings/venv and run the generated tests and the contract cases; offline
 	rm -rf $(BINDINGS_VAR)/wheels
-	cd packages/python && $(MATURIN) build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
+	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
 	cd $(BINDINGS_VAR) && venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/generated/tests -t $(CURDIR)/packages/python/generated/tests

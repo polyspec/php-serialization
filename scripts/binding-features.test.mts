@@ -16,7 +16,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Each binding crate: its manifest and the line of the dry run that builds it.
 const CRATES = [
-  { manifest: 'packages/python/Cargo.toml', target: 'test-python-binding', build: /\bmaturin build .*--features (\S+)/ },
+  { manifest: 'packages/python/Cargo.toml', target: 'test-python-binding', build: /\blink\.mjs maturin \S+ build .*--features (\S+)/ },
   { manifest: 'packages/ts/Cargo.toml', target: 'node-package', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-node .*--features (\S+)/ },
   { manifest: 'packages/ts/wasm/Cargo.toml', target: 'node-package', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-wasm .*--features (\S+)/ },
   { manifest: 'packages/php-ext/Cargo.toml', target: 'test-php', build: /\blink\.mjs cargo \S+ build .*-p polyspec-php-serialization-php-ext .*--features (\S+)/ },
