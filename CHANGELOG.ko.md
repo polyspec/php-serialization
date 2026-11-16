@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 2a84a9387b3683c7cbfcc3346637bca669d14aa9e15dcebd507b71d3b7a8b27e -->
+<!-- source-sha256: 4d41e8d461e0450e5667bae86f2a2d4a627661071f5995f66620e47f6b1cc1ea -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,6 +7,9 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.15
+
+- binding을 release 0.0.17에 고정한다(T2.46). session-store의 binding이므로, 둘에 의존하는 crate가 polyspec-binding-core 하나로 빌드된다: tag 일곱 줄, `Cargo.lock`, `package.json`의 asset과 그 lock이 v0.0.17을 가리킨다. 생성된 package는 binding 0.0.17 scaffold가 쓰는 그대로다(`make bindings-check`).
 ## 0.0.14
 
 - binding을 release 0.0.15에 고정한다(T2.38): tag 일곱 줄, `Cargo.lock`, `package.json`의 asset과 그 lock이 v0.0.15를 가리킨다. `make bindings-generate`와 `make bindings-check`는 `--cargo`를 넘긴다(GN-1d). Go 시험은 binding의 tag로 빌드한다(GN-13e). `api.mjs`는 float 자리의 문자열에 kind `invalid_argument_type`의 `PhpSerializationTypeError`를 기대하고, float가 NaN과 무한대를 받는지 본다(B2.412, GN-12a). `make binding-pin`은 check 전에 `packages/release.mk`를 다시 쓴다.
