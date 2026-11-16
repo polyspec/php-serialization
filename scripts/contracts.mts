@@ -264,7 +264,7 @@ $stricter = [];
 foreach ($strict as [$id, $bytes, $kind, $reason]) {
     // RQ-009 rests on PHP reading these names.
     if ($kind === 'property_name' && unserialize($bytes, ['allowed_classes' => ['stdClass']]) === false) throw new RuntimeException("PHP refuses the stricter bytes of $id");
-    $stricter[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)], 'reason' => $reason, 'raises' => raises($kind)];
+    $stricter[] = ['id' => $id, 'bytes' => base64_encode($bytes), 'data' => ['hex' => bin2hex($bytes)], 'note' => $reason, 'raises' => raises($kind)];
 }
 
 // Values that PHP holds and a value of the format refuses when it is built (RQ-009), with the bytes that PHP writes for them.

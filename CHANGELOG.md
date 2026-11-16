@@ -6,6 +6,7 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- A case of the stricter bytes records why the bytes are refused under the meta key `note` instead of `reason`: no test reads that key, and binding reports a case key that is no parameter, no result and no meta key (CK-96). `make contracts` writes `contracts/php-serialize.json` again.
 ## 0.0.12
 
 - The bindings use binding 0.0.10 (T2.32): `polyspec-binding-core` of every Cargo manifest names `tag = "v0.0.10"`, `Cargo.lock` pins that tag with no other `polyspec-binding-core`, and `package.json` names the release asset of `@polyspec/binding` 0.0.10, whose integrity `package-lock.json` pins. `scripts/binding-features.test.mts` checks the tag and the asset of 0.0.10. A library that depends on this one and on binding 0.0.10 resolves one `polyspec-binding-core`; with 0.0.8 here it resolved two, whose traits differ.
