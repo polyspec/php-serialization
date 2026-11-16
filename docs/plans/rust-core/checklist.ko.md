@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: e991d9f26a62fde541fa846e9a906b82b00f1987890e370058d3452f600c59ad -->
+<!-- source-sha256: fd7bb8bd01301ffd02e14abd7336e08d76ad6457743f6893ea571f793f858d50 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -53,3 +53,4 @@
 | T2.37 | `contracts/php-serialize.json`이 `.php-version`의 PHP(8.4)를 기록한다: T2.34가 PATH의 PHP 8.5로 계약을 썼고 version 필드만 그것을 보였다. PHP 8.4에서 `make contracts`가 계약을 다시 쓴다 | `contracts/php-serialize.json`, `CHANGELOG.md` | `.php-version`의 PHP에서 `make contracts-check` | [o] |
 | T2.38 | Go 시험은 binding이 test feature에 쓰는 tag `polyspec_php_serialization_<feature>`로 빌드한다(GN-13e): `Makefile`의 `GO_TAGS`가 각 feature 앞에 `GO_TAG_PREFIX`를 붙이고, 손으로 쓴 Go 시험이 `polyspec_php_serialization_fault_test`를 쓴다. 그 tag를 쓰는 binding의 핀과 함께 들어간다 | `Makefile`, `packages/go/tests/faults_test.go`, `packages/go/tests/no_faults_test.go`, `CHANGELOG.md` | `polyspec_<library>_<feature>`를 쓰는 binding에서 `make test-go` | [o] |
 | T2.40 | version과 binding의 핀은 make target이다. `make release-version`과 `make binding-pin`은 각 manifest가 뜻하는 값을 쓰고 데이터로 다시 읽으며, cargo와 npm으로 lock을 쓰고 CI의 검사와 시험을 돌린다. binding feature 시험은 tag를 manifest에서 읽으므로 핀을 바꿀 때 시험을 고치지 않는다 | `scripts/release-manifests.mts`, `scripts/release-manifests.test.mts`, `scripts/binding-features.test.mts`, `Makefile`, `CHANGELOG.md` | `make release-manifests-test`, `make binding-features-test`, `make lint-ts` | [o] |
+| T2.42 | 기준 PHP는 8.5다: `.php-version`이 8.5를 선언하고, 계약은 그 PHP에서 `make contracts`가 쓴 version 8.5를 기록한다. 지원 범위(`phpExtension.minors`, assets의 job php, 확장 패키지의 `>=8.4`, 루트 `composer.json`의 platform 8.4.1)는 그대로 둔다 | `.php-version`, `contracts/php-serialize.json`, `CHANGELOG.md` | `.php-version`의 PHP에서 `make contracts-check` | [o] |
