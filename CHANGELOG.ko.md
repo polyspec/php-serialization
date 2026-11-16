@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: eddf4f0620a8ecddd107f06c4e3deb4c885d25aeae65d7fb04c11d62be4ba1e8 -->
+<!-- source-sha256: 77613855ba0258bf8850a76c0cf1ea2113eb0871a01b347ac8c5a8405f88da6b -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,7 +7,6 @@
 <a id="unreleased"></a>
 ## Unreleased
 
-- 저장소의 기준 PHP는 8.5다(T2.42): `.php-version`은 CI와 checkout의 도구가 돌리는 PHP인 8.5를 선언하고, `contracts/php-serialize.json`은 PHP 8.5.10에서 `make contracts`가 쓴 `"php": {"version": "8.5"}`를 기록한다. 모든 case는 8.4와 8.5에서 같고 version 필드만 바뀌었다. 지원 범위는 그대로다: PHP 확장은 8.4와 8.5용으로 빌드하고(`config/toolchain.json`의 `phpExtension.minors`, `.github/workflows/assets.yml`의 job php), `packages/php-ext/composer.json`은 `>=8.4`를 요구하며, 루트 `composer.json`의 platform은 최저 minor인 8.4.1로 두어 그 lock이 지원하는 모든 PHP에 설치되게 한다.
 - version과 binding의 핀은 make target이다(T2.40). `make release-version VERSION=X.Y.Z`와 `make binding-pin BINDING_TAG=vX.Y.Z`는 `scripts/release-manifests.mts`로 각 manifest가 뜻하는 값을 쓴다. 이 스크립트는 TOML 값은 그 한 줄만, JSON manifest는 데이터를 바꾸되 원래 배치를 지키고, 모든 manifest를 데이터로 다시 읽는다(cargo metadata, tomllib, JSON.parse). 두 target은 cargo와 npm으로 lock을 쓰고, CI의 shared, rust, bindings job의 검사와 시험을 실패해도 끝까지 돌린다. 전에는 release를 `sed`로 고치고 바뀐 줄 수로만 확인했으며 시험을 돌리지 않았다. `scripts/binding-features.test.mts`는 binding의 tag를 core crate에서 읽고, 나머지 모든 줄, lock, `package.json`의 asset이 같은 tag를 가리키는지 검사한다. 그래서 핀을 바꿀 때 시험을 고치지 않는다. `make release-manifests-test`가 writer를 시험한다.
 - Go 시험은 각 test feature의 tag `polyspec_php_serialization_<feature>`로 빌드한다(T2.38): binding은 test feature의 tag에 계약의 library를 넣어 `polyspec_<library>_<feature>`로 쓴다(GN-13e). 그래서 그런 binding은 `zz_generated_fault_test.go`를 `polyspec_php_serialization_fault_test` 아래에 생성하고, `-tags=polyspec_fault_test`를 주는 `make test-go`는 go vet에서 멈췄다: `tests/faults_test.go:14:17: undefined: binding.ArmFaults`. `Makefile`의 `GO_TAGS`는 각 feature 앞에 `GO_TAG_PREFIX`를 붙이고, `packages/go/tests/faults_test.go`와 `no_faults_test.go`가 새 tag를 쓴다. `polyspec_fault_test`를 쓰는 핀의 binding 0.0.13에서는 `make test-go`가 실패하므로, 이 변경은 새 tag를 쓰는 binding의 핀과 함께 들어간다.
 
