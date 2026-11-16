@@ -79,7 +79,7 @@ test('the binding recipes run the tool of the npm package that package.json name
   const binding: unknown = typeof dependencies === 'object' && dependencies !== null && '@polyspec/binding' in dependencies ? dependencies['@polyspec/binding'] : undefined;
   assert.equal(binding, BINDING_ASSET, 'package.json does not name the asset of the release of binding');
   const check = dryRunOfCopy(t, 'php-serialization-binding-')('bindings-check');
-  assert.ok(check.some((line) => line.startsWith('/') && line.endsWith('/node_modules/.bin/binding check packages/rust/interface.json')), `make bindings-check does not run the binding of node_modules by its absolute path:\n${check.join('\n')}`);
+  assert.ok(check.some((line) => line.startsWith('/') && line.includes('/node_modules/.bin/binding check packages/rust/interface.json --cargo ')), `make bindings-check does not run the binding of node_modules by its absolute path:\n${check.join('\n')}`);
   const install = dryRunOfCopy(t, 'php-serialization-install-')('php-serialization-install-rust');
   assert.ok(!install.some((line) => line.includes('scripts/binding.mts')), `make php-serialization-install-rust still installs binding from a checkout:\n${install.join('\n')}`);
   // binding reads the crates with cargo metadata --locked --offline, so the install fetches the crates of Cargo.lock.

@@ -186,10 +186,10 @@ BINDING_TARGETS := php python node wasm go
 BINDING_PHONY = $(foreach target,$(BINDING_TARGETS),bindings-$(target))
 bindings: $(BINDING_PHONY) ## Write the generated sources of the five targets with binding: the generated folders and the Go files zz_generated_*.go, none of them tracked (binding GN-3, GN-15g); offline
 $(BINDING_PHONY):
-	$(BINDING) generate --root . --target $(@:bindings-%=%)
+	$(BINDING) generate --root . --target $(@:bindings-%=%) --cargo "$(CARGO)"
 
 bindings-check: ## Check the interface contract and that the binding packages are what binding scaffold writes; offline
-	$(BINDING) check packages/rust/interface.json
+	$(BINDING) check packages/rust/interface.json --cargo "$(CARGO)"
 
 # The tools of the binding tests: the Go of the go directive of packages/go/go.mod, the wasm-bindgen CLI of the release
 # of the wasm-bindgen crate of packages/ts/wasm/Cargo.toml (binding GN-15, GN-18) and maturin, from mise.toml; PHP of
@@ -582,6 +582,7 @@ binding-pin: ## Pin the binding of BINDING_TAG in the manifests and the locks, i
 	$(ONLINE) $(CARGO) update -p polyspec-binding-core
 	$(ONLINE) $(NPM) install --package-lock-only --ignore-scripts
 	$(MAKE) --no-print-directory install-packages
+	$(MAKE) --no-print-directory release-recipes
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(RELEASE_CHECKS)
 
 cargo-link-test: ## Fail while a recipe runs cargo or maturin without the cargo of kit's link (T2.41); offline

@@ -55,7 +55,10 @@ export function run(lib) {
     const cycle = [];
     cycle.push(cycle);
     refuses(lib, () => lib.serialize(cycle), 'unsupported_value', 'a list that holds itself');
-    refuses(lib, () => new lib.PhpFloat('1.5'), 'invalid_number', 'a text for a float');
+    // A value that is not a number in the place of a number is a TypeError (binding B2.412, GN-12a); a float of PHP takes
+    // every number, NaN and the infinities too, so no number is refused.
+    assert.throws(() => new lib.PhpFloat('1.5'), (error) => error instanceof lib.PhpSerializationTypeError && error instanceof TypeError && error.kind === 'invalid_argument_type', 'a text for a float');
+    for (const number of [Number.NaN, Infinity, -Infinity]) assert.ok(Object.is(new lib.PhpFloat(number).value, number), `the float ${String(number)}`);
     let deepest = new lib.StdClass(new Map());
     for (let index = 0; index < 4096; index++) deepest = [deepest];
     refuses(lib, () => lib.serialize(deepest), 'depth', 'a value nested 4097 deep');
