@@ -272,6 +272,7 @@ node-package: bindings-node bindings-wasm ## Build the WASM module and the Node 
 	$(CARGO) build --locked --offline -p $(CORE)-node --features $(NODE_FEATURES)
 	rm -rf $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform && mkdir -p $(BINDINGS_VAR)/node $(BINDINGS_VAR)/node-platform
 	cp $(CARGO_TARGET)/debug/libpolyspec_php_serialization_node.$(CDYLIB) $(BINDINGS_VAR)/node-platform/$(NODE_ADDON)
+	cp $(CARGO_TARGET)/debug/libpolyspec_php_serialization_node.$(CDYLIB) packages/ts/generated/$(NODE_ADDON)
 	$(NODE) -e 'require("fs").writeFileSync("$(BINDINGS_VAR)/node-platform/package.json", JSON.stringify({ name: "@polyspec/php-serialization-$(NODE_PLATFORM)", version: "$(NODE_VERSION)", os: [process.platform], cpu: [process.arch], main: "$(NODE_ADDON)", files: ["$(NODE_ADDON)"] }, null, 2) + "\n")'
 	cd $(BINDINGS_VAR)/node-platform && $(NPM) pack --pack-destination $(BINDINGS_VAR)/node
 	cd packages/ts && $(NPM) pack --pack-destination $(BINDINGS_VAR)/node
@@ -282,6 +283,7 @@ node-package: bindings-node bindings-wasm ## Build the WASM module and the Node 
 test-node: node-package ## Run the generated tests and the contract cases of the Node binding on node --test; offline
 	cp packages/ts/generated/tests/generated.test.mjs packages/ts/tests/cases.mjs packages/ts/tests/cases.test.mjs packages/ts/tests/api.mjs packages/ts/tests/api.test.mjs $(BINDINGS_VAR)/node/
 	cd $(BINDINGS_VAR)/node && $(CONTRACTS_ENV) $(NODE) --test generated.test.mjs cases.test.mjs api.test.mjs
+	cd packages/ts && $(NODE) -e 'require("./generated/index.cjs")'
 
 # The generated tests and the contract cases of the WASM binding through the subpath ./wasm of the installed package
 # (binding P-5); --expose-gc serves the generated tests that collect instances (binding GN-18a).
