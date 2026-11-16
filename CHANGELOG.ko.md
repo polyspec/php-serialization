@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: f2aff9e2ba030629ce5725117a3fb3bcd5fc6ebf659cfa68728b9645fe43342c -->
+<!-- source-sha256: 87c9af2227e713538353b5f3e107cb4e15bda34ae2fe596c1f04632aecbb73da -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -7,7 +7,11 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.13
+
+- 바인딩이 binding 0.0.13을 쓴다(T2.35): 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.13"`을 가리키고, `Cargo.lock`은 다른 `polyspec-binding-core` 없이 그 태그만 고정하며, `package.json`은 `@polyspec/binding` 0.0.13의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `packages/rust/interface.json`에서 `contracts/php-serialize.json`의 `cases` 행은 이 저장소의 시험이 읽는 case key를 `reads`에 적는다(CK-96): `bytes`, `serialized` 또는 `data`, `tree`, 그리고 `forms`에는 `written`.
 - 더 엄격한 bytes의 case는 bytes를 거부하는 이유를 `reason` 대신 meta key `note`에 기록한다: 그 key를 읽는 시험이 없고, binding은 parameter도 결과도 meta key도 아닌 case key를 보고한다(CK-96). `make contracts`가 `contracts/php-serialize.json`을 다시 쓴다.
+
 ## 0.0.12
 
 - 바인딩이 binding 0.0.10을 쓴다(T2.32): 모든 Cargo manifest의 `polyspec-binding-core`가 `tag = "v0.0.10"`을 가리키고, `Cargo.lock`은 다른 `polyspec-binding-core` 없이 그 태그만 고정하며, `package.json`은 `@polyspec/binding` 0.0.10의 릴리스 asset을 가리키고 `package-lock.json`이 그 integrity를 고정한다. `scripts/binding-features.test.mts`가 0.0.10의 태그와 asset을 확인한다. 이 라이브러리와 binding 0.0.10에 의존하는 라이브러리는 `polyspec-binding-core` 하나를 받는다. 여기가 0.0.8이던 때에는 trait이 서로 다른 두 개를 받았다.
