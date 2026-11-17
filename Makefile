@@ -39,7 +39,7 @@ ONLINE := env -u npm_config_offline
 # runs all of them once.
 CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
 CI_FUZZ := fuzz
-CI_TS := lint-ts test-js
+CI_TS := lint-ts
 CI_PYTHON := lint-python test-python
 CI_RUST := lint-rust test-rust bindings-check
 # The targets of the binding tests, which the job bindings of ci.yml runs with make ci-bindings (row T2.9): the release
@@ -50,7 +50,7 @@ CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node te
 CI_REPORT ?= var/report/ci-targets
 
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
-	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
+	php-serialization-install-rust build build-python build-rust test test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations python-package test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
@@ -137,12 +137,11 @@ link-check: ## Fail while the links differ from .links; offline
 	$(NODE) $(KIT)/link-check.mjs
 
 # ---- Build, test, lint ------------------------------------------------------------------------------------------------------
-build: build-js build-python build-rust
-test: test-js test-python test-rust
+build: build-python build-rust
+test: test-python test-rust
 lint: lint-ts lint-python lint-rust
 
-# The build of the package of a runtime with the build of its ecosystem; the JavaScript package has none (kit K1106).
-build-js: ## The JavaScript package has no build step; offline
+# The build of the package of a runtime with the build of its ecosystem.
 build-python: ## Build the Python package with uv build; offline
 	$(NODE) $(KIT)/runtime-targets.mjs build --roots legacy/packages/python -- $(UV) build
 
@@ -155,8 +154,6 @@ build-rust: ## Build the Rust crate with cargo; offline
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
-test-js: ## Run the unit tests of the JavaScript package with the name filter CASES=<pattern>; offline
-	$(NODE) $(KIT)/runtime-targets.mjs test --runner node --roots legacy/packages/js -- --test-timeout=30000 --test-concurrency=1
 test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
 	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots legacy/packages/python --venv .venv
 
@@ -405,8 +402,7 @@ ci-fuzz: ## The job fuzz: install every tool and the Rust toolchain, then run CI
 	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_FUZZ)
 
-ci-ts: ## The job ts: build the JavaScript package, then run CI_TS past failures into CI_REPORT
-	$(MAKE) --no-print-directory build-js
+ci-ts: ## The job ts: run CI_TS, the lint of the TypeScript and the JavaScript of the checkout, past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_TS)
 
 ci-python: ## The job python: install the Python tools and the package and build it, then run CI_PYTHON past failures; ONLINE

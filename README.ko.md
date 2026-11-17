@@ -1,5 +1,5 @@
 <!-- doc-id: overview -->
-<!-- source-sha256: 8a84769fa08a5845a0d6b0b0472cc7dee644f05c6c57d3b8b0b774b404f77026 -->
+<!-- source-sha256: 37bb650723c4fa1ba5ae3b6fc4c2fc1223932bc061f077c9e2ca8325879d2028 -->
 # php-serialization
 
 [English](README.md)
@@ -8,11 +8,11 @@
 
 | 패키지 | 설치 이름 | Import |
 | --- | --- | --- |
-| [Node.js](legacy/packages/js/README.ko.md) (legacy, 배포하지 않음) | `@polyspec/php-serialize` | `@polyspec/php-serialize` |
+| Node.js와 WASM(`packages/ts`, 바인딩) | `@polyspec/php-serialization` | `@polyspec/php-serialization` |
 | [Python](legacy/packages/python/README.ko.md) (legacy, 배포하지 않음) | `polyspec-php-serialize` | `polyspec.php_serialize` |
 | [Rust](packages/rust/README.ko.md) | `polyspec-php-serialization` (crate, 배포하지 않음) | `polyspec_php_serialization` |
 
-Node.js와 Python 패키지는 [이행](docs/spec/php-serialize.ko.md#transition)의 legacy 패키지이며, binding이 `packages/python`, `packages/ts`, `packages/php-ext`에 생성하는 바인딩이 그것을 대체합니다.
+Python 패키지는 [이행](docs/spec/php-serialize.ko.md#transition)의 legacy 패키지이며, binding이 `packages/python`에 생성하는 바인딩이 그것을 대체합니다. legacy Node.js 패키지는 없앴고, `packages/ts`의 바인딩이 그 자리를 차지했습니다.
 
 <a id="proof"></a>
 ## 검증

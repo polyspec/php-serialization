@@ -2,10 +2,6 @@
   "schema": 1,
   "comment": "The class of each tool of php-serialization that make rebuild-check checks (S1).",
   "tools": {
-    "legacy/packages/js/index.js": {
-      "kind": "policy",
-      "reason": "the product of this repository: the serialize format of PHP, ported from php-src so that every value reads and writes back exactly as PHP does"
-    },
     "legacy/packages/python/src/polyspec/php_serialize/__init__.py": {
       "kind": "policy",
       "reason": "the product of this repository: the serialize format of PHP, ported from php-src so that every value reads and writes back exactly as PHP does"

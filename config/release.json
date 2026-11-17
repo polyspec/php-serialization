@@ -28,7 +28,6 @@
   },
   "notReleased": {
     "Cargo.toml": "the root Cargo workspace of the core crate and the binding crates (binding design L-2)",
-    "legacy/packages/js/package.json": "the legacy language package of the transition, which is no release target until it is removed (docs/spec/php-serialize.md#transition)",
     "legacy/packages/python/pyproject.toml": "the legacy language package of the transition, which is no release target until it is removed (docs/spec/php-serialize.md#transition)",
     "packages/go/go.mod": "the Go module of the binding: make release-go-module carries it in a commit and the tag packages/go/vX.Y.Z of its own with the static library of each platform (binding GN-19f), which kit does not make, so goModules names no module and no tag of kit releases it",
     "composer.json": "the development project of the repository, which installs the PHPUnit of make test-php (make install-php-tools) and is no package"

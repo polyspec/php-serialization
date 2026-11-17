@@ -13,6 +13,9 @@
   (T2.48), so that CI runs on each runner of the release what the release runs.
 - `make commit-names-check` runs the check of commit names of kit (T2.4-1); `scripts/check-commit-names.mts` and its test,
   a copy that each repository held, are removed.
+- The legacy Node.js package `legacy/packages/js` is removed (T2.2): the Node binding of `packages/ts` passes the contract
+  and the package tests, and the fuzz runs on the Node and Python bindings. The root `package.json`, which is private,
+  exports nothing.
 
 ## 0.0.15
 

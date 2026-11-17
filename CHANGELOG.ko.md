@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 5b9e0645c086fb51b4adf378dd47acd1ab01109cb447a2d4ea20578af7fc9121 -->
+<!-- source-sha256: fa735f1a862f8e74ea8275598d492d5ee3a001ab3853bcb512ac4a50521ccc7e -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -14,6 +14,8 @@
   그래서 release가 도는 것을 CI가 release의 각 runner에서 돈다.
 - `make commit-names-check`는 kit의 commit 이름 검사를 돈다(T2.4-1). 저장소마다 갖고 있던 사본인
   `scripts/check-commit-names.mts`와 그 시험을 지운다.
+- legacy Node.js 패키지 `legacy/packages/js`를 없앴다(T2.2). `packages/ts`의 Node 바인딩이 contract와 패키지 시험을
+  통과하고, fuzz는 Node와 Python 바인딩에서 돈다. private인 루트 `package.json`은 아무것도 내보내지 않는다.
 
 ## 0.0.15
 

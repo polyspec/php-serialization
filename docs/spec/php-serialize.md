@@ -86,7 +86,7 @@ Until the generated bindings replace them (RQ-011), the Node.js and Python packa
 <a id="transition"></a>
 ## Transition
 
-The Node.js and Python packages are in `legacy/packages/js` and `legacy/packages/python`, and the bindings that binding generates from `packages/rust/interface.json` take `packages/python`, `packages/ts` and `packages/php-ext` (RQ-011). The legacy packages keep their API and their own implementation, are no release target, and run their tests and the fuzz from their new paths, as the reference of the comparison with the bindings. Each is removed by a change of its own once the binding of its language passes the contract, the package tests and the fuzz (plan V-6 (5)); until then [the table above](#differences) lists where they differ from the crate.
+The Python package is in `legacy/packages/python`, and the bindings that binding generates from `packages/rust/interface.json` take `packages/python`, `packages/ts` and `packages/php-ext` (RQ-011). The legacy package keeps its API and its own implementation, is no release target, and runs its tests from its path. It is removed by a change of its own once the binding of Python passes the contract, the package tests and the fuzz (plan V-6 (5)); until then [the table above](#differences) lists where it differs from the crate. The legacy Node.js package of `legacy/packages/js` is removed: the Node binding passes the contract and the package tests, and the fuzz runs on the Node and Python bindings.
 
 ## PHP release build isolation
 

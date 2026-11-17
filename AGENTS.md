@@ -18,7 +18,7 @@ The working principles of every polyspec repository are in [PRINCIPLES.md](https
 <a id="layout"></a>
 ## Layout
 
-- Own: S6 exception of the transition: `legacy/packages/js` and `legacy/packages/python` hold the Node.js and Python packages that the generated bindings replace. They are no release target and stay until each is removed by a change of its own, once the binding of its language passes the contract, the package tests and the fuzz ([transition](docs/spec/php-serialize.md#transition), plan V-6 (5)).
+- Own: S6 exception of the transition: `legacy/packages/python` holds the Python package that the generated binding replaces. It is no release target and stays until it is removed by a change of its own, once the binding of Python passes the contract, the package tests and the fuzz; the legacy Node.js package is removed ([transition](docs/spec/php-serialize.md#transition), plan V-6 (5)).
   Enforced by: `make layout-check`, `make release-coverage`
 - Own: The binding packages of the five targets that every contract names (binding BD-27), `packages/python`, `packages/ts`, `packages/ts/wasm`, `packages/php-ext` and `packages/go` with its C ABI crate `packages/go/internal/ffi`, are what `binding scaffold` writes from `packages/rust/interface.json`, and their `generated/` is not tracked. The root Cargo workspace holds them with the core crate, and the Rust recipes of the core name its package.
   Enforced by: `make bindings-check`

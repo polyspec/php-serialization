@@ -7,11 +7,11 @@ The serialize format of PHP for other languages, so that a server in another lan
 
 | Package | Install name | Import |
 | --- | --- | --- |
-| [Node.js](legacy/packages/js/README.md) (legacy, not released) | `@polyspec/php-serialize` | `@polyspec/php-serialize` |
+| Node.js and WASM (`packages/ts`, the binding) | `@polyspec/php-serialization` | `@polyspec/php-serialization` |
 | [Python](legacy/packages/python/README.md) (legacy, not released) | `polyspec-php-serialize` | `polyspec.php_serialize` |
 | [Rust](packages/rust/README.md) | `polyspec-php-serialization` (crate, not published) | `polyspec_php_serialization` |
 
-The Node.js and Python packages are the legacy packages of the [transition](docs/spec/php-serialize.md#transition): the bindings that binding generates into `packages/python`, `packages/ts` and `packages/php-ext` replace them.
+The Python package is the legacy package of the [transition](docs/spec/php-serialize.md#transition): the binding that binding generates into `packages/python` replaces it. The legacy Node.js package is removed; the binding of `packages/ts` took its place.
 
 <a id="proof"></a>
 ## Proof
