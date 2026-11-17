@@ -469,8 +469,8 @@ plan-new: ## Write the plan NAME=<slug> with TITLE and TITLE_KO into docs/plans/
 plan-split: ## Move the items IDS from the plan FROM to the plan TO; offline
 	$(NODE) $(KIT)/plan.mjs plan-split
 
-item-new: ## Add the item ID to the checklist of PLAN with TASK, TASK_KO, DELIVERABLES and VERIFICATION; offline
-	$(call raw_text,TASK TASK_KO DELIVERABLES VERIFICATION) $(NODE) $(KIT)/plan.mjs item-new
+item-new: ## Add the item ID to the checklist of PLAN with TASK, TASK_KO, DELIVERABLES, DELIVERABLES_KO, VERIFICATION and VERIFICATION_KO; offline
+	$(call raw_text,TASK TASK_KO DELIVERABLES DELIVERABLES_KO VERIFICATION VERIFICATION_KO) $(NODE) $(KIT)/plan.mjs item-new
 
 item-edit: ## Replace the cells of the item ID with TASK, TASK_KO, DELIVERABLES, VERIFICATION, CAUSE, RETRY, CAUSE_KO or RETRY_KO; offline
 	$(call raw_text,TASK TASK_KO DELIVERABLES VERIFICATION CAUSE RETRY CAUSE_KO RETRY_KO) DONE_STAYS=1 $(NODE) $(KIT)/plan.mjs item-edit

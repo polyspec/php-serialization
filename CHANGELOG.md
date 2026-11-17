@@ -6,6 +6,10 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- kit is pinned at its release 0.0.119 (T2.47): `package.json` names the release asset of `@polyspec/kit` 0.0.119, whose
+  integrity `package-lock.json` pins, and `make item-new` passes `DELIVERABLES_KO` and `VERIFICATION_KO`, which its plan
+  tool requires.
+
 ## 0.0.15
 
 - binding is pinned at its release 0.0.17 (T2.46), the binding of session-store, so that a crate that depends on both builds with one polyspec-binding-core: the seven tag lines, `Cargo.lock`, the asset of `package.json` and its lock name v0.0.17; the generated packages are what binding 0.0.17 scaffold writes (`make bindings-check`).

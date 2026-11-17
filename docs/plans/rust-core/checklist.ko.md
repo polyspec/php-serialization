@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: ddee74709c2fd410d2b9f2525cc520a7d4e61a6b0363960b6184ddfe1b7b69f0 -->
+<!-- source-sha256: f8db87a8ad089402b5569c1c737f657a498e821085020e39095cb2bbc1029dd0 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -59,3 +59,4 @@
 | T2.44 | `scripts/release-manifests.mts`가 `config/rebuild.json`에 분류를 가진다: pin된 도구를 하나씩 시험한 record `docs/rebuild/release-manifests.md`다. `package.json`은 `npm pkg set`으로, `pyproject.toml`은 `uv version --frozen`으로 쓰고, pin된 도구가 쓰지 못하는 Cargo 값과 changelog section만 스크립트가 쓴다 | `scripts/release-manifests.mts`, `config/rebuild.json`, `docs/rebuild/release-manifests.md`, `Makefile`, `CHANGELOG.md` | `make rebuild-check`; `make release-manifests-test`; 사본에서 writer가 manifest마다 한 줄씩 바꾼다 | [v] |
 | T2.45 | 0.0.14 release: `make release-version VERSION=0.0.14`가 version이 있는 manifest와 lock에 0.0.14를 쓰고, Unreleased의 항목을 두 changelog의 0.0.14 절로 옮긴다 | `package.json`, `Cargo.lock`, `CHANGELOG.md` | `make release-version VERSION=0.0.14` | [v] |
 | T2.46 | binding 0.0.17(session-store의 binding)로 0.0.15를 낸다: `make binding-pin BINDING_TAG=v0.0.17`이 tag 일곱 줄, asset, 두 lock을 고정하고, `make release-version VERSION=0.0.15`가 version이 있는 manifest, lock, changelog에 0.0.15를 쓴다 | `package.json`, `Cargo.lock`, `CHANGELOG.md` | `make binding-pin BINDING_TAG=v0.0.17`; `make release-version VERSION=0.0.15` | [o] |
+| T2.47 | 그래프의 다른 저장소가 쓰는 kit 0.0.119를 고정한다. `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고 `package-lock.json`이 그 integrity를 고정한다. `make item-new`는 kit 0.0.119의 plan 도구가 요구하는 `DELIVERABLES_KO`와 `VERIFICATION_KO`를 넘긴다 | `package.json`, `package-lock.json`, `Makefile`, `CHANGELOG.md` | `make check` | [ ] |
