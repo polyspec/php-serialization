@@ -540,6 +540,7 @@
       "kind": "alias",
       "visibility": "public",
       "origin": "value",
+      "sequence_keys": {"keys": "int"},
       "core_type": "polyspec_php_serialization::PhpValue",
       "core": {
         "in": "polyspec_php_serialization::from_host",
@@ -1393,8 +1394,7 @@
     {
       "alias": "php_value",
       "file": "contracts/host-values.json",
-      "group": "php_value",
-      "sequence_keys": {"keys": "int"}
+      "group": "php_value"
     }
   ]
 }
