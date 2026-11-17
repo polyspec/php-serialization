@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: f8db87a8ad089402b5569c1c737f657a498e821085020e39095cb2bbc1029dd0 -->
+<!-- source-sha256: 1d72a720e4f5a88f0b44d7e937623e7f9a5011c9fd53d413be4b000152f58067 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -60,3 +60,4 @@
 | T2.45 | 0.0.14 release: `make release-version VERSION=0.0.14`가 version이 있는 manifest와 lock에 0.0.14를 쓰고, Unreleased의 항목을 두 changelog의 0.0.14 절로 옮긴다 | `package.json`, `Cargo.lock`, `CHANGELOG.md` | `make release-version VERSION=0.0.14` | [v] |
 | T2.46 | binding 0.0.17(session-store의 binding)로 0.0.15를 낸다: `make binding-pin BINDING_TAG=v0.0.17`이 tag 일곱 줄, asset, 두 lock을 고정하고, `make release-version VERSION=0.0.15`가 version이 있는 manifest, lock, changelog에 0.0.15를 쓴다 | `package.json`, `Cargo.lock`, `CHANGELOG.md` | `make binding-pin BINDING_TAG=v0.0.17`; `make release-version VERSION=0.0.15` | [o] |
 | T2.47 | 그래프의 다른 저장소가 쓰는 kit 0.0.119를 고정한다. `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고 `package-lock.json`이 그 integrity를 고정한다. `make item-new`는 kit 0.0.119의 plan 도구가 요구하는 `DELIVERABLES_KO`와 `VERIFICATION_KO`를 넘긴다 | `package.json`, `package-lock.json`, `Makefile`, `CHANGELOG.md` | `make check` | [ ] |
+| T2.48 | assets.yml의 각 job이 release가 필요로 하는 도구로 binding의 검사를 돈다. `ci-assets-platform`, `ci-assets-php`, `ci-assets-npm`이 go를 설치한다. binding check는 packages/go의 go.sum을 go로 읽는다(binding CK-19. go가 없는 job은 http-negotiation의 release 0.0.4처럼 `spawnSync go ENOENT`로 실패한다). job이 release하지 않을 때는 `bindings-check`를 돌아, release가 도는 것을 CI가 release의 각 runner에서 돈다. `scripts/workflows.test.mts`는 검사 앞에서 go를 설치하지 않거나 `RELEASE=true` 없이 검사를 돌지 않는 recipe에서 실패한다 | `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test` | [ ] |

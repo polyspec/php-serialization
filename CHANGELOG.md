@@ -9,6 +9,8 @@
 - kit is pinned at its release 0.0.119 (T2.47): `package.json` names the release asset of `@polyspec/kit` 0.0.119, whose
   integrity `package-lock.json` pins, and `make item-new` passes `DELIVERABLES_KO` and `VERIFICATION_KO`, which its plan
   tool requires.
+- The jobs of `assets.yml` install go before the check of binding and run `bindings-check` when they do not release
+  (T2.48), so that CI runs on each runner of the release what the release runs.
 
 ## 0.0.15
 

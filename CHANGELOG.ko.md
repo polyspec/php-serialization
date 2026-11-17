@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 744720648e24780f8dc8c082d8849e4c727eb5f095da45975abe7bd4f5a9ed33 -->
+<!-- source-sha256: 63f8cf0b2e9d210dbcc29648805c49b2f94078d0f489b46c70589827a75d9809 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -10,6 +10,8 @@
 - kit을 release 0.0.119에 고정한다(T2.47). `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고
   `package-lock.json`이 그 integrity를 고정하며, `make item-new`는 그 plan 도구가 요구하는 `DELIVERABLES_KO`와
   `VERIFICATION_KO`를 넘긴다.
+- `assets.yml`의 job은 binding의 검사 앞에서 go를 설치하고, release하지 않을 때는 `bindings-check`를 돈다(T2.48).
+  그래서 release가 도는 것을 CI가 release의 각 runner에서 돈다.
 
 ## 0.0.15
 

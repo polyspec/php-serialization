@@ -425,12 +425,14 @@ ci-bindings: ## The job bindings: install every tool, the Rust toolchain and PHP
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_BINDINGS)
 
 # The jobs of assets.yml. Each writes the release recipes, and with RELEASE=true, the input release of assets.yml that the
-# workflow release passes, runs the release check of binding before it builds.
-release_check = $(if $(filter true,$(RELEASE)),$(MAKE) --no-print-directory release-binding-check)
+# workflow release passes, runs the release check of binding before it builds; without it the job runs the same check
+# without the release rules (bindings-check), so that CI runs on each runner of the release what the release runs. Each
+# job installs go, which the check runs on a go.sum of packages/go (binding CK-19).
+release_check = $(if $(filter true,$(RELEASE)),$(MAKE) --no-print-directory release-binding-check,$(MAKE) --no-print-directory bindings-check)
 
 ci-assets-platform: ## The job platform of assets.yml: the Go static library, the wheel and the npm platform package of this host; RELEASE=true; ONLINE
 	$(MAKE) --no-print-directory php-serialization-install-rust
-	$(MAKE) --no-print-directory install-tools TOOLS="uv python"
+	$(MAKE) --no-print-directory install-tools TOOLS="uv python go"
 	$(MAKE) --no-print-directory release-recipes
 	$(release_check)
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) release-go-static release-wheel release-npm-platform
@@ -444,12 +446,14 @@ ci-assets-php: LD_LIBRARY_PATH :=
 ci-assets-php: ## The job php of assets.yml: the PHP extension for the PHP on PATH, whose minor is EXPECTED_PHP_MINOR; RELEASE=true; ONLINE
 	@test -n "$(EXPECTED_PHP_MINOR)" || { echo 'ci-assets-php needs EXPECTED_PHP_MINOR, the PHP minor of the job, for example make ci-assets-php EXPECTED_PHP_MINOR=8.4' >&2; exit 2; }
 	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory install-tools TOOLS=go
 	$(MAKE) --no-print-directory release-recipes
 	$(release_check)
 	$(MAKE) --no-print-directory release-php-ext PHP=php EXPECTED_PHP_MINOR=$(EXPECTED_PHP_MINOR) $(if $(LLVM_PATH),LLVM_ROOT=$(LLVM_PATH))
 
 ci-assets-npm: ## The job npm of assets.yml: pack the npm package with the wasm-bindgen of mise.toml; RELEASE=true; ONLINE
 	$(MAKE) --no-print-directory php-serialization-install-rust
+	$(MAKE) --no-print-directory install-tools TOOLS=go
 	$(MAKE) --no-print-directory release-recipes
 	$(MAKE) --no-print-directory install-wasm-bindgen
 	$(release_check)

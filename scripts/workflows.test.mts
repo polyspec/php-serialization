@@ -842,3 +842,36 @@ test('the workflows and the actions of the repository keep the rules', (t) => {
   found.push(...llvmFindings(ASSETS, readFileSync(join(root, ASSETS), 'utf8'), llvmMajor(), readFileSync(join(root, 'Makefile'), 'utf8')));
   assert.deepEqual(found, []);
 });
+
+// The check of binding that each job of assets.yml runs before it builds: the release check with RELEASE=true, and the same
+// check without the release rules otherwise, so that CI runs on each runner of the release what the release runs.
+const RELEASE_CHECK = 'release_check = $(if $(filter true,$(RELEASE)),$(MAKE) --no-print-directory release-binding-check,$(MAKE) --no-print-directory bindings-check)';
+const ASSET_RECIPES = ['ci-assets-platform', 'ci-assets-php', 'ci-assets-npm'];
+
+/**
+ * The faults of the check of binding in the recipes of the jobs of assets.yml of `makefile`: release_check is
+ * RELEASE_CHECK, and each recipe runs it once, after a line that installs go. binding check reads a go.sum of packages/go
+ * with go mod download (binding CK-19), so a job without go fails with spawnSync go ENOENT.
+ */
+function releaseCheckFindings(makefile: string): string[] {
+  const found: string[] = [];
+  if (!makefile.split('\n').includes(RELEASE_CHECK)) found.push(`Makefile: release_check must be ${RELEASE_CHECK}`);
+  for (const target of ASSET_RECIPES) {
+    const recipe = recipeOf(makefile, target);
+    const check = recipe.indexOf('$(release_check)');
+    const go = recipe.findIndex((line) => /^\$\(MAKE\) --no-print-directory install-tools TOOLS=(?:"[^"]*\bgo\b[^"]*"|go)$/.test(line));
+    if (check < 0 || recipe.filter((line) => line === '$(release_check)').length !== 1) found.push(`Makefile: the recipe ${target} must run $(release_check) once`);
+    else if (go < 0 || go > check) found.push(`Makefile: the recipe ${target} must install go before $(release_check)`);
+  }
+  return found;
+}
+
+test('the recipes of the jobs of assets.yml install go and run the check of binding with and without the release rules', () => {
+  const sample = `${RELEASE_CHECK}\n${ASSET_RECIPES.map((target) => `${target}: ## A job\n\t$(MAKE) --no-print-directory install-tools TOOLS="uv python go"\n\t$(release_check)\n`).join('')}`;
+  assert.deepEqual(releaseCheckFindings(sample), []);
+  assert.deepEqual(releaseCheckFindings(sample.replace(',$(MAKE) --no-print-directory bindings-check)', ')')), [`Makefile: release_check must be ${RELEASE_CHECK}`]);
+  assert.deepEqual(releaseCheckFindings(sample.replace('ci-assets-php: ## A job\n\t$(MAKE) --no-print-directory install-tools TOOLS="uv python go"\n', 'ci-assets-php: ## A job\n\t$(MAKE) --no-print-directory install-tools TOOLS="uv python"\n')), ['Makefile: the recipe ci-assets-php must install go before $(release_check)']);
+  assert.deepEqual(releaseCheckFindings(sample.replace('ci-assets-npm: ## A job\n\t$(MAKE) --no-print-directory install-tools TOOLS="uv python go"\n\t$(release_check)\n', 'ci-assets-npm: ## A job\n\t$(release_check)\n\t$(MAKE) --no-print-directory install-tools TOOLS=go\n')), ['Makefile: the recipe ci-assets-npm must install go before $(release_check)']);
+  assert.deepEqual(releaseCheckFindings(sample.replace('ci-assets-platform: ## A job\n\t$(MAKE) --no-print-directory install-tools TOOLS="uv python go"\n\t$(release_check)\n', 'ci-assets-platform: ## A job\n')), ['Makefile: the recipe ci-assets-platform must run $(release_check) once']);
+  assert.deepEqual(releaseCheckFindings(readFileSync(join(root, 'Makefile'), 'utf8')), []);
+});
