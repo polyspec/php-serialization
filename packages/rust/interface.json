@@ -1393,7 +1393,8 @@
     {
       "alias": "php_value",
       "file": "contracts/host-values.json",
-      "group": "php_value"
+      "group": "php_value",
+      "sequence_keys": {"keys": "int"}
     }
   ]
 }
