@@ -21,6 +21,10 @@
     "scripts/release-manifests.mts": {
       "kind": "record",
       "record": "docs/rebuild/release-manifests.md"
+    },
+    "benchmarks/large_array.py": {
+      "kind": "policy",
+      "reason": "measures the Python binding of this repository on one array of many entries, the shape of its API test, and reports the times without failing on one (row T2.49); the value classes and the entries are those of this format"
     }
   }
 }

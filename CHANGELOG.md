@@ -18,7 +18,7 @@
   exports nothing.
 - The legacy Python package `legacy/packages/python` is removed (T2.2), and with it the folder `legacy` and the exception
   of the layout: the bindings of `packages/python`, `packages/ts` and `packages/php-ext` are the packages of the languages.
-- kit is pinned at its release 0.0.120, and `make release-candidate-assets` builds the archives of the release from the
+- kit is pinned at its release 0.0.121 (T2.51), and `make release-candidate-assets` builds the archives of the release from the
   committed HEAD with no tag; the job shared of CI runs it (T2.50).
 - `make benchmark-python BUILD=release|debug` measures the Python binding on one array of many entries and fails on no
   time (T2.49): a debug build, the build of the tests, reads such an array in a time that grows with about the square of
