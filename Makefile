@@ -642,6 +642,7 @@ ci-release-release: ## The job release of release.yml: build, carry and publish 
 	$(RELEASE_PATH) $(MAKE) --no-print-directory install-tools TOOLS=go
 	$(RELEASE_PATH) $(MAKE) --no-print-directory release-recipes
 	$(RELEASE_IDENTITY) $(RELEASE_PATH) $(MAKE) --no-print-directory release-go-module
+	$(RELEASE_IDENTITY) $(RELEASE_PATH) $(MAKE) --no-print-directory release-go-module-push TAG=$(TAG)
 	$(RELEASE_PATH) $(MAKE) --no-print-directory release-publish
 	$(RELEASE_PATH) $(MAKE) --no-print-directory release-platform-assets
 	$(RELEASE_PATH) $(MAKE) --no-print-directory release-undraft
