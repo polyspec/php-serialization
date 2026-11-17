@@ -6,6 +6,8 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+## 0.0.16
+
 - kit is pinned at its release 0.0.119 (T2.47): `package.json` names the release asset of `@polyspec/kit` 0.0.119, whose
   integrity `package-lock.json` pins, and `make item-new` passes `DELIVERABLES_KO` and `VERIFICATION_KO`, which its plan
   tool requires.

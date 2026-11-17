@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 352fba208ea384140bdd79a6c67b94b7520be0ac73f35cbb7d75816500b26e06 -->
+<!-- source-sha256: bd46ce8dab193341f3443d31f449258f6454a9171ef456b759c308419d476af8 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+## 0.0.16
 
 - kit을 release 0.0.119에 고정한다(T2.47). `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고
   `package-lock.json`이 그 integrity를 고정하며, `make item-new`는 그 plan 도구가 요구하는 `DELIVERABLES_KO`와
