@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 63f8cf0b2e9d210dbcc29648805c49b2f94078d0f489b46c70589827a75d9809 -->
+<!-- source-sha256: 5b9e0645c086fb51b4adf378dd47acd1ab01109cb447a2d4ea20578af7fc9121 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -12,6 +12,8 @@
   `VERIFICATION_KO`를 넘긴다.
 - `assets.yml`의 job은 binding의 검사 앞에서 go를 설치하고, release하지 않을 때는 `bindings-check`를 돈다(T2.48).
   그래서 release가 도는 것을 CI가 release의 각 runner에서 돈다.
+- `make commit-names-check`는 kit의 commit 이름 검사를 돈다(T2.4-1). 저장소마다 갖고 있던 사본인
+  `scripts/check-commit-names.mts`와 그 시험을 지운다.
 
 ## 0.0.15
 

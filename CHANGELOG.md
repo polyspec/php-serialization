@@ -11,6 +11,8 @@
   tool requires.
 - The jobs of `assets.yml` install go before the check of binding and run `bindings-check` when they do not release
   (T2.48), so that CI runs on each runner of the release what the release runs.
+- `make commit-names-check` runs the check of commit names of kit (T2.4-1); `scripts/check-commit-names.mts` and its test,
+  a copy that each repository held, are removed.
 
 ## 0.0.15
 

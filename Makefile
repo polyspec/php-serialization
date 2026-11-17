@@ -37,7 +37,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts test-js
 CI_PYTHON := lint-python test-python
@@ -52,7 +52,7 @@ CI_REPORT ?= var/report/ci-targets
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
-	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
+	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings ci-assets-platform ci-assets-php ci-assets-npm \
@@ -353,12 +353,9 @@ docs-check: ## Check the documents of config/documents.json and the checklists o
 workflows-test: ## Run the test of the rules of the GitHub workflows; offline
 	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/workflows.test.mts
 
-# No tracked document names a Git commit (AGENTS.md, "Tools"); commit-names-test tests the checker.
+# No tracked document names a Git commit (AGENTS.md, "Tools"): the check is a utility of kit, which tests it.
 commit-names-check: ## Fail while a tracked document names a Git commit; offline
-	$(NODE) scripts/check-commit-names.mts
-
-commit-names-test: ## Run the test of the checker of commit names; offline
-	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/commit-names.test.mts
+	$(NODE) $(KIT)/commit-names-check.mjs
 
 rules-check: ## Check that every rule of AGENTS.md names a check that CI runs; offline
 	$(NODE) $(KIT)/check-rules.mjs AGENTS.md

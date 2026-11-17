@@ -237,13 +237,10 @@
     },
     {
       "paths": [
-        "**/*.md",
-        "scripts/check-commit-names.mts",
-        "scripts/commit-names.test.mts"
+        "**/*.md"
       ],
       "targets": [
-        "commit-names-check",
-        "commit-names-test"
+        "commit-names-check"
       ]
     }
   ]
