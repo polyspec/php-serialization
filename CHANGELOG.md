@@ -18,6 +18,8 @@
   exports nothing.
 - The legacy Python package `legacy/packages/python` is removed (T2.2), and with it the folder `legacy` and the exception
   of the layout: the bindings of `packages/python`, `packages/ts` and `packages/php-ext` are the packages of the languages.
+- kit is pinned at its release 0.0.120, and `make release-candidate-assets` builds the archives of the release from the
+  committed HEAD with no tag; the job shared of CI runs it (T2.50).
 
 ## 0.0.15
 

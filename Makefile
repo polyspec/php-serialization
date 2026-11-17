@@ -37,7 +37,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage release-candidate-assets typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts
 CI_PYTHON := lint-python
@@ -526,11 +526,12 @@ release-assets: ## Build the archive of every package of TAG into var/release/as
 	@test -n "$$TAG" || { echo "release-assets: TAG is required, for example make release-assets TAG=v0.0.1"; exit 1; }
 	RELEASE_ASSETS=var/release/assets $(ONLINE) $(NODE) $(KIT)/release.mjs assets "$$TAG"
 
-# release-candidate-assets builds the same archives from the committed HEAD at VERSION, without a tag, so that a change of
-# config/release.json is proved before a release.
-release-candidate-assets: ## Build the archive of every package of HEAD at VERSION into RELEASE_ASSETS without a tag; ONLINE
-	@test -n "$$VERSION" || { echo "release-candidate-assets: VERSION is required, for example make release-candidate-assets VERSION=0.0.1"; exit 1; }
-	RELEASE_ASSETS=$(RELEASE_ASSETS) $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets "$$VERSION"
+# release-candidate-assets runs the archive steps of release-assets on the committed HEAD with no tag: the release creates
+# and pushes the tag before it builds the archives, so without this target a failure of those steps first shows after the
+# tag. kit refuses a checkout with a changed or an untracked path, and packs the version that the release would take, the
+# first section `## X.Y.Z` of the CHANGELOG.md of HEAD (kit K1286).
+release-candidate-assets: ## Build the archive of every package of the committed HEAD into var/release-candidate/assets with no tag; ONLINE
+	RELEASE_ASSETS=var/release-candidate/assets $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets
 
 release-publish: ## Create the GitHub Release of TAG as a draft with its notes and the files of release-assets
 	@test -n "$$TAG" || { echo "release-publish: TAG is required, for example make release-publish TAG=v0.0.1"; exit 1; }

@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 206ab9e5258eb3aa06eedcc1485ebf944b91a742fe560ea8a88db34d7bf7343a -->
+<!-- source-sha256: 583c8e2cacbef620ae8b279b8ec070fa2086f194521e9854389907c81096f09f -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -18,6 +18,8 @@
   통과하고, fuzz는 Node와 Python 바인딩에서 돈다. private인 루트 `package.json`은 아무것도 내보내지 않는다.
 - legacy Python 패키지 `legacy/packages/python`을 없앴고(T2.2), 폴더 `legacy`와 layout의 예외도 함께 없앴다.
   `packages/python`, `packages/ts`, `packages/php-ext`의 바인딩이 각 언어의 패키지다.
+- kit을 release 0.0.120에 고정하고, `make release-candidate-assets`는 tag 없이 커밋된 HEAD에서 release의 archive를
+  만든다. CI의 job shared가 그것을 돈다(T2.50).
 
 ## 0.0.15
 
