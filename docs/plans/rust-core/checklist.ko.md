@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 4dd27aaf2f7b404f8cd75ceeddb2b6dd41229b2b62b7e198928f4321bf4dc591 -->
+<!-- source-sha256: d27e25a2d2cd58049042ebd5bf4b05ff071f66d092cd4af6eade32293611e01f -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -62,4 +62,4 @@
 | T2.47 | 그래프의 다른 저장소가 쓰는 kit 0.0.119를 고정한다. `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고 `package-lock.json`이 그 integrity를 고정한다. `make item-new`는 kit 0.0.119의 plan 도구가 요구하는 `DELIVERABLES_KO`와 `VERIFICATION_KO`를 넘긴다 | `package.json`, `package-lock.json`, `Makefile`, `CHANGELOG.md` | `make check` | [ ] |
 | T2.48 | assets.yml의 각 job이 release가 필요로 하는 도구로 binding의 검사를 돈다. `ci-assets-platform`, `ci-assets-php`, `ci-assets-npm`이 go를 설치한다. binding check는 packages/go의 go.sum을 go로 읽는다(binding CK-19. go가 없는 job은 http-negotiation의 release 0.0.4처럼 `spawnSync go ENOENT`로 실패한다). job이 release하지 않을 때는 `bindings-check`를 돌아, release가 도는 것을 CI가 release의 각 runner에서 돈다. `scripts/workflows.test.mts`는 검사 앞에서 go를 설치하지 않거나 `RELEASE=true` 없이 검사를 돌지 않는 recipe에서 실패한다 | `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test` | [v] |
 | T2.49 | Python binding의 API 시험 8개가 시간을 어디에 쓰는지 잰다. 0.0.15의 CI run에서 `make test-python-binding`은 314초였고 그 가운데 생성 시험 1309개는 약 2초다. 시험마다의 시간과, 그 시간이 Python에서 값을 만드는 데 드는지, binding의 경계를 넘는 데 드는지, 코어에서 드는지를 수와 함께 적는다. 시험을 줄이거나 건너뛰지 않는다. 경계의 비용은 binding의 속도 행에 닿는 사실이다 | `docs/plans/rust-core/checklist.md` | 잰 수가 행에 있다 | [~] |
-| T2.50 | kit 0.0.120을 고정하고, CI의 job shared가 tag 없이 커밋된 HEAD에서 release의 archive를 만든다. `make release-candidate-assets`는 kit의 `release.mjs candidate-assets`를 돌려 `var/release-candidate/assets`에 쓴다. kit이 HEAD의 `CHANGELOG.md` 첫 절에서 version을 읽는다(kit K1286). `CI_SHARED`가 그것을 이름 댄다. release는 archive를 만들기 전에 tag를 만들므로, 그 단계의 실패가 전에는 tag 뒤에야 드러났다 | `package.json`, `package-lock.json`, `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test`, `make release-candidate-assets` | [ ] |
+| T2.50 | kit 0.0.120을 고정하고, CI의 job shared가 tag 없이 커밋된 HEAD에서 release의 archive를 만든다. `make release-candidate-assets`는 kit의 `release.mjs candidate-assets`를 돌려 `var/release-candidate/assets`에 쓴다. kit이 HEAD의 `CHANGELOG.md` 첫 절에서 version을 읽는다(kit K1286). `CI_SHARED`가 그것을 이름 댄다. release는 archive를 만들기 전에 tag를 만들므로, 그 단계의 실패가 전에는 tag 뒤에야 드러났다 | `package.json`, `package-lock.json`, `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test`, `make release-candidate-assets` | [v] |
