@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: fa735f1a862f8e74ea8275598d492d5ee3a001ab3853bcb512ac4a50521ccc7e -->
+<!-- source-sha256: 206ab9e5258eb3aa06eedcc1485ebf944b91a742fe560ea8a88db34d7bf7343a -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -16,6 +16,8 @@
   `scripts/check-commit-names.mts`와 그 시험을 지운다.
 - legacy Node.js 패키지 `legacy/packages/js`를 없앴다(T2.2). `packages/ts`의 Node 바인딩이 contract와 패키지 시험을
   통과하고, fuzz는 Node와 Python 바인딩에서 돈다. private인 루트 `package.json`은 아무것도 내보내지 않는다.
+- legacy Python 패키지 `legacy/packages/python`을 없앴고(T2.2), 폴더 `legacy`와 layout의 예외도 함께 없앴다.
+  `packages/python`, `packages/ts`, `packages/php-ext`의 바인딩이 각 언어의 패키지다.
 
 ## 0.0.15
 

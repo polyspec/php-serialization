@@ -16,6 +16,8 @@
 - The legacy Node.js package `legacy/packages/js` is removed (T2.2): the Node binding of `packages/ts` passes the contract
   and the package tests, and the fuzz runs on the Node and Python bindings. The root `package.json`, which is private,
   exports nothing.
+- The legacy Python package `legacy/packages/python` is removed (T2.2), and with it the folder `legacy` and the exception
+  of the layout: the bindings of `packages/python`, `packages/ts` and `packages/php-ext` are the packages of the languages.
 
 ## 0.0.15
 

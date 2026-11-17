@@ -1,8 +1,8 @@
 # The recipes of php-serialization. Each target runs a utility of the installed @polyspec/kit (node_modules/@polyspec/kit/dist,
 # the built package, also when the folder is a link to a kit checkout) with the arguments that this repository gives it; kit
 # includes no recipe here and sets no setting of a tool (kit docs/spec/utilities-and-recipes.md). The tools read their settings
-# from their own files: npm from .npmrc, mise and uv from mise.toml, ruff from ruff.toml, vulture from the [tool.vulture] of
-# legacy/packages/python/pyproject.toml, oxlint from .oxlintrc.json and knip from knip.json.
+# from their own files: npm from .npmrc, mise and uv from mise.toml, ruff from ruff.toml, oxlint from .oxlintrc.json and knip
+# from knip.json.
 KIT := node_modules/@polyspec/kit/dist
 
 # The tools of every run are the releases that the tracked declaration files name: npm in devEngines.packageManager of
@@ -40,7 +40,7 @@ ONLINE := env -u npm_config_offline
 CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
 CI_FUZZ := fuzz
 CI_TS := lint-ts
-CI_PYTHON := lint-python test-python
+CI_PYTHON := lint-python
 CI_RUST := lint-rust test-rust bindings-check
 # The targets of the binding tests, which the job bindings of ci.yml runs with make ci-bindings (row T2.9): the release
 # ships the bindings of the five targets as assets, so ci-passed requires their lint and their tests. The job installs every
@@ -49,8 +49,8 @@ CI_RUST := lint-rust test-rust bindings-check
 CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
 CI_REPORT ?= var/report/ci-targets
 
-.PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
-	php-serialization-install-rust build build-python build-rust test test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
+.PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock link unlink link-check \
+	php-serialization-install-rust build build-rust test test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
 	test-bindings lint-bindings check-declarations python-package test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
@@ -71,12 +71,11 @@ bootstrap: ## Install package-lock.json with the npm of devEngines before the to
 	cd "$${TMPDIR:-/tmp}" && $(ONLINE) npm_config_cache="$$root/var/bootstrap/npm-cache" "$(BOOTSTRAP_NPM)" exec --yes --package="npm@$$version" -- npm --prefix "$$root" ci --ignore-scripts
 
 # install: the mise, node and npm of mise.toml (the bootstrap, which runs on the Node.js of the machine and imports only its
-# built-ins), the packages of package-lock.json, the other tools of mise.toml, then the Python package and the links.
-install: ## Install the tools, the packages, the Python package and the links of the checkout; ONLINE
+# built-ins), the packages of package-lock.json, the other tools of mise.toml, then the Rust toolchain and PHPUnit.
+install: ## Install the tools, the packages, the Rust toolchain and PHPUnit of the checkout; ONLINE
 	$(MAKE) --no-print-directory install-tools TOOLS=npm
 	$(MAKE) --no-print-directory install-packages
 	$(MAKE) --no-print-directory install-tools
-	$(MAKE) --no-print-directory php-serialization-install-python
 	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(MAKE) --no-print-directory install-php-tools
 
@@ -111,17 +110,6 @@ toolchain-lock: ## Write mise.lock with mise lock for the platforms of TOOLCHAIN
 	$(ONLINE) $(MISE) install --locked uv python
 	python="$$($(MISE) which python3)" && UV_PYTHON="$$python" $(ONLINE) $(MISE) lock --global --platform $(TOOLCHAIN_LOCK_PLATFORMS)
 
-# php-serialization-install-python makes legacy/packages/python/.venv from the Python of mise.toml and installs the package into it,
-# non-editable, since the python extractor of kit reads the file list of the installed distribution; link then makes the
-# installed package folder a link to the sources of the checkout when .links names one.
-php-serialization-install-python: ## Make legacy/packages/python/.venv and install the package into it, then link; ONLINE
-	$(NODE) $(KIT)/python-venv.mjs legacy/packages/python/.venv
-	$(ONLINE) $(UV) pip install --python legacy/packages/python/.venv/bin/python --link-mode copy --no-deps legacy/packages/python
-	$(MAKE) --no-print-directory link
-
-# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
-# Cargo.lock, so that every Rust recipe and every binding recipe runs with --locked and offline. The tool binding is the npm
-# package of package.json, which make install-packages installs.
 php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
 	$(ONLINE) $(CARGO) fetch --locked
@@ -137,13 +125,9 @@ link-check: ## Fail while the links differ from .links; offline
 	$(NODE) $(KIT)/link-check.mjs
 
 # ---- Build, test, lint ------------------------------------------------------------------------------------------------------
-build: build-python build-rust
-test: test-python test-rust
+build: build-rust
+test: test-rust
 lint: lint-ts lint-python lint-rust
-
-# The build of the package of a runtime with the build of its ecosystem.
-build-python: ## Build the Python package with uv build; offline
-	$(NODE) $(KIT)/runtime-targets.mjs build --roots legacy/packages/python -- $(UV) build
 
 # The Rust recipes of the core name its package (-p): the binding crates of the workspace include the sources that make
 # bindings generates, so they build only after it (binding design L-2).
@@ -154,9 +138,6 @@ build-rust: ## Build the Rust crate with cargo; offline
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
-test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
-	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots legacy/packages/python --venv .venv
-
 test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test, with the name filter CASES=<pattern>; offline
 	$(CARGO) test -p $(CORE) --locked --offline $(CASES)
 
@@ -243,7 +224,7 @@ check-declarations: bindings-node bindings-wasm ## Check the generated declarati
 	$(NODE) node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict packages/ts/wasm/generated/index.d.ts
 
 # The wheel, installed into a virtual environment of the Python of mise.toml; the generated tests (binding G-5) and the
-# contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
+# contract cases of packages/python/tests.
 python-package: bindings-python ## Build the wheel of the Python binding and install it into var/bindings/venv; offline
 	rm -rf $(BINDINGS_VAR)/wheels
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
@@ -405,10 +386,8 @@ ci-fuzz: ## The job fuzz: install every tool and the Rust toolchain, then run CI
 ci-ts: ## The job ts: run CI_TS, the lint of the TypeScript and the JavaScript of the checkout, past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_TS)
 
-ci-python: ## The job python: install the Python tools and the package and build it, then run CI_PYTHON past failures; ONLINE
+ci-python: ## The job python: install the Python tools, then run CI_PYTHON, the lint of the Python of the checkout, past failures; ONLINE
 	$(MAKE) --no-print-directory install-tools TOOLS="python uv ruff vulture"
-	$(MAKE) --no-print-directory php-serialization-install-python
-	$(MAKE) --no-print-directory build-python
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PYTHON)
 
 ci-rust: ## The job rust: install the Rust toolchain and the locked crates, then run CI_RUST past failures; ONLINE

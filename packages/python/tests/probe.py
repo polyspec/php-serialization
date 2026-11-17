@@ -10,7 +10,11 @@ import json
 import sys
 from pathlib import Path
 
-from polyspec.php_serialization import PHPSerializationValueError, serialize, unserialize
+from polyspec.php_serialization import (
+    PHPSerializationValueError,
+    serialize,
+    unserialize,
+)
 
 from tree import b64, new_state, tree
 

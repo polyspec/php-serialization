@@ -83,13 +83,13 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
-  # The lint and the unit tests of legacy/packages/python, against the installed package.
+  # The lint of the Python of the checkout.
   python:
     runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/bootstrap
-      - name: lint and unit tests
+      - name: lint
         run: make ci-python
       - name: report
         if: ${{ !cancelled() }}

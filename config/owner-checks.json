@@ -51,8 +51,6 @@
         "packages/ts/tests/probe.mjs",
         "packages/python/tests/tree.py",
         "packages/python/tests/probe.py",
-        "legacy/packages/python/src/polyspec/php_serialize/*",
-        "legacy/packages/python/tests/*",
         "packages/rust/src/**",
         "packages/rust/examples/**",
         "packages/rust/tests/common/**"
@@ -64,7 +62,6 @@
     {
       "paths": [
         "package.json",
-        "legacy/packages/python/pyproject.toml",
         "config/release.json",
         "CHANGELOG.md",
         "CHANGELOG.ko.md",
@@ -107,21 +104,11 @@
         "config/*.json",
         "config/*.yml",
         "LICENSE",
-        "legacy/packages/python/LICENSE",
         "mise.toml",
         "mise.lock",
         ".mise/**"
       ],
       "targets": []
-    },
-    {
-      "paths": [
-        "legacy/packages/**",
-        "docs/spec/*.md"
-      ],
-      "targets": [
-        "test-python"
-      ]
     },
     {
       "paths": [
