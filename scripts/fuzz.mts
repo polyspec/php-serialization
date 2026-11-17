@@ -1,8 +1,8 @@
 // Corrupts the bytes of the contract with a fixed seed, and has real PHP serialize random values of PHP with the same seed,
-// and gives every input to real PHP, to the Rust crate and to the Node.js and Python packages. An implementation must refuse
+// and gives every input to real PHP, to the Rust crate and to the Node and Python bindings. An implementation must refuse
 // what PHP refuses, read what PHP reads into the same typed tree, and write back the bytes that PHP writes. The deliberate
-// refusals, which PHP names with a warning or an incomplete class, must be refused. The Rust probe is built before the run
-// (make fuzz). Usage: node scripts/fuzz.mts [--count N] [--values N] [--seed N]; the input and the output of the run stay
+// refusals, which PHP names with a warning or an incomplete class, must be refused. The Rust probe and both bindings are built
+// before the run, and the probe of the Node binding is copied beside its installed package (make fuzz). Usage: node scripts/fuzz.mts [--count N] [--values N] [--seed N]; the input and the output of the run stay
 // in a directory of the run.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -369,8 +369,8 @@ try {
   const runs: { name: string; command: string; args: string[]; cwd: string; input: string }[] = [
     { name: 'php', command: 'php', args: ['-d', 'memory_limit=-1', '--', inputFile, join(directory, 'php')], cwd: '.', input: PHP_PROBE },
     { name: 'rust', command: resolve('target/release/examples/probe'), args: [inputFile, join(directory, 'rust')], cwd: '.', input: '' },
-    { name: 'node', command: process.execPath, args: ['legacy/packages/js/tests/probe.mjs', inputFile, join(directory, 'node')], cwd: '.', input: '' },
-    { name: 'python', command: resolve('legacy/packages/python/.venv/bin/python'), args: ['-m', 'tests.probe', inputFile, join(directory, 'python')], cwd: 'legacy/packages/python', input: '' },
+    { name: 'node', command: process.execPath, args: ['probe.mjs', inputFile, join(directory, 'node')], cwd: 'var/bindings/node', input: '' },
+    { name: 'python', command: resolve('var/bindings/venv/bin/python'), args: [resolve('packages/python/tests/probe.py'), inputFile, join(directory, 'python')], cwd: '.', input: '' },
   ];
   const replies = new Map<string, Reply[]>();
   let failed = false;

@@ -44,7 +44,7 @@ jobs:
           path: var/report/ci-targets/
           if-no-files-found: ignore
 
-  # The fuzz of the Rust crate and both ports against real PHP, which reads the installed Python package.
+  # The fuzz of the Rust crate and of the Node and Python bindings against real PHP, which builds and installs both bindings.
   fuzz:
     runs-on: ubuntu-26.04-arm
     steps:

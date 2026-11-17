@@ -51,7 +51,7 @@ CI_REPORT ?= var/report/ci-targets
 
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
 	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
-	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
+	test-bindings lint-bindings check-declarations python-package test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
@@ -247,11 +247,13 @@ check-declarations: bindings-node bindings-wasm ## Check the generated declarati
 
 # The wheel, installed into a virtual environment of the Python of mise.toml; the generated tests (binding G-5) and the
 # contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
-test-python-binding: bindings-python ## Build the wheel, install it into var/bindings/venv and run the generated tests and the contract cases; offline
+python-package: bindings-python ## Build the wheel of the Python binding and install it into var/bindings/venv; offline
 	rm -rf $(BINDINGS_VAR)/wheels
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
+
+test-python-binding: python-package ## Run the generated tests and the contract cases of the Python binding on the installed wheel; offline
 	cd $(BINDINGS_VAR) && venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/generated/tests -t $(CURDIR)/packages/python/generated/tests
 	cd $(BINDINGS_VAR) && $(CONTRACTS_ENV) venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/tests -t $(CURDIR)/packages/python/tests
 
@@ -330,9 +332,12 @@ contracts-check: ## Fail when real PHP writes another contracts/php-serialize.js
 	$(NODE) scripts/contracts.mts --check
 
 # fuzz gives corrupted and generated input and the bytes of random values of PHP, with a fixed seed, to real PHP, to the Rust
-# crate, whose probe it builds first, and to the Node.js and Python packages (scripts/fuzz.mts).
-fuzz: fuzz-temp-test ## Compare the Rust crate and both ports with real PHP on corrupted and generated input; offline
+# crate, whose probe it builds first, and to the Node and Python bindings, which it builds and installs first and whose
+# probes are packages/ts/tests/probe.mjs, copied beside the installed package, and packages/python/tests/probe.py
+# (scripts/fuzz.mts).
+fuzz: fuzz-temp-test node-package python-package ## Compare the Rust crate and the Node and Python bindings with real PHP on corrupted and generated input; offline
 	$(CARGO) build -p $(CORE) --locked --offline --release --example probe
+	cp packages/ts/tests/tree.mjs packages/ts/tests/probe.mjs $(BINDINGS_VAR)/node/
 	$(NODE) scripts/fuzz.mts
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.
@@ -395,9 +400,8 @@ ci-shared: ## The job shared: install alint, PHP and Python, then run CI_SHARED 
 ci-passed: ## Fail unless every job of RESULTS, the JSON of toJSON(needs), has the result success; FAIL_SKIPPED=1 fails a skipped job
 	$(NODE) $(KIT)/ci-passed.mjs
 
-ci-fuzz: ## The job fuzz: install PHP, Python, uv, the Python package and the Rust toolchain, then run CI_FUZZ past failures; ONLINE
-	$(MAKE) --no-print-directory install-tools TOOLS="php python uv"
-	$(MAKE) --no-print-directory php-serialization-install-python
+ci-fuzz: ## The job fuzz: install every tool and the Rust toolchain, then run CI_FUZZ past failures; ONLINE
+	$(MAKE) --no-print-directory install-tools
 	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_FUZZ)
 
