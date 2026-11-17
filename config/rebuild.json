@@ -2,14 +2,6 @@
   "schema": 1,
   "comment": "The class of each tool of php-serialization that make rebuild-check checks (S1).",
   "tools": {
-    "legacy/packages/js/index.js": {
-      "kind": "policy",
-      "reason": "the product of this repository: the serialize format of PHP, ported from php-src so that every value reads and writes back exactly as PHP does"
-    },
-    "legacy/packages/python/src/polyspec/php_serialize/__init__.py": {
-      "kind": "policy",
-      "reason": "the product of this repository: the serialize format of PHP, ported from php-src so that every value reads and writes back exactly as PHP does"
-    },
     "scripts/contracts.mts": {
       "kind": "policy",
       "reason": "writes the contract from real PHP, the reference of the format, a rule of this repository"
@@ -30,9 +22,9 @@
       "kind": "record",
       "record": "docs/rebuild/release-manifests.md"
     },
-    "scripts/check-commit-names.mts": {
+    "benchmarks/large_array.py": {
       "kind": "policy",
-      "reason": "fails a tracked document that names a Git commit, a rule of this repository (AGENTS.md, \"Tools\"): a release and a lock pin the name of a commit"
+      "reason": "measures the Python binding of this repository on one array of many entries, the shape of its API test, and reports the times without failing on one (row T2.49); the value classes and the entries are those of this format"
     }
   }
 }

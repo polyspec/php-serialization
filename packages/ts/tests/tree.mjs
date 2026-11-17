@@ -1,6 +1,5 @@
-// The typed tree of a value, which the contract and the fuzz compare with the tree that PHP writes.
-import { PhpFloat, Reference, StdClass } from '../index.js';
-
+// The typed tree of a value that the binding gives, which the fuzz compares with the tree that PHP writes
+// (scripts/php-tree.mts): references and objects are numbered by their first place.
 const base64 = (bytes) => Buffer.from(bytes).toString('base64');
 
 function floatTree(number) {
@@ -16,32 +15,32 @@ function keyTree(key) {
   return ['int', String(key)];
 }
 
-// The typed tree that the PHP generator writes, with references and objects numbered by first appearance.
-export function tree(value, state) {
-  if (value instanceof Reference) {
+/** The typed tree of `value`, a value of the binding `lib`; `state` holds the numbers of this tree (newState). */
+export function tree(lib, value, state) {
+  if (value instanceof lib.Reference) {
     const known = state.references.get(value);
     if (known !== undefined) return ['ref', known];
-    state.references.set(value, state.references.size);
-    const ordinal = state.references.get(value);
-    return ['ref', ordinal, tree(value.value, state)];
+    const ordinal = state.references.size;
+    state.references.set(value, ordinal);
+    return ['ref', ordinal, tree(lib, value.value, state)];
   }
   if (value === null) return ['null'];
   if (typeof value === 'boolean') return ['bool', value];
   if (typeof value === 'bigint') return ['int', String(value)];
   if (typeof value === 'number') return Number.isSafeInteger(value) && !Object.is(value, -0) ? ['int', String(value)] : floatTree(value);
-  if (value instanceof PhpFloat) return floatTree(value.value);
+  if (value instanceof lib.PhpFloat) return floatTree(value.value);
   if (typeof value === 'string') return ['string', Buffer.from(value).toString('base64')];
   if (value instanceof Uint8Array) return ['string', base64(value)];
-  if (value instanceof StdClass) {
+  if (value instanceof lib.StdClass) {
     const known = state.objects.get(value);
     if (known !== undefined) return ['object', known];
-    state.objects.set(value, state.objects.size);
-    const ordinal = state.objects.get(value);
-    const pairs = [...value.properties].map(([key, item]) => [keyTree(key)[1], tree(item, state)]);
+    const ordinal = state.objects.size;
+    state.objects.set(value, ordinal);
+    const pairs = [...value.properties].map(([key, item]) => [keyTree(key)[1], tree(lib, item, state)]);
     return ['object', ordinal, 'stdClass', pairs];
   }
   const entries = Array.isArray(value) ? [...value.entries()] : [...value];
-  return ['array', entries.map(([key, item]) => [keyTree(key), tree(item, state)])];
+  return ['array', entries.map(([key, item]) => [keyTree(key), tree(lib, item, state)])];
 }
 
 export const newState = () => ({ objects: new Map(), references: new Map() });

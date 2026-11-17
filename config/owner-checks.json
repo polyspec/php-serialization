@@ -47,10 +47,10 @@
         "scripts/fuzz.mts",
         "scripts/fuzz-temp.mts",
         "scripts/fuzz-temp.test.mts",
-        "legacy/packages/js/index.js",
-        "legacy/packages/js/tests/*",
-        "legacy/packages/python/src/polyspec/php_serialize/*",
-        "legacy/packages/python/tests/*",
+        "packages/ts/tests/tree.mjs",
+        "packages/ts/tests/probe.mjs",
+        "packages/python/tests/tree.py",
+        "packages/python/tests/probe.py",
         "packages/rust/src/**",
         "packages/rust/examples/**",
         "packages/rust/tests/common/**"
@@ -62,8 +62,6 @@
     {
       "paths": [
         "package.json",
-        "legacy/packages/js/package.json",
-        "legacy/packages/python/pyproject.toml",
         "config/release.json",
         "CHANGELOG.md",
         "CHANGELOG.ko.md",
@@ -106,23 +104,11 @@
         "config/*.json",
         "config/*.yml",
         "LICENSE",
-        "legacy/packages/js/LICENSE",
-        "legacy/packages/python/LICENSE",
         "mise.toml",
         "mise.lock",
         ".mise/**"
       ],
       "targets": []
-    },
-    {
-      "paths": [
-        "legacy/packages/**",
-        "docs/spec/*.md"
-      ],
-      "targets": [
-        "test-js",
-        "test-python"
-      ]
     },
     {
       "paths": [
@@ -155,8 +141,6 @@
       "paths": [
         "**/*.mts",
         "**/*.mjs",
-        "**/*.js",
-        "**/*.ts",
         ".oxlintrc.json",
         "knip.json"
       ],
@@ -237,13 +221,10 @@
     },
     {
       "paths": [
-        "**/*.md",
-        "scripts/check-commit-names.mts",
-        "scripts/commit-names.test.mts"
+        "**/*.md"
       ],
       "targets": [
-        "commit-names-check",
-        "commit-names-test"
+        "commit-names-check"
       ]
     }
   ]

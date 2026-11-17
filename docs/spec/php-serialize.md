@@ -73,9 +73,9 @@ PHP reads these and every package refuses them; the entries `stricter` of the co
 A value that a runtime cannot hold is refused with the error of unserialize, never changed: in Node.js an array or an object of more than 2^24 elements and a string of more than about 2^29 characters. The crate holds every value that fits in the memory of the process; RQ-007 keeps an allocation within the size of the input.
 
 <a id="differences"></a>
-## Differences of the Node.js and Python packages
+## Differences of the removed Node.js and Python packages
 
-Until the generated bindings replace them (RQ-011), the Node.js and Python packages differ from the crate here. Each row is judged: the crate is right, and the bindings take its behaviour.
+The Node.js and Python packages that the generated bindings replaced (RQ-011) differed from the crate here. Each row is judged: the crate is right, and the bindings take its behaviour.
 
 | Behaviour | Node.js and Python | Crate | Judgement |
 | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Until the generated bindings replace them (RQ-011), the Node.js and Python packa
 <a id="transition"></a>
 ## Transition
 
-The Node.js and Python packages are in `legacy/packages/js` and `legacy/packages/python`, and the bindings that binding generates from `packages/rust/interface.json` take `packages/python`, `packages/ts` and `packages/php-ext` (RQ-011). The legacy packages keep their API and their own implementation, are no release target, and run their tests and the fuzz from their new paths, as the reference of the comparison with the bindings. Each is removed by a change of its own once the binding of its language passes the contract, the package tests and the fuzz (plan V-6 (5)); until then [the table above](#differences) lists where they differ from the crate.
+The bindings that binding generates from `packages/rust/interface.json` take `packages/python`, `packages/ts` and `packages/php-ext` (RQ-011). The Node.js and Python packages of `legacy/packages/js` and `legacy/packages/python`, which kept their own implementation as the reference of the comparison, are removed, each by a change of its own (plan V-6 (5)): the binding of each language passes the contract and the package tests, and the fuzz runs on the Node and Python bindings. [The table above](#differences) lists where the removed packages differed from the crate.
 
 ## PHP release build isolation
 

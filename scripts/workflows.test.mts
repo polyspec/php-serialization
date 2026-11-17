@@ -875,3 +875,13 @@ test('the recipes of the jobs of assets.yml install go and run the check of bind
   assert.deepEqual(releaseCheckFindings(sample.replace('ci-assets-platform: ## A job\n\t$(MAKE) --no-print-directory install-tools TOOLS="uv python go"\n\t$(release_check)\n', 'ci-assets-platform: ## A job\n')), ['Makefile: the recipe ci-assets-platform must run $(release_check) once']);
   assert.deepEqual(releaseCheckFindings(readFileSync(join(root, 'Makefile'), 'utf8')), []);
 });
+
+// The release creates and pushes the tag before it builds the archives, so the job shared of CI builds them from the
+// commit with no tag (make release-candidate-assets); kit reads the version from the change log of HEAD (kit K1286), so
+// the recipe names none.
+test('the job shared of CI builds the archives of the release from the commit with no tag', () => {
+  const makefile = readFileSync(join(root, 'Makefile'), 'utf8');
+  const shared = /^CI_SHARED := (.*)$/m.exec(makefile)?.[1]?.split(' ') ?? [];
+  assert.ok(shared.includes('release-candidate-assets'), `the job shared runs ${shared.join(' ')}`);
+  assert.deepEqual(recipeOf(makefile, 'release-candidate-assets'), ['RELEASE_ASSETS=var/release-candidate/assets $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets']);
+});

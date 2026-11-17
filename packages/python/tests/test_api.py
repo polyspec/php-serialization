@@ -1,4 +1,4 @@
-"""The tests of the legacy Python package (legacy/packages/python/tests/test_api.py) that the contract cases do not hold,
+"""The tests of the removed legacy Python package (its tests/test_api.py) that the contract cases do not hold,
 run against the installed Python package.
 
 The groups forms, deep, rejected and stricter of the legacy tests are the groups of contracts/php-serialize.json, which

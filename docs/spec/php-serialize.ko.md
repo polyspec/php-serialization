@@ -1,5 +1,5 @@
 <!-- doc-id: php-serialize-contract -->
-<!-- source-sha256: b55918095687818ac4cc4af20ac9a594e80a845eecbbedb5ed577630d255d851 -->
+<!-- source-sha256: c9032c46dfe962e62d2bfd0af6133b4cce88da1b314db6e4969b1dcd79da3e87 -->
 # PHP serialize 계약
 
 [English](php-serialize.md)
@@ -74,9 +74,9 @@ PHP는 읽지만 모든 패키지가 거부합니다. contract의 `stricter` 항
 runtime이 담을 수 없는 값은 변경하지 않고 unserialize의 오류로 거부합니다. Node.js에서는 2^24개를 넘는 배열이나 객체, 약 2^29자를 넘는 문자열입니다. crate는 프로세스 메모리에 들어가는 모든 값을 담으며, RQ-007이 할당을 입력의 크기 안에 둡니다.
 
 <a id="differences"></a>
-## Node.js와 Python 패키지의 차이
+## 없앤 Node.js와 Python 패키지의 차이
 
-생성된 바인딩이 대체할 때까지(RQ-011) Node.js와 Python 패키지는 다음에서 crate와 다릅니다. 각 행은 판정했으며 crate가 옳고 바인딩은 crate의 동작을 따릅니다.
+생성된 바인딩이 대체한(RQ-011) Node.js와 Python 패키지는 다음에서 crate와 달랐습니다. 각 행은 판정했으며 crate가 옳고 바인딩은 crate의 동작을 따릅니다.
 
 | 동작 | Node.js와 Python | Crate | 판정 |
 | --- | --- | --- | --- |
@@ -87,7 +87,7 @@ runtime이 담을 수 없는 값은 변경하지 않고 unserialize의 오류로
 <a id="transition"></a>
 ## 이행
 
-Node.js와 Python 패키지는 `legacy/packages/js`와 `legacy/packages/python`에 있고, binding이 `packages/rust/interface.json`에서 생성하는 바인딩이 `packages/python`, `packages/ts`, `packages/php-ext`를 차지합니다(RQ-011). legacy 패키지는 API와 자기 구현을 지키고, 배포 대상이 아니며, 바인딩과 비교하는 기준으로 새 경로에서 시험과 fuzz를 실행합니다. 각 패키지는 그 언어의 바인딩이 contract, 패키지 시험, fuzz를 통과하면 그것만의 변경으로 없앱니다(계획 V-6 (5)). 그때까지 [위 표](#differences)가 crate와 다른 곳을 적습니다.
+binding이 `packages/rust/interface.json`에서 생성하는 바인딩이 `packages/python`, `packages/ts`, `packages/php-ext`를 차지합니다(RQ-011). 비교의 기준으로 자기 구현을 지키던 `legacy/packages/js`와 `legacy/packages/python`의 Node.js와 Python 패키지는 각각 그것만의 변경으로 없앴습니다(계획 V-6 (5)). 각 언어의 바인딩이 contract와 패키지 시험을 통과하고, fuzz는 Node와 Python 바인딩에서 돕니다. [위 표](#differences)는 없앤 패키지가 crate와 달랐던 곳을 적습니다.
 
 ## PHP 릴리스 빌드 격리
 

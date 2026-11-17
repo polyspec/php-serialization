@@ -1,4 +1,5 @@
-"""The typed tree of a value, which the contract and the fuzz compare with the tree that PHP writes."""
+"""The typed tree of a value that the binding gives, which the fuzz compares with the tree that PHP writes
+(scripts/php-tree.mts): references and objects are numbered by their first place."""
 
 from __future__ import annotations
 
@@ -6,7 +7,7 @@ import base64
 import math
 import struct
 
-from polyspec.php_serialize import Reference, StdClass
+from polyspec.php_serialization import Reference, StdClass
 
 
 def b64(data: bytes) -> str:
@@ -16,11 +17,11 @@ def b64(data: bytes) -> str:
 def key_tree(key) -> list:
     if isinstance(key, int):
         return ["int", str(key)]
-    return ["string", b64(key.encode("utf-8") if isinstance(key, str) else key)]
+    return ["string", b64(key.encode("utf-8") if isinstance(key, str) else bytes(key))]
 
 
 def tree(value, state: dict) -> list:
-    """The typed tree that the PHP generator writes, with references and objects numbered by first appearance."""
+    """The typed tree of a value of the binding; state holds the numbers of this tree (new_state)."""
     if isinstance(value, Reference):
         known = state["references"].get(id(value))
         if known is not None:

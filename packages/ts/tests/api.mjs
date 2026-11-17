@@ -1,4 +1,4 @@
-// The tests of the legacy JavaScript package (legacy/packages/js/tests/api.test.mjs) that the contract cases do not
+// The tests of the removed legacy JavaScript package (its tests/api.test.mjs) that the contract cases do not
 // hold, run against one JavaScript binding: the Node package or its WASM subpath. api.test.mjs and api.wasm.test.mjs
 // import this module with their binding. The groups forms, deep, rejected and stricter of the legacy tests are the
 // groups of contracts/php-serialize.json, which cases.mjs runs; this module holds the values that a JavaScript program

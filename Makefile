@@ -1,8 +1,8 @@
 # The recipes of php-serialization. Each target runs a utility of the installed @polyspec/kit (node_modules/@polyspec/kit/dist,
 # the built package, also when the folder is a link to a kit checkout) with the arguments that this repository gives it; kit
 # includes no recipe here and sets no setting of a tool (kit docs/spec/utilities-and-recipes.md). The tools read their settings
-# from their own files: npm from .npmrc, mise and uv from mise.toml, ruff from ruff.toml, vulture from the [tool.vulture] of
-# legacy/packages/python/pyproject.toml, oxlint from .oxlintrc.json and knip from knip.json.
+# from their own files: npm from .npmrc, mise and uv from mise.toml, ruff from ruff.toml, oxlint from .oxlintrc.json and knip
+# from knip.json.
 KIT := node_modules/@polyspec/kit/dist
 
 # The tools of every run are the releases that the tracked declaration files name: npm in devEngines.packageManager of
@@ -37,10 +37,10 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check commit-names-test link-check release-coverage typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage release-candidate-assets typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
 CI_FUZZ := fuzz
-CI_TS := lint-ts test-js
-CI_PYTHON := lint-python test-python
+CI_TS := lint-ts
+CI_PYTHON := lint-python
 CI_RUST := lint-rust test-rust bindings-check
 # The targets of the binding tests, which the job bindings of ci.yml runs with make ci-bindings (row T2.9): the release
 # ships the bindings of the five targets as assets, so ci-passed requires their lint and their tests. The job installs every
@@ -49,10 +49,10 @@ CI_RUST := lint-rust test-rust bindings-check
 CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
 CI_REPORT ?= var/report/ci-targets
 
-.PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock php-serialization-install-python link unlink link-check \
-	php-serialization-install-rust build build-js build-python build-rust test test-js test-python test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
-	test-bindings lint-bindings check-declarations test-python-binding node-package test-node test-wasm test-php test-go \
-	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check commit-names-test workflows-test ci-passed release-checkout release-zip \
+.PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock link unlink link-check \
+	php-serialization-install-rust build build-rust test test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
+	test-bindings lint-bindings check-declarations python-package benchmark-python test-python-binding node-package test-node test-wasm test-php test-go \
+	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
 	check ci-shared ci-fuzz ci-ts ci-python ci-rust ci-bindings ci-assets-platform ci-assets-php ci-assets-npm \
@@ -71,12 +71,11 @@ bootstrap: ## Install package-lock.json with the npm of devEngines before the to
 	cd "$${TMPDIR:-/tmp}" && $(ONLINE) npm_config_cache="$$root/var/bootstrap/npm-cache" "$(BOOTSTRAP_NPM)" exec --yes --package="npm@$$version" -- npm --prefix "$$root" ci --ignore-scripts
 
 # install: the mise, node and npm of mise.toml (the bootstrap, which runs on the Node.js of the machine and imports only its
-# built-ins), the packages of package-lock.json, the other tools of mise.toml, then the Python package and the links.
-install: ## Install the tools, the packages, the Python package and the links of the checkout; ONLINE
+# built-ins), the packages of package-lock.json, the other tools of mise.toml, then the Rust toolchain and PHPUnit.
+install: ## Install the tools, the packages, the Rust toolchain and PHPUnit of the checkout; ONLINE
 	$(MAKE) --no-print-directory install-tools TOOLS=npm
 	$(MAKE) --no-print-directory install-packages
 	$(MAKE) --no-print-directory install-tools
-	$(MAKE) --no-print-directory php-serialization-install-python
 	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(MAKE) --no-print-directory install-php-tools
 
@@ -111,17 +110,6 @@ toolchain-lock: ## Write mise.lock with mise lock for the platforms of TOOLCHAIN
 	$(ONLINE) $(MISE) install --locked uv python
 	python="$$($(MISE) which python3)" && UV_PYTHON="$$python" $(ONLINE) $(MISE) lock --global --platform $(TOOLCHAIN_LOCK_PLATFORMS)
 
-# php-serialization-install-python makes legacy/packages/python/.venv from the Python of mise.toml and installs the package into it,
-# non-editable, since the python extractor of kit reads the file list of the installed distribution; link then makes the
-# installed package folder a link to the sources of the checkout when .links names one.
-php-serialization-install-python: ## Make legacy/packages/python/.venv and install the package into it, then link; ONLINE
-	$(NODE) $(KIT)/python-venv.mjs legacy/packages/python/.venv
-	$(ONLINE) $(UV) pip install --python legacy/packages/python/.venv/bin/python --link-mode copy --no-deps legacy/packages/python
-	$(MAKE) --no-print-directory link
-
-# php-serialization-install-rust installs the toolchain of rust-toolchain.toml with rustup and fetches the crates of the root
-# Cargo.lock, so that every Rust recipe and every binding recipe runs with --locked and offline. The tool binding is the npm
-# package of package.json, which make install-packages installs.
 php-serialization-install-rust: ## Install the Rust toolchain of rust-toolchain.toml and fetch the locked crates; ONLINE
 	$(ONLINE) rustup toolchain install --no-self-update
 	$(ONLINE) $(CARGO) fetch --locked
@@ -137,14 +125,9 @@ link-check: ## Fail while the links differ from .links; offline
 	$(NODE) $(KIT)/link-check.mjs
 
 # ---- Build, test, lint ------------------------------------------------------------------------------------------------------
-build: build-js build-python build-rust
-test: test-js test-python test-rust
+build: build-rust
+test: test-rust
 lint: lint-ts lint-python lint-rust
-
-# The build of the package of a runtime with the build of its ecosystem; the JavaScript package has none (kit K1106).
-build-js: ## The JavaScript package has no build step; offline
-build-python: ## Build the Python package with uv build; offline
-	$(NODE) $(KIT)/runtime-targets.mjs build --roots legacy/packages/python -- $(UV) build
 
 # The Rust recipes of the core name its package (-p): the binding crates of the workspace include the sources that make
 # bindings generates, so they build only after it (binding design L-2).
@@ -155,11 +138,6 @@ build-rust: ## Build the Rust crate with cargo; offline
 
 # The unit tests of a runtime with CASES=<pattern>; without CASES, every unit test, which the runner of kit runs only in CI. The
 # runner arguments are those that kit 0.0.98 passed (kit K1094, K1106): one test at a time and the 30 s test timeout of node.
-test-js: ## Run the unit tests of the JavaScript package with the name filter CASES=<pattern>; offline
-	$(NODE) $(KIT)/runtime-targets.mjs test --runner node --roots legacy/packages/js -- --test-timeout=30000 --test-concurrency=1
-test-python: ## Run the unit tests of the Python package with the name filter CASES=<pattern>; offline
-	PYTHONUNBUFFERED=1 NO_COLOR=1 PYTHON_COLORS=0 $(NODE) $(KIT)/runtime-targets.mjs test --runner python --roots legacy/packages/python --venv .venv
-
 test-rust: ## Run the contract and the unit tests of the Rust crate with cargo test, with the name filter CASES=<pattern>; offline
 	$(CARGO) test -p $(CORE) --locked --offline $(CASES)
 
@@ -246,12 +224,27 @@ check-declarations: bindings-node bindings-wasm ## Check the generated declarati
 	$(NODE) node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict packages/ts/wasm/generated/index.d.ts
 
 # The wheel, installed into a virtual environment of the Python of mise.toml; the generated tests (binding G-5) and the
-# contract cases of packages/python/tests. test-python runs the tests of the legacy package until it is removed.
-test-python-binding: bindings-python ## Build the wheel, install it into var/bindings/venv and run the generated tests and the contract cases; offline
+# contract cases of packages/python/tests.
+python-package: bindings-python ## Build the wheel of the Python binding and install it into var/bindings/venv; offline
 	rm -rf $(BINDINGS_VAR)/wheels
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
+
+# benchmark-python measures the Python binding on one array of SIZES entries with the build BUILD of the wheel (release, or
+# debug, the build of the tests), installed into var/benchmark/BUILD: the time to serialize it and to unserialize it. It
+# reports the times and fails on none (T2.49).
+SIZES ?= 8000 16000 32000
+BUILD ?= release
+benchmark-python: bindings-python ## Measure the Python binding of BUILD=release|debug on one array of SIZES entries; offline
+	@test "$(BUILD)" = release || test "$(BUILD)" = debug || { echo 'benchmark-python: BUILD is release or debug'; exit 2; }
+	rm -rf var/benchmark/$(BUILD)/wheels
+	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline $(if $(filter release,$(BUILD)),--release) --out $(CURDIR)/var/benchmark/$(BUILD)/wheels
+	$(NODE) $(KIT)/python-venv.mjs var/benchmark/$(BUILD)/venv
+	$(UV) pip install --offline --python var/benchmark/$(BUILD)/venv/bin/python --no-deps --reinstall var/benchmark/$(BUILD)/wheels/*.whl
+	var/benchmark/$(BUILD)/venv/bin/python benchmarks/large_array.py $(SIZES)
+
+test-python-binding: python-package ## Run the generated tests and the contract cases of the Python binding on the installed wheel; offline
 	cd $(BINDINGS_VAR) && venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/generated/tests -t $(CURDIR)/packages/python/generated/tests
 	cd $(BINDINGS_VAR) && $(CONTRACTS_ENV) venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/tests -t $(CURDIR)/packages/python/tests
 
@@ -330,9 +323,12 @@ contracts-check: ## Fail when real PHP writes another contracts/php-serialize.js
 	$(NODE) scripts/contracts.mts --check
 
 # fuzz gives corrupted and generated input and the bytes of random values of PHP, with a fixed seed, to real PHP, to the Rust
-# crate, whose probe it builds first, and to the Node.js and Python packages (scripts/fuzz.mts).
-fuzz: fuzz-temp-test ## Compare the Rust crate and both ports with real PHP on corrupted and generated input; offline
+# crate, whose probe it builds first, and to the Node and Python bindings, which it builds and installs first and whose
+# probes are packages/ts/tests/probe.mjs, copied beside the installed package, and packages/python/tests/probe.py
+# (scripts/fuzz.mts).
+fuzz: fuzz-temp-test node-package python-package ## Compare the Rust crate and the Node and Python bindings with real PHP on corrupted and generated input; offline
 	$(CARGO) build -p $(CORE) --locked --offline --release --example probe
+	cp packages/ts/tests/tree.mjs packages/ts/tests/probe.mjs $(BINDINGS_VAR)/node/
 	$(NODE) scripts/fuzz.mts
 
 # fuzz-temp-test checks that a run removes the directory that a killed run left.
@@ -353,12 +349,9 @@ docs-check: ## Check the documents of config/documents.json and the checklists o
 workflows-test: ## Run the test of the rules of the GitHub workflows; offline
 	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/workflows.test.mts
 
-# No tracked document names a Git commit (AGENTS.md, "Tools"); commit-names-test tests the checker.
+# No tracked document names a Git commit (AGENTS.md, "Tools"): the check is a utility of kit, which tests it.
 commit-names-check: ## Fail while a tracked document names a Git commit; offline
-	$(NODE) scripts/check-commit-names.mts
-
-commit-names-test: ## Run the test of the checker of commit names; offline
-	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/commit-names.test.mts
+	$(NODE) $(KIT)/commit-names-check.mjs
 
 rules-check: ## Check that every rule of AGENTS.md names a check that CI runs; offline
 	$(NODE) $(KIT)/check-rules.mjs AGENTS.md
@@ -398,20 +391,16 @@ ci-shared: ## The job shared: install alint, PHP and Python, then run CI_SHARED 
 ci-passed: ## Fail unless every job of RESULTS, the JSON of toJSON(needs), has the result success; FAIL_SKIPPED=1 fails a skipped job
 	$(NODE) $(KIT)/ci-passed.mjs
 
-ci-fuzz: ## The job fuzz: install PHP, Python, uv, the Python package and the Rust toolchain, then run CI_FUZZ past failures; ONLINE
-	$(MAKE) --no-print-directory install-tools TOOLS="php python uv"
-	$(MAKE) --no-print-directory php-serialization-install-python
+ci-fuzz: ## The job fuzz: install every tool and the Rust toolchain, then run CI_FUZZ past failures; ONLINE
+	$(MAKE) --no-print-directory install-tools
 	$(MAKE) --no-print-directory php-serialization-install-rust
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_FUZZ)
 
-ci-ts: ## The job ts: build the JavaScript package, then run CI_TS past failures into CI_REPORT
-	$(MAKE) --no-print-directory build-js
+ci-ts: ## The job ts: run CI_TS, the lint of the TypeScript and the JavaScript of the checkout, past failures into CI_REPORT
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_TS)
 
-ci-python: ## The job python: install the Python tools and the package and build it, then run CI_PYTHON past failures; ONLINE
+ci-python: ## The job python: install the Python tools, then run CI_PYTHON, the lint of the Python of the checkout, past failures; ONLINE
 	$(MAKE) --no-print-directory install-tools TOOLS="python uv ruff vulture"
-	$(MAKE) --no-print-directory php-serialization-install-python
-	$(MAKE) --no-print-directory build-python
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_PYTHON)
 
 ci-rust: ## The job rust: install the Rust toolchain and the locked crates, then run CI_RUST past failures; ONLINE
@@ -550,11 +539,12 @@ release-assets: ## Build the archive of every package of TAG into var/release/as
 	@test -n "$$TAG" || { echo "release-assets: TAG is required, for example make release-assets TAG=v0.0.1"; exit 1; }
 	RELEASE_ASSETS=var/release/assets $(ONLINE) $(NODE) $(KIT)/release.mjs assets "$$TAG"
 
-# release-candidate-assets builds the same archives from the committed HEAD at VERSION, without a tag, so that a change of
-# config/release.json is proved before a release.
-release-candidate-assets: ## Build the archive of every package of HEAD at VERSION into RELEASE_ASSETS without a tag; ONLINE
-	@test -n "$$VERSION" || { echo "release-candidate-assets: VERSION is required, for example make release-candidate-assets VERSION=0.0.1"; exit 1; }
-	RELEASE_ASSETS=$(RELEASE_ASSETS) $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets "$$VERSION"
+# release-candidate-assets runs the archive steps of release-assets on the committed HEAD with no tag: the release creates
+# and pushes the tag before it builds the archives, so without this target a failure of those steps first shows after the
+# tag. kit refuses a checkout with a changed or an untracked path, and packs the version that the release would take, the
+# first section `## X.Y.Z` of the CHANGELOG.md of HEAD (kit K1286).
+release-candidate-assets: ## Build the archive of every package of the committed HEAD into var/release-candidate/assets with no tag; ONLINE
+	RELEASE_ASSETS=var/release-candidate/assets $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets
 
 release-publish: ## Create the GitHub Release of TAG as a draft with its notes and the files of release-assets
 	@test -n "$$TAG" || { echo "release-publish: TAG is required, for example make release-publish TAG=v0.0.1"; exit 1; }

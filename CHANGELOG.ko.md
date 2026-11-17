@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 63f8cf0b2e9d210dbcc29648805c49b2f94078d0f489b46c70589827a75d9809 -->
+<!-- source-sha256: 352fba208ea384140bdd79a6c67b94b7520be0ac73f35cbb7d75816500b26e06 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -12,6 +12,16 @@
   `VERIFICATION_KO`를 넘긴다.
 - `assets.yml`의 job은 binding의 검사 앞에서 go를 설치하고, release하지 않을 때는 `bindings-check`를 돈다(T2.48).
   그래서 release가 도는 것을 CI가 release의 각 runner에서 돈다.
+- `make commit-names-check`는 kit의 commit 이름 검사를 돈다(T2.4-1). 저장소마다 갖고 있던 사본인
+  `scripts/check-commit-names.mts`와 그 시험을 지운다.
+- legacy Node.js 패키지 `legacy/packages/js`를 없앴다(T2.2). `packages/ts`의 Node 바인딩이 contract와 패키지 시험을
+  통과하고, fuzz는 Node와 Python 바인딩에서 돈다. private인 루트 `package.json`은 아무것도 내보내지 않는다.
+- legacy Python 패키지 `legacy/packages/python`을 없앴고(T2.2), 폴더 `legacy`와 layout의 예외도 함께 없앴다.
+  `packages/python`, `packages/ts`, `packages/php-ext`의 바인딩이 각 언어의 패키지다.
+- kit을 release 0.0.121에 고정하고(T2.51), `make release-candidate-assets`는 tag 없이 커밋된 HEAD에서 release의 archive를
+  만든다. CI의 job shared가 그것을 돈다(T2.50).
+- `make benchmark-python BUILD=release|debug`는 원소가 많은 배열 하나로 Python 바인딩을 재며 시간으로는 실패하지
+  않는다(T2.49). 시험이 쓰는 debug 빌드는 그런 배열을 원소 수의 거의 제곱으로 느는 시간에 읽고, release 빌드는 그렇지 않다.
 
 ## 0.0.15
 
