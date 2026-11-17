@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-rust-core -->
-<!-- source-sha256: 0d1b37fa253baeab66b828bfeccfc5ae683c01709c91451f75a98c97360a2368 -->
+<!-- source-sha256: 6f3cfd3ae9677235a797bf2eeac1b936846ad39f7277787a03a7a4d463bebec3 -->
 # Rust 코어 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -61,3 +61,4 @@
 | T2.46 | binding 0.0.17(session-store의 binding)로 0.0.15를 낸다: `make binding-pin BINDING_TAG=v0.0.17`이 tag 일곱 줄, asset, 두 lock을 고정하고, `make release-version VERSION=0.0.15`가 version이 있는 manifest, lock, changelog에 0.0.15를 쓴다 | `package.json`, `Cargo.lock`, `CHANGELOG.md` | `make binding-pin BINDING_TAG=v0.0.17`; `make release-version VERSION=0.0.15` | [o] |
 | T2.47 | 그래프의 다른 저장소가 쓰는 kit 0.0.119를 고정한다. `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고 `package-lock.json`이 그 integrity를 고정한다. `make item-new`는 kit 0.0.119의 plan 도구가 요구하는 `DELIVERABLES_KO`와 `VERIFICATION_KO`를 넘긴다 | `package.json`, `package-lock.json`, `Makefile`, `CHANGELOG.md` | `make check` | [ ] |
 | T2.48 | assets.yml의 각 job이 release가 필요로 하는 도구로 binding의 검사를 돈다. `ci-assets-platform`, `ci-assets-php`, `ci-assets-npm`이 go를 설치한다. binding check는 packages/go의 go.sum을 go로 읽는다(binding CK-19. go가 없는 job은 http-negotiation의 release 0.0.4처럼 `spawnSync go ENOENT`로 실패한다). job이 release하지 않을 때는 `bindings-check`를 돌아, release가 도는 것을 CI가 release의 각 runner에서 돈다. `scripts/workflows.test.mts`는 검사 앞에서 go를 설치하지 않거나 `RELEASE=true` 없이 검사를 돌지 않는 recipe에서 실패한다 | `Makefile`, `scripts/workflows.test.mts`, `CHANGELOG.md` | `make workflows-test` | [v] |
+| T2.49 | Python binding의 API 시험 8개가 시간을 어디에 쓰는지 잰다. 0.0.15의 CI run에서 `make test-python-binding`은 314초였고 그 가운데 생성 시험 1309개는 약 2초다. 시험마다의 시간과, 그 시간이 Python에서 값을 만드는 데 드는지, binding의 경계를 넘는 데 드는지, 코어에서 드는지를 수와 함께 적는다. 시험을 줄이거나 건너뛰지 않는다. 경계의 비용은 binding의 속도 행에 닿는 사실이다 | `docs/plans/rust-core/checklist.md` | 잰 수가 행에 있다 | [~] |
