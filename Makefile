@@ -51,7 +51,7 @@ CI_REPORT ?= var/report/ci-targets
 
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock link unlink link-check \
 	php-serialization-install-rust build build-rust test test-rust lint lint-ts lint-python lint-rust typecheck bindings $(BINDING_PHONY) bindings-check \
-	test-bindings lint-bindings check-declarations python-package test-python-binding node-package test-node test-wasm test-php test-go \
+	test-bindings lint-bindings check-declarations python-package benchmark-python test-python-binding node-package test-node test-wasm test-php test-go \
 	contracts contracts-check fuzz fuzz-temp-test binding-features-test release-manifests-test release-version binding-pin cargo-link-test commit-names-check workflows-test ci-passed release-checkout release-zip \
 	layout-check docs-check rules-check owner-check owner-validate rebuild-check language-check \
 	duplication-check suppression-check \
@@ -230,6 +230,19 @@ python-package: bindings-python ## Build the wheel of the Python binding and ins
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
+
+# benchmark-python measures the Python binding on one array of SIZES entries with the build BUILD of the wheel (release, or
+# debug, the build of the tests), installed into var/benchmark/BUILD: the time to serialize it and to unserialize it. It
+# reports the times and fails on none (T2.49).
+SIZES ?= 8000 16000 32000
+BUILD ?= release
+benchmark-python: bindings-python ## Measure the Python binding of BUILD=release|debug on one array of SIZES entries; offline
+	@test "$(BUILD)" = release || test "$(BUILD)" = debug || { echo 'benchmark-python: BUILD is release or debug'; exit 2; }
+	rm -rf var/benchmark/$(BUILD)/wheels
+	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline $(if $(filter release,$(BUILD)),--release) --out $(CURDIR)/var/benchmark/$(BUILD)/wheels
+	$(NODE) $(KIT)/python-venv.mjs var/benchmark/$(BUILD)/venv
+	$(UV) pip install --offline --python var/benchmark/$(BUILD)/venv/bin/python --no-deps --reinstall var/benchmark/$(BUILD)/wheels/*.whl
+	var/benchmark/$(BUILD)/venv/bin/python benchmarks/large_array.py $(SIZES)
 
 test-python-binding: python-package ## Run the generated tests and the contract cases of the Python binding on the installed wheel; offline
 	cd $(BINDINGS_VAR) && venv/bin/python -m unittest discover -s $(CURDIR)/packages/python/generated/tests -t $(CURDIR)/packages/python/generated/tests

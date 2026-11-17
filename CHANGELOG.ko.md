@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 583c8e2cacbef620ae8b279b8ec070fa2086f194521e9854389907c81096f09f -->
+<!-- source-sha256: 2eb990c7eeab2af3bf80a2dfabceb4989ad4266684ade2c497fd3bc7f09aca41 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
@@ -20,6 +20,8 @@
   `packages/python`, `packages/ts`, `packages/php-ext`의 바인딩이 각 언어의 패키지다.
 - kit을 release 0.0.120에 고정하고, `make release-candidate-assets`는 tag 없이 커밋된 HEAD에서 release의 archive를
   만든다. CI의 job shared가 그것을 돈다(T2.50).
+- `make benchmark-python BUILD=release|debug`는 원소가 많은 배열 하나로 Python 바인딩을 재며 시간으로는 실패하지
+  않는다(T2.49). 시험이 쓰는 debug 빌드는 그런 배열을 원소 수의 거의 제곱으로 느는 시간에 읽고, release 빌드는 그렇지 않다.
 
 ## 0.0.15
 
