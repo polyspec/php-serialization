@@ -379,7 +379,7 @@ function phpMinorFindings(file: string, text: string, minors: string[], makefile
 
 // The targets of the binding tests that the job bindings of the workflow ci runs through make ci-bindings: the lint and the
 // declarations of the bindings, and the tests of each of the five targets of the contract (binding BD-27).
-const BINDING_TESTS = ['lint-bindings', 'check-declarations', 'test-python-binding', 'test-node', 'test-wasm', 'test-php', 'test-go'];
+const BINDING_TESTS = ['lint-bindings', 'check-declarations', 'test-python-binding', 'python-source-import', 'test-node', 'test-wasm', 'test-php', 'test-go'];
 
 /**
  * The findings of the binding tests of the workflow ci: a job bindings runs `make ci-bindings`, ci-passed needs it, and
