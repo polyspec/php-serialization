@@ -537,7 +537,7 @@ release-tag: ## Tag the commit of the successful CI run RUN of ci.yml on main wi
 # release-go-module-rehearsal rehearses the Go module of the newest version that CHANGELOG.md records (scripts/rehearsal-version.mts)
 # on HEAD with no tag (T2.54): that version is the TAG of rehearse-go-module, whose inputs its prerequisites build.
 .PHONY: release-go-module-rehearsal
-release-go-module-rehearsal: ## Rehearse the Go module of the newest version of CHANGELOG.md on HEAD with no tag; offline
+release-go-module-rehearsal: release-recipes ## Rehearse the Go module of the newest version of CHANGELOG.md on HEAD with no tag; offline
 	$(MAKE) --no-print-directory rehearse-go-module TAG="$$($(NODE) scripts/rehearsal-version.mts)"
 
 release-zip: ## Fail unless zip, which Composer needs for the release archives, is on PATH
