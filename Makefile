@@ -46,7 +46,7 @@ CI_RUST := lint-rust test-rust bindings-check
 # ships the bindings of the five targets as assets, so ci-passed requires their lint and their tests. The job installs every
 # tool of mise.toml (make install-tools), the crates of make php-serialization-install-rust and the PHPUnit of
 # make install-php-tools.
-CI_BINDINGS := lint-bindings check-declarations test-python-binding test-node test-wasm test-php test-go
+CI_BINDINGS := lint-bindings check-declarations test-python-binding python-source-import test-node test-wasm test-php test-go
 CI_REPORT ?= var/report/ci-targets
 
 .PHONY: ci-release-tag ci-release-release bootstrap install install-tools install-packages install-php-tools php-tools-lock toolchain-lock link unlink link-check \
