@@ -18,6 +18,10 @@
       "kind": "policy",
       "reason": "compares the ports with real PHP on corrupted and generated input, the proof of this repository; it needs PHP as the oracle and the typed tree of the contract"
     },
+    "scripts/rehearsal-version.mts": {
+      "kind": "policy",
+      "reason": "reads the version of the release from CHANGELOG.md for the rehearsal of the Go module, a rule of this repository (T2.54)"
+    },
     "scripts/release-manifests.mts": {
       "kind": "record",
       "record": "docs/rebuild/release-manifests.md"
