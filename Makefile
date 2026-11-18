@@ -230,6 +230,8 @@ python-package: bindings-python ## Build the wheel of the Python binding and ins
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
+	rm -rf $(BINDINGS_VAR)/native && unzip -q $(BINDINGS_VAR)/wheels/*.whl 'polyspec/php_serialization/_native*.so' -d $(BINDINGS_VAR)/native
+	cp $(BINDINGS_VAR)/native/polyspec/php_serialization/_native*.so packages/python/generated/python/polyspec/php_serialization/
 
 # benchmark-python measures the Python binding on one array of SIZES entries with the build BUILD of the wheel (release, or
 # debug, the build of the tests), installed into var/benchmark/BUILD: the time to serialize it and to unserialize it. It
