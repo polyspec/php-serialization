@@ -37,7 +37,7 @@ ONLINE := env -u npm_config_offline
 
 # The targets of each CI job (.github/workflows/ci.yml), which ci-targets of kit runs past failures into CI_REPORT; make check
 # runs all of them once.
-CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage release-candidate-assets typecheck contracts-check binding-features-test release-manifests-test cargo-link-test
+CI_SHARED := workflows-test layout-check docs-check rules-check owner-validate rebuild-check language-check duplication-check suppression-check commit-names-check link-check release-coverage release-candidate-assets typecheck contracts-check binding-features-test release-manifests-test cargo-link-test release-go-module-rehearsal
 CI_FUZZ := fuzz
 CI_TS := lint-ts
 CI_PYTHON := lint-python
@@ -356,7 +356,7 @@ docs-check: ## Check the documents of config/documents.json and the checklists o
 
 # The rules of the GitHub workflows (AGENTS.md, "CI and release"), on the installed test runner of kit.
 workflows-test: ## Run the test of the rules of the GitHub workflows; offline
-	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/workflows.test.mts
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/workflows.test.mts scripts/rehearsal-version.test.mts
 
 # No tracked document names a Git commit (AGENTS.md, "Tools"): the check is a utility of kit, which tests it.
 commit-names-check: ## Fail while a tracked document names a Git commit; offline
@@ -526,6 +526,12 @@ land: ## Land the branch BRANCH on main fast-forward and remove its worktree; of
 release-tag: ## Tag the commit of the successful CI run RUN of ci.yml on main with the newest version of its change log; AUTO for workflow_run
 	@test -n "$$RUN" || { echo "release-tag: RUN is required, for example make release-tag RUN=123"; exit 1; }
 	RELEASE_MAIN=origin/main $(NODE) $(KIT)/release-run.mjs tag "$$RUN"$(if $(AUTO), --auto)
+
+# release-go-module-rehearsal rehearses the Go module of the newest version that CHANGELOG.md records (scripts/rehearsal-version.mts)
+# on HEAD with no tag (T2.54): that version is the TAG of rehearse-go-module, whose inputs its prerequisites build.
+.PHONY: release-go-module-rehearsal
+release-go-module-rehearsal: ## Rehearse the Go module of the newest version of CHANGELOG.md on HEAD with no tag; offline
+	$(MAKE) --no-print-directory rehearse-go-module TAG="$$($(NODE) scripts/rehearsal-version.mts)"
 
 release-zip: ## Fail unless zip, which Composer needs for the release archives, is on PATH
 	@command -v zip >/dev/null || { echo 'release-zip: Info-ZIP is required for Composer release archives; install the zip package on the Ubuntu runner'; exit 1; }
