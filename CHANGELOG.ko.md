@@ -7,6 +7,11 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- 바인딩을 release 0.0.22에 고정한다(T2.53). 매니페스트는 `polyspec-binding-core`의 태그 v0.0.22와 `@polyspec/binding` 0.0.22의 release asset을 적고, lock은 그것을 따른다.
+- Go 모듈의 release 리허설은 CHANGELOG.md에서 버전을 읽고, release 레시피 뒤에 돈다(T2.54, T2.56).
+- release의 Python 소스는 wheel의 네이티브 모듈을 받고, 소스 import가 그 모듈이 그 소스 아래에 있는지 확인한다(T2.55).
+- CI의 shared job이 리허설에 필요한 go를 설치한다(T2.57).
+
 ## 0.0.16
 
 - kit을 release 0.0.119에 고정한다(T2.47). `package.json`은 `@polyspec/kit` 0.0.119의 release asset을 적고

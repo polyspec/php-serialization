@@ -6,6 +6,13 @@
 <a id="unreleased"></a>
 ## Unreleased
 
+- The binding is pinned at its release 0.0.22 (T2.53): the manifests name the tag v0.0.22 of `polyspec-binding-core` and the
+  release asset of `@polyspec/binding` 0.0.22, and the locks follow them.
+- The release rehearsal of the Go module reads its version from CHANGELOG.md and runs after the release recipes (T2.54, T2.56).
+- The Python source of the release gets the native module of the wheel, and the source import checks that the module lies
+  under that source (T2.55).
+- The shared job of CI installs go, which the rehearsal of the Go module needs (T2.57).
+
 ## 0.0.16
 
 - kit is pinned at its release 0.0.119 (T2.47): `package.json` names the release asset of `@polyspec/kit` 0.0.119, whose
