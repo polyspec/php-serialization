@@ -363,7 +363,7 @@ docs-check: ## Check the documents of config/documents.json and the checklists o
 
 # The rules of the GitHub workflows (AGENTS.md, "CI and release"), on the installed test runner of kit.
 workflows-test: ## Run the test of the rules of the GitHub workflows; offline
-	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/workflows.test.mts scripts/rehearsal-version.test.mts
+	$(NODE) $(KIT)/run-tests.mjs node -- --test-concurrency=1 scripts/workflows.test.mts scripts/rehearsal-version.test.mts scripts/release-recipes.test.mts
 
 # No tracked document names a Git commit (AGENTS.md, "Tools"): the check is a utility of kit, which tests it.
 commit-names-check: ## Fail while a tracked document names a Git commit; offline
