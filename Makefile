@@ -233,6 +233,7 @@ python-package: bindings-python ## Build the wheel of the Python binding and ins
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
+	test "$$(ls $(BINDINGS_VAR)/wheels/*.whl 2>/dev/null | wc -l | tr -d ' ')" = 1 || { echo "python-package: $(BINDINGS_VAR)/wheels must hold exactly one wheel, the one of this build, to take the native module from" >&2; exit 1; }
 	rm -rf $(BINDINGS_VAR)/native && unzip -q $(BINDINGS_VAR)/wheels/*.whl 'polyspec/php_serialization/_native*.so' -d $(BINDINGS_VAR)/native
 	rm -rf packages/python/generated/python/polyspec/php_serialization/.native-stage && mkdir packages/python/generated/python/polyspec/php_serialization/.native-stage
 	cp $(BINDINGS_VAR)/native/polyspec/php_serialization/_native*.so packages/python/generated/python/polyspec/php_serialization/.native-stage/
