@@ -225,13 +225,19 @@ check-declarations: bindings-node bindings-wasm ## Check the generated declarati
 
 # The wheel, installed into a virtual environment of the Python of mise.toml; the generated tests (binding G-5) and the
 # contract cases of packages/python/tests.
+# The native module is copied into the Python source of the release (T2.55) from the wheel of this same locked build, never
+# rebuilt, and the copy is one rename into place: binding writes the native module to python-source/<module>._binding._native
+# (packages.ts:316-318), and kit's link-folders says the provider builds it into that source root (link-folders.mts:257-259).
 python-package: bindings-python ## Build the wheel of the Python binding and install it into var/bindings/venv; offline
 	rm -rf $(BINDINGS_VAR)/wheels
 	MATURIN=$(MATURIN) $(NODE) $(KIT)/link.mjs maturin $(CURDIR)/packages/python build --locked --offline --features $(PYTHON_FEATURES) --out $(BINDINGS_VAR)/wheels
 	$(NODE) $(KIT)/python-venv.mjs var/bindings/venv
 	$(UV) pip install --offline --python $(BINDINGS_VAR)/venv/bin/python --no-deps --reinstall $(BINDINGS_VAR)/wheels/*.whl
 	rm -rf $(BINDINGS_VAR)/native && unzip -q $(BINDINGS_VAR)/wheels/*.whl 'polyspec/php_serialization/_native*.so' -d $(BINDINGS_VAR)/native
-	cp $(BINDINGS_VAR)/native/polyspec/php_serialization/_native*.so packages/python/generated/python/polyspec/php_serialization/
+	rm -rf packages/python/generated/python/polyspec/php_serialization/.native-stage && mkdir packages/python/generated/python/polyspec/php_serialization/.native-stage
+	cp $(BINDINGS_VAR)/native/polyspec/php_serialization/_native*.so packages/python/generated/python/polyspec/php_serialization/.native-stage/
+	mv -f packages/python/generated/python/polyspec/php_serialization/.native-stage/_native*.so packages/python/generated/python/polyspec/php_serialization/
+	rm -rf packages/python/generated/python/polyspec/php_serialization/.native-stage
 
 # benchmark-python measures the Python binding on one array of SIZES entries with the build BUILD of the wheel (release, or
 # debug, the build of the tests), installed into var/benchmark/BUILD: the time to serialize it and to unserialize it. It
