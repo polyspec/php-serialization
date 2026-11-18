@@ -400,8 +400,8 @@ suppression-check: ## Fail on a suppression of a lint finding without its reason
 # runs the installs and the prerequisites of its job first, which stop at a failure, then the checks or the builds of the
 # job with ci-targets past failures into CI_REPORT; its status is that of the checks. The other steps of a job only provision
 # the runner (checkout, setup-php, the bootstrap action) or carry a result (upload-artifact).
-ci-shared: ## The job shared: install alint, PHP and Python, then run CI_SHARED past failures into CI_REPORT; ONLINE
-	$(MAKE) --no-print-directory install-tools TOOLS="alint php python"
+ci-shared: ## The job shared: install alint, Go, PHP and Python, then run CI_SHARED past failures into CI_REPORT; ONLINE
+	$(MAKE) --no-print-directory install-tools TOOLS="alint go php python"
 	$(NODE) $(KIT)/ci-targets.mjs -k $(CI_REPORT) $(CI_SHARED)
 
 ci-passed: ## Fail unless every job of RESULTS, the JSON of toJSON(needs), has the result success; FAIL_SKIPPED=1 fails a skipped job
