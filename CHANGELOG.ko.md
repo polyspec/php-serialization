@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: bd46ce8dab193341f3443d31f449258f6454a9171ef456b759c308419d476af8 -->
+<!-- source-sha256: aecb92caa5c29ce6e01bc168004fb7554e9eec23bda0f92ade6bce87b63f3f92 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 <a id="unreleased"></a>
 ## Unreleased
+
+## 0.0.17
 
 - 바인딩을 release 0.0.22에 고정한다(T2.53). 매니페스트는 `polyspec-binding-core`의 태그 v0.0.22와 `@polyspec/binding` 0.0.22의 release asset을 적고, lock은 그것을 따른다.
 - Go 모듈의 release 리허설은 CHANGELOG.md에서 버전을 읽고, release 레시피 뒤에 돈다(T2.54, T2.56).
