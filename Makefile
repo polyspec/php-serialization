@@ -240,11 +240,12 @@ python-package: bindings-python ## Build the wheel of the Python binding and ins
 	mv -f packages/python/generated/python/polyspec/php_serialization/.native-stage/_native*.so packages/python/generated/python/polyspec/php_serialization/
 	rm -rf packages/python/generated/python/polyspec/php_serialization/.native-stage
 
-# python-source-import imports the native module from the Python source of the release (T2.55), with that source first on
-# PYTHONPATH, and fails unless the module file lies under it: test-python-binding runs on the installed wheel alone.
+# python-source-import imports the native module from the Python source of the release (T2.55): the source directory is the
+# working directory, which puts it first on the import path (no environment variable, rule S5), and it fails unless the module file lies under
+# it. test-python-binding runs on the installed wheel alone.
 .PHONY: python-source-import
 python-source-import: python-package ## Import the native module from the Python source of the release, not the installed wheel; offline
-	cd $(BINDINGS_VAR) && PYTHONPATH=$(CURDIR)/packages/python/generated/python venv/bin/python -c "import os, polyspec.php_serialization._native as n; src = os.path.realpath('$(CURDIR)/packages/python/generated/python'); assert os.path.realpath(n.__file__).startswith(src + os.sep), n.__file__"
+	cd $(CURDIR)/packages/python/generated/python && $(abspath $(BINDINGS_VAR))/venv/bin/python -c "import os, polyspec.php_serialization._native as n; assert os.path.realpath(n.__file__).startswith(os.path.realpath(os.getcwd()) + os.sep), n.__file__"
 
 # benchmark-python measures the Python binding on one array of SIZES entries with the build BUILD of the wheel (release, or
 # debug, the build of the tests), installed into var/benchmark/BUILD: the time to serialize it and to unserialize it. It
