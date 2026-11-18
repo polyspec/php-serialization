@@ -885,3 +885,12 @@ test('the job shared of CI builds the archives of the release from the commit wi
   assert.ok(shared.includes('release-candidate-assets'), `the job shared runs ${shared.join(' ')}`);
   assert.deepEqual(recipeOf(makefile, 'release-candidate-assets'), ['RELEASE_ASSETS=var/release-candidate/assets $(ONLINE) $(NODE) $(KIT)/release.mjs candidate-assets']);
 });
+
+// The job check of CI rehearses the Go module of the release on the committed HEAD with no tag and pushes nothing, so a
+// failure of the Go module shows before the tag (T2.54, B2.539).
+test('the job check of CI rehearses the Go module of the release with no tag', () => {
+  const makefile = readFileSync(join(root, 'Makefile'), 'utf8');
+  const shared = /^CI_SHARED := (.*)$/m.exec(makefile)?.[1]?.split(' ') ?? [];
+  assert.ok(shared.includes('release-go-module-rehearsal'), `CI_SHARED does not run release-go-module-rehearsal: ${shared.join(' ')}`);
+  assert.match(makefile, /^release-go-module-rehearsal:/m, 'the Makefile has no target release-go-module-rehearsal');
+});
