@@ -25,7 +25,8 @@ function dryRunOfTracked(t: { after: (fn: () => void) => void }, prefix: string,
   try {
     return execFileSync('make', ['--dry-run', '--no-print-directory', target], { cwd: copy, encoding: 'utf8', env: { ...process.env, MAKEFLAGS: '', MAKELEVEL: '' }, stdio: ['ignore', 'pipe', 'ignore'] });
   } catch (error) {
-    return (error as { stdout?: string }).stdout ?? '';
+    if (error instanceof Error && 'stdout' in error && typeof error.stdout === 'string') return error.stdout;
+    return '';
   }
 }
 
