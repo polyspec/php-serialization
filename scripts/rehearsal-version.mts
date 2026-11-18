@@ -8,27 +8,27 @@ import { pathToFileURL } from 'node:url';
 
 const EXACT_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/;
 
-export function rehearsalVersion(text) {
-  const titles = [];
+export function rehearsalVersion(text: string): string {
+  const titles: string[] = [];
   for (const line of text.split('\n')) {
-    const match = /^## (.*)$/.exec(line);
-    if (match) titles.push(match[1]);
+    const title = /^## (.*)$/.exec(line)?.[1];
+    if (title !== undefined) titles.push(title);
   }
-  let first = titles[0];
-  if (first === undefined) throw new Error('CHANGELOG.md has no ## heading');
-  if (first === 'Unreleased') {
-    first = titles[1];
-    if (first === undefined) throw new Error('CHANGELOG.md has ## Unreleased and no ## heading after it');
+  const unreleased = titles[0] === 'Unreleased';
+  const heading: string | undefined = unreleased ? titles[1] : titles[0];
+  if (heading === undefined) {
+    throw new Error(unreleased ? 'CHANGELOG.md has ## Unreleased and no ## heading after it' : 'CHANGELOG.md has no ## heading');
   }
-  if (!EXACT_VERSION.test(first)) throw new Error(`the first version heading of CHANGELOG.md is "## ${first}", which is not X.Y.Z`);
-  return `v${first}`;
+  if (!EXACT_VERSION.test(heading)) throw new Error(`the first version heading of CHANGELOG.md is "## ${heading}", which is not X.Y.Z`);
+  return `v${heading}`;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+const entry = process.argv[1];
+if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
   try {
     process.stdout.write(`${rehearsalVersion(readFileSync('CHANGELOG.md', 'utf8'))}\n`);
   } catch (error) {
-    console.error(`rehearsal-version: ${error.message}`);
+    console.error(`rehearsal-version: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
